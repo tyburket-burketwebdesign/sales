@@ -2,7 +2,14 @@
 const { neon } = require('@neondatabase/serverless');
 const crypto = require('crypto');
 
-const sql = neon(process.env.DATABASE_URL || '');
+let _sql = null;
+function sql(strings) {
+  if (!_sql) {
+    if (!process.env.DATABASE_URL) throw new Error('DATABASE_URL is not set. In Vercel: Storage tab -> Create Database -> Postgres (Neon), then redeploy.');
+    _sql = neon(process.env.DATABASE_URL);
+  }
+  return _sql.apply(null, arguments);
+}
 
 function hashPass(p) {
   return crypto.createHmac('sha256', process.env.APP_SECRET || 'bwd-secret').update(String(p)).digest('hex');
