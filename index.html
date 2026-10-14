@@ -205,6 +205,7 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--m
       <div><label>Industry</label><select id="industry"></select></div>
       <div style="flex:1;min-width:110px"><label>Or any town (PA)</label><input id="customCity" placeholder="e.g. Bedford"></div>
       <button class="btn-go" id="goBtn" onclick="hunt()">Build My 50 &rarr;</button>
+      <button class="btn-ghost" onclick="reattack()" title="Rebuild a list from no-answers older than 30 days">&#9851; Re-attack</button>
     </div>
     <div class="hint" id="suggestHint"></div>
     <div id="dueTodayBanner"></div>
@@ -213,6 +214,7 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--m
   <div class="tabs" id="tabbar">
     <button id="tab-today" class="on" onclick="showTab('today')">Dialer</button>
     <button id="tab-past" onclick="showTab('past')">Past Calls <span id="dueBadge" class="tag t-cb" style="display:none"></span></button>
+    <button id="tab-meet" onclick="showTab('meet')">Meetings</button>
     <button id="tab-seq" onclick="showTab('seq')">Sequences</button>
     <button id="tab-comm" onclick="showTab('comm')">Commissions</button>
     <button id="tab-owner" style="display:none" onclick="showTab('owner')">Owner <span id="apprBadge" class="tag t-cb" style="display:none"></span></button>
@@ -248,6 +250,10 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--m
       <div class="bars" id="chart"></div>
       <div style="height:18px"></div>
     </div>
+    <div class="g2">
+      <div class="card"><b style="font-size:15px">When they pick up</b><div class="hint">Connect rate by hour, all your calls.</div><div class="bars" id="hourChart"></div><div style="height:18px"></div></div>
+      <div class="card"><b style="font-size:15px">Industry scoreboard</b><div id="indRows" class="hint" style="line-height:2.1;margin-top:8px"></div></div>
+    </div>
   </div>
 
   <div class="card" id="view-past" style="display:none">
@@ -262,6 +268,17 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--m
       <table>
         <thead><tr><th>When</th><th>Business</th><th>Phone</th><th class="hidem">Market</th><th>Outcome</th><th class="hidem">Note</th></tr></thead>
         <tbody id="histRows"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card" id="view-meet" style="display:none">
+    <b style="font-size:15px">Meetings Pipeline</b>
+    <p class="hint">Every booked meeting lands here. Keep statuses honest: no-shows get chased automatically by email the morning after, and Closed Won hands you straight to the deal form.</p>
+    <div style="overflow-x:auto;margin-top:10px">
+      <table>
+        <thead><tr><th>Business</th><th>Phone</th><th>Date</th><th>Status</th><th></th></tr></thead>
+        <tbody id="meetRows"></tbody>
       </table>
     </div>
   </div>
@@ -309,6 +326,15 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--m
   </div>
 
   <div id="view-owner" style="display:none">
+    <div class="g3" style="margin-bottom:16px">
+      <div class="kpi"><b id="o-mrr">$0</b><span>client MRR on the books</span></div>
+      <div class="kpi"><b id="o-onetime">$0</b><span>one-time revenue closed</span></div>
+      <div class="kpi"><b id="o-annual">$0</b><span>annualized run rate</span></div>
+    </div>
+    <div class="card">
+      <b style="font-size:15px">Objections heard, last 30 days</b>
+      <div id="objRows" class="hint" style="line-height:2;margin-top:6px"></div>
+    </div>
     <div class="card">
       <b style="font-size:15px">Team Today &amp; This Week</b>
       <div style="overflow-x:auto;margin-top:8px">
@@ -373,6 +399,7 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--m
           <input id="seq-email" placeholder="their email address" style="flex:1;min-width:170px">
           <button class="btn-ghost btn-sm" id="scrapeBtn" onclick="scrapeNow()">&#128269; Find email on their site</button>
           <button class="btn-blue btn-sm" id="seqBtn" onclick="startSeq()">&#9654; Start email sequence</button>
+          <button class="btn-ghost btn-sm" onclick="var w=$('oneoffWrap');w.style.display=w.style.display==='none'?'block':'none'">One-off email</button>
         </div>
         <div id="scrapeOut"></div>
       </div>
@@ -386,8 +413,25 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--m
       <h3 class="sec">When they push back (tap to open)</h3>
       <div id="p-objs"></div>
 
+      <div class="seqbox" id="oneoffWrap" style="border-style:solid;display:none">
+        <b style="font-size:13px">&#9993; One-off custom email</b>
+        <input id="oo-subj" placeholder="Subject" style="width:100%;margin-top:8px">
+        <textarea id="oo-body" rows="3" placeholder="Short personal message. Your signature is added automatically." style="width:100%;margin-top:8px"></textarea>
+        <div class="row" style="margin-top:8px;justify-content:flex-end"><button class="btn-blue btn-sm" onclick="sendOneoff()">Send</button></div>
+      </div>
+
       <h3 class="sec">Log this call</h3>
       <input id="p-note" placeholder="Call note (who answered, what they said, next step)" style="width:100%">
+      <div class="row" style="margin-top:8px" id="objChips">
+        <span style="font-size:11.5px;color:var(--muted);font-weight:700">THE OBJECTION:</span>
+        <button class="btn-ghost btn-sm" onclick="setObj(this,'price')">price</button>
+        <button class="btn-ghost btn-sm" onclick="setObj(this,'too busy')">too busy</button>
+        <button class="btn-ghost btn-sm" onclick="setObj(this,'has a guy')">has a guy</button>
+        <button class="btn-ghost btn-sm" onclick="setObj(this,'word of mouth')">word of mouth</button>
+        <button class="btn-ghost btn-sm" onclick="setObj(this,'send info')">send info</button>
+        <button class="btn-ghost btn-sm" onclick="setObj(this,'other')">other</button>
+      </div>
+      <label style="display:flex;align-items:center;gap:8px;margin-top:10px;text-transform:none;font-size:13px;cursor:pointer"><input type="checkbox" id="p-flag" style="width:auto">&#128681; Flag this note for Ty (emails him now)</label>
       <div class="row" style="margin-top:8px;align-items:flex-end">
         <div><label>Follow up on</label><input type="date" id="p-fup"></div>
         <div class="fupquick">
@@ -618,7 +662,53 @@ function gCell(b){
   if (b.src!=='google') return '<span style="color:var(--muted2)">-</span>';
   return '<span style="font-size:12.5px">'+esc('#'+b.pos+' · '+(b.reviews>0?(b.rating+'★ ('+b.reviews+')'):'no reviews'))+'</span>';
 }
-function renderAll(){ renderList(); renderStats(); renderHistoryBoot(); renderSeqs(); renderComm(); if(BOOT&&BOOT.user.role==='owner')renderOwner(); }
+function renderAll(){ renderList(); renderStats(); renderHistoryBoot(); renderSeqs(); renderMeetings(); renderComm(); if(BOOT&&BOOT.user.role==='owner')renderOwner(); loadBreakdown(); }
+var MEET_ST={set:'<span class="tag t-cb">set</span>',showed:'<span class="tag t-meet">showed</span>',no_show:'<span class="tag t-no">no-show</span>',proposal:'<span class="tag t-gold">proposal</span>',closed_won:'<span class="tag t-meet">CLOSED WON</span>',closed_lost:'<span class="tag t-na">closed lost</span>'};
+function renderMeetings(){
+  var rows=(BOOT&&BOOT.meetings)||[];
+  $('meetRows').innerHTML = rows.length ? rows.map(function(m){
+    var sel='<select onchange="setMeet('+m.id+',this.value)" style="max-width:130px">'+
+      ['set','showed','no_show','proposal','closed_won','closed_lost'].map(function(s){
+        return '<option value="'+s+'"'+(m.status===s?' selected':'')+'>'+s.replace(/_/g,' ')+'</option>';
+      }).join('')+'</select>';
+    return '<tr><td><b>'+esc(m.business||'-')+'</b></td><td class="phone">'+esc(fmtPhone(m.phone))+'</td>'+
+      '<td><input type="date" value="'+(m.meet_date?String(m.meet_date).slice(0,10):'')+'" onchange="setMeetDate('+m.id+',this.value)" style="max-width:140px"></td>'+
+      '<td>'+(MEET_ST[m.status]||esc(m.status))+'</td>'+
+      '<td class="row">'+sel+'</td></tr>';
+  }).join('') : '<tr><td colspan="5"><div class="empty">Book the first one. It lands here automatically.</div></td></tr>';
+}
+function setMeet(id,status){
+  api('meeting.set',{id:id,status:status}).then(function(){
+    if (status==='closed_won'){
+      var m=(BOOT.meetings||[]).find(function(x){return x.id===id;});
+      showTab('comm');
+      if (m) $('d-biz').value=m.business||'';
+      chime(); confetti();
+      toast('Closed won. Pick the product and submit the deal.');
+    } else if (status==='no_show'){
+      toast('Logged. Call them today, same-week reschedules still close.');
+    } else toast('Updated.');
+    refresh();
+  }).catch(function(e){toast(e.message);});
+}
+function setMeetDate(id,date){
+  api('meeting.date',{id:id,date:date}).then(function(){ toast('Meeting date saved.'); refresh(); }).catch(function(e){toast(e.message);});
+}
+function loadBreakdown(){
+  if (loadBreakdown._done) return; loadBreakdown._done=true;
+  api('stats.breakdown').then(function(d){
+    var hours=d.byHour||[];
+    var max=Math.max(3,Math.max.apply(null,hours.map(function(r){return r.dials;}).concat([0])));
+    $('hourChart').innerHTML = hours.length ? hours.map(function(r){
+      var rate=r.dials?Math.round(r.convos/r.dials*100):0;
+      return '<div class="b" style="height:'+Math.round(r.dials/max*100)+'%" title="'+r.dials+' dials, '+rate+'% connect"><i>'+rate+'%</i><u>'+r.h+'</u></div>';
+    }).join('') : '<div class="empty" style="width:100%">Dial data builds this chart.</div>';
+    $('indRows').innerHTML = (d.byInd||[]).map(function(r){
+      var rate=r.dials?Math.round(r.convos/r.dials*100):0;
+      return '<b style="color:var(--text)">'+esc(r.industry)+'</b>: '+r.dials+' dials · '+rate+'% connect · '+r.meetings+' meetings<br>';
+    }).join('')||'No industry data yet.';
+  }).catch(function(){});
+}
 function renderList(){
   $('listTitle').textContent = LISTMETA.city ? (LISTMETA.industry+' - '+LISTMETA.city) : 'Call List';
   if (!LIST.length) {
@@ -672,7 +762,7 @@ function renderStats(){
 function renderHistoryBoot(){
   var due=(BOOT&&BOOT.fups)||[];
   $('dueWrap').innerHTML = due.length ? ('<div class="hint" style="margin-bottom:6px"><b>Follow-ups due:</b></div>'+due.map(function(h,i){
-    return '<div class="histline due" style="cursor:pointer" onclick="openFup('+i+')"><b>'+esc(h.name||fmtPhone(h.phone))+'</b> · '+esc(fmtPhone(h.phone))+' · promised '+esc(fdate(h.fup))+(h.note?' · "'+esc(h.note)+'"':'')+'</div>';
+    return '<div class="histline due" style="display:flex;gap:8px;align-items:center"><span style="flex:1;cursor:pointer" onclick="openFup('+i+')"><b>'+esc(h.name||fmtPhone(h.phone))+'</b> \u00b7 '+esc(fmtPhone(h.phone))+' \u00b7 promised '+esc(fdate(h.fup))+(h.note?' \u00b7 "'+esc(h.note)+'"':'')+'</span><button class="btn-ghost btn-sm" onclick="snoozeFup(\''+h.phone+'\',1)">+1d</button><button class="btn-ghost btn-sm" onclick="snoozeFup(\''+h.phone+'\',7)">+1w</button></div>';
   }).join('')) : '';
 }
 var histTimer=null;
@@ -742,6 +832,12 @@ function renderComm(){
 /* ================= OWNER ================= */
 function renderOwner(){
   var t=BOOT.team; if(!t)return;
+  $('o-mrr').textContent=money(t.mrr||0)+'/mo';
+  $('o-onetime').textContent=money(t.onetime||0);
+  $('o-annual').textContent=money(Number(t.mrr||0)*12+Number(t.onetime||0));
+  $('objRows').innerHTML=(t.objections||[]).map(function(o){
+    return '<b style="color:var(--text)">'+esc(o.obj)+'</b>: heard '+o.n+' time'+(o.n===1?'':'s')+'<br>';
+  }).join('')||'No objections tagged yet. The SDR tags them with one tap on the call screen.';
   var pend=t.pending||[];
   $('apprBadge').style.display=pend.length?'inline-block':'none';
   $('apprBadge').textContent=pend.length;
@@ -766,7 +862,9 @@ function renderOwner(){
   }).join('')||'<tr><td colspan="4"><div class="empty">None yet.</div></td></tr>';
 }
 function reviewDeal(id, approve){
-  api('deal.review',{id:id,approve:approve}).then(function(){ toast(approve?'Approved. Commission moved to earned.':'Denied.'); refresh(); }).catch(function(e){toast(e.message);});
+  var reason='';
+  if (!approve){ reason=prompt('Why? (goes to the SDR by email, optional)')||''; }
+  api('deal.review',{id:id,approve:approve,reason:reason}).then(function(){ toast(approve?'Approved. Commission moved to earned.':'Denied.'); refresh(); }).catch(function(e){toast(e.message);});
 }
 function payAll(){
   var sdr = (BOOT.team.reps||[]).find(function(r){ return r.email!==BOOT.user.email; });
@@ -778,7 +876,7 @@ function payAll(){
 
 /* ================= TABS ================= */
 function showTab(t){
-  ['today','past','seq','comm','owner'].forEach(function(x){
+  ['today','past','seq','meet','comm','owner'].forEach(function(x){
     var b=$('tab-'+x); if(b) b.className = t===x?'on':'';
     var v=$('view-'+x); if(v) v.style.display = t===x?'block':'none';
   });
@@ -868,6 +966,9 @@ function fillModal(b, progressTxt){
     return '<div class="obj" onclick="this.classList.toggle(\'open\')"><b>'+esc(o.l)+'</b><div class="r">'+esc(o.r)+'</div></div>';
   }).join('');
   $('p-note').value=''; $('p-fup').value='';
+  OBJ_PICK=''; $('p-flag').checked=false;
+  Array.prototype.forEach.call(document.querySelectorAll('#objChips button'),function(x){x.style.background='';x.style.color='';});
+  $('oneoffWrap').style.display='none'; $('oo-subj').value=''; $('oo-body').value='';
   $('p-progress').textContent=progressTxt||'';
   $('overlay').classList.add('show');
   $('callmodal').classList.add('show');
@@ -895,6 +996,11 @@ function normHist(h){
            town:h.city||'', industry:h.industry||'', src:h.src||(h.pos?'google':'') };
 }
 function startCalling(){
+  var due=(BOOT&&BOOT.fups)||[];
+  if (due.length && !startCalling._asked){
+    startCalling._asked=true;
+    if (confirm(due.length+' follow-up'+(due.length===1?' is':'s are')+' due. Work those first? They answer at double the rate.')) return openFup(0);
+  }
   for (var i=0;i<LIST.length;i++){ if(!LIST[i].status) return openCall(i); }
   toast('Everything on this list is already called.');
 }
@@ -918,6 +1024,7 @@ function logOutcome(out){
   if (out==='callback'&&!$('p-fup').value) quickFup(1);
   var secs=CALLSTART?Math.floor((Date.now()-CALLSTART)/1000):0;
   var payload={ phone:b.phone, name:b.name, outcome:out, note:$('p-note').value.trim(), secs:secs,
+    obj:(out==='not_interested'||out==='callback')?(OBJ_PICK||''):'', flag:$('p-flag').checked,
     fup:(out==='dnc'?'':($('p-fup').value||null)), city:b.town||LISTMETA.city||'', industry:LISTMETA.industry||b.industry||'',
     website:b.website||'', email:$('seq-email').value.trim()||b.email||'', rating:b.rating||0,
     reviews:b.reviews==null?-1:b.reviews, pos:b.pos||0, addr:b.addr||'', maps:b.maps||'', src:b.src||'' };
@@ -1001,6 +1108,34 @@ function startSeq(){
     .finally(function(){ $('seqBtn').disabled=false; });
 }
 
+var OBJ_PICK='';
+function setObj(btn,v){
+  OBJ_PICK=v;
+  Array.prototype.forEach.call(document.querySelectorAll('#objChips button'),function(x){x.style.background='';x.style.color='';});
+  btn.style.background='var(--navy)'; btn.style.color='#fff';
+}
+function sendOneoff(){
+  var b=curBiz(); if(!b)return;
+  var to=$('seq-email').value.trim();
+  if (!to) return toast('Put their email in the box above first.');
+  api('email.oneoff',{toEmail:to,subject:$('oo-subj').value,body:$('oo-body').value,phone:b.phone})
+    .then(function(){ chime(); toast('Sent. Reply lands in your inbox.'); $('oneoffWrap').style.display='none'; })
+    .catch(function(e){toast(e.message);});
+}
+function reattack(){
+  api('reattack').then(function(d){
+    if (!d.list.length) return toast('Nothing to re-attack yet. No-answers become fair game after 30 days.');
+    LIST=d.list.map(function(b){b.status='';b.note='';return b;});
+    LISTMETA={city:'Re-attack',industry:'Old no-answers',noun:'business',best:'',date:todayKey()};
+    save('sdr_list',LIST); save('sdr_listmeta',LISTMETA);
+    renderList(); beep(880,.1,.05);
+    toast(d.list.length+' old no-answers loaded. They forgot you called. Perfect.');
+  }).catch(function(e){toast(e.message);});
+}
+function snoozeFup(phone,days){
+  api('fup.snooze',{phone:phone,days:days}).then(function(){ toast('Snoozed.'); refresh(); }).catch(function(e){toast(e.message);});
+}
+
 /* ================= POWER HOUR / EXTRAS ================= */
 function togglePH(){
   if (PH&&Date.now()<PH.end){
@@ -1012,6 +1147,16 @@ function togglePH(){
   beep(880,.1,.06);
   toast('⚡ Power hour started. 60 minutes, as many dials as you have in you.');
 }
+var LAST_ACTION=Date.now();
+document.addEventListener('click',function(){LAST_ACTION=Date.now();});
+setInterval(function(){
+  var hr=new Date().getHours();
+  if (hr>=8&&hr<18&&LIST.length&&LIST.some(function(b){return !b.status;})&&Date.now()-LAST_ACTION>20*60000){
+    LAST_ACTION=Date.now();
+    toast('\u23F0 20 minutes since your last move. The list is not going to call itself.');
+    beep(440,.2,.05);
+  }
+},60000);
 setInterval(function(){
   if (!PH) return;
   var left=PH.end-Date.now();

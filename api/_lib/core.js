@@ -38,7 +38,12 @@ async function ensureSchema() {
   )`;
   await sql`CREATE INDEX IF NOT EXISTS idx_calls_phone ON calls (phone)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_calls_rep_ts ON calls (rep, ts)`;
+  await sql`ALTER TABLE calls ADD COLUMN IF NOT EXISTS obj TEXT DEFAULT ''`;
   await sql`CREATE TABLE IF NOT EXISTS dnc ( phone TEXT PRIMARY KEY, ts TIMESTAMPTZ DEFAULT now() )`;
+  await sql`CREATE TABLE IF NOT EXISTS meetings (
+    id SERIAL PRIMARY KEY, phone TEXT, business TEXT, rep TEXT, meet_date DATE, status TEXT DEFAULT 'set',
+    note TEXT DEFAULT '', alerted BOOLEAN DEFAULT false, ts TIMESTAMPTZ DEFAULT now()
+  )`;
   await sql`CREATE TABLE IF NOT EXISTS deals (
     id SERIAL PRIMARY KEY, rep TEXT, business TEXT, product TEXT, kind TEXT, amount NUMERIC DEFAULT 0,
     monthly NUMERIC DEFAULT 0, first_comm NUMERIC DEFAULT 0, rec_comm NUMERIC DEFAULT 0,
@@ -57,7 +62,6 @@ async function ensureSchema() {
   await sql`CREATE TABLE IF NOT EXISTS emails_log (
     id SERIAL PRIMARY KEY, seq_id INT, phone TEXT, to_email TEXT, rep TEXT, step INT, subject TEXT, ts TIMESTAMPTZ DEFAULT now()
   )`;
-  // seed the two seats from env
   const seats = [
     { email: process.env.OWNER_EMAIL, name: process.env.OWNER_NAME || 'Ty Burket', role: 'owner', pass: process.env.OWNER_PASS },
     { email: process.env.SDR_EMAIL, name: process.env.SDR_NAME || 'SDR', role: 'sdr', pass: process.env.SDR_PASS }
@@ -186,6 +190,10 @@ async function scrapeEmails(siteUrl) {
   return Array.from(found).slice(0, 6);
 }
 
+/* ---- chain / franchise filter ---- */
+const CHAIN_RX = /mcdonald|subway\b|domino|pizza hut|papa john|burger king|wendy|taco bell|kfc\b|dunkin|starbucks|walmart|autozone|advance auto|napa auto|midas\b|jiffy lube|valvoline|pep boys|firestone|monro\b|meineke|great clips|supercuts|sport clips|holiday hair|planet fitness|anytime fitness|crunch fitness|aspen dental|banfield|maaco|sherwin|h&r block|jackson hewitt|re\/max|remax|century 21|coldwell|keller williams|berkshire hathaway|petco\b|petsmart/i;
+function isChain(name) { return CHAIN_RX.test(String(name || '')); }
+
 /* ---- products & commission plan ---- */
 const PRODUCTS = [
   { id: 'onepage',    label: 'One Page Website - $650 one time',            kind: 'one_time',  amount: 650, pct: 20 },
@@ -231,5 +239,5 @@ function seqTemplates(s, repName) {
   ];
 }
 
-module.exports = { sql, ensureSchema, userFromToken, login, sendMail, placesSearch, scrapeEmails,
+module.exports = { sql, ensureSchema, userFromToken, login, sendMail, placesSearch, scrapeEmails, isChain,
                    PRODUCTS, seqTemplates, auditUrl, normPhone, uid };
