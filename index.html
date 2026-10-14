@@ -1,0 +1,1078 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0e2235">
+<title>BWD SDR Hub</title>
+<link rel="icon" href="https://www.burketwebdesign.com/assets/logo.png">
+<style>
+:root{
+  --gold:#fec814;--blue:#1f5d8c;--teal:#57b4e4;--navy:#0e2235;
+  --bg:#eef2f7;--card:#ffffff;--line:#e3e9f0;--text:#1a2435;--muted:#5b6b80;--muted2:#8b9ab0;
+  --green:#16a34a;--green-bg:#e9f8ef;--red:#dc2626;--red-bg:#fdecec;--amber-bg:#fdf3e2;
+  --script-bg:#fffdf3;--script-line:#f1e3ad;--vm-bg:#f4f8fd;--vm-line:#cfe2f1;--chip:#eef2f7;--hover:#f6f9fc;--foot:#fafbfd;
+  --shadow:0 1px 4px rgba(14,34,53,.06),0 10px 30px rgba(14,34,53,.05);
+}
+[data-dark]{
+  --bg:#0b1826;--card:#122940;--line:#1d3850;--text:#eaf1f8;--muted:#9fb3c8;--muted2:#6d8299;
+  --green-bg:#0d2f1e;--red-bg:#331313;--amber-bg:#33260b;
+  --script-bg:#1a3049;--script-line:#2c4a67;--vm-bg:#152c42;--vm-line:#27465f;--chip:#1a3049;--hover:#16304a;--foot:#0f2336;
+  --shadow:0 1px 4px rgba(0,0,0,.3),0 10px 30px rgba(0,0,0,.25);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+#top{background:linear-gradient(135deg,#0e2235 0%,#14334e 60%,#1f5d8c 130%);color:#fff;padding:14px 20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;box-shadow:0 4px 24px rgba(14,34,53,.35)}
+#top img.logo{height:42px;width:auto;filter:drop-shadow(0 2px 6px rgba(0,0,0,.4))}
+#top .brand{font-weight:800;font-size:17px;line-height:1.2}
+#top .brand span{color:var(--gold)}
+#top .plan{font-size:12.5px;color:#bcd0e2;margin-top:2px}
+#top .spacer{flex:1}
+.statchip{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.13);border-radius:12px;padding:7px 13px;font-size:11px;text-align:center;color:#cfdce8}
+.statchip b{display:block;font-size:17px;color:var(--gold);font-variant-numeric:tabular-nums}
+.iconbtn{background:rgba(255,255,255,.1);color:#fff;border-radius:11px;padding:9px 12px;font-size:15px;cursor:pointer;border:1px solid rgba(255,255,255,.14)}
+.iconbtn:hover{background:rgba(255,255,255,.2)}
+#ringWrap{position:relative;width:58px;height:58px;flex:none}
+#ringWrap svg{transform:rotate(-90deg)}
+#ringTxt{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:var(--gold)}
+#wrap{max-width:1140px;margin:0 auto;padding:18px 16px 70px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px 18px;margin-bottom:16px;box-shadow:var(--shadow)}
+.row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:4px}
+select,input,textarea{border:1.5px solid var(--line);border-radius:10px;padding:9px 12px;font-size:14px;font-family:inherit;background:var(--card);color:var(--text);outline:none}
+select:focus,input:focus,textarea:focus{border-color:var(--teal)}
+button{border:none;border-radius:10px;padding:10px 16px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;transition:transform .12s,filter .12s}
+button:active{transform:scale(.97)}
+button:disabled{opacity:.55;cursor:default}
+.btn-go{background:linear-gradient(135deg,var(--gold),#f5b400);color:#0e2235;font-size:15px;padding:12px 22px;box-shadow:0 6px 18px rgba(254,200,20,.35)}
+.btn-blue{background:var(--blue);color:#fff}
+.btn-green{background:linear-gradient(135deg,#16a34a,#15803d);color:#fff;box-shadow:0 6px 18px rgba(22,163,74,.3)}
+.btn-red{background:var(--red-bg);color:var(--red)}
+.btn-ghost{background:var(--chip);color:var(--text)}
+.btn-sm{padding:7px 12px;font-size:12.5px}
+#bar{height:12px;background:var(--chip);border-radius:99px;overflow:hidden;flex:1;min-width:120px}
+#barfill{height:100%;width:0;background:linear-gradient(90deg,var(--blue),var(--teal));border-radius:99px;transition:width .4s}
+table{width:100%;border-collapse:collapse}
+th{font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted2);text-align:left;padding:8px 10px;border-bottom:1px solid var(--line)}
+td{padding:10px;border-bottom:1px solid var(--line);font-size:13.5px;vertical-align:middle}
+tr.biz{cursor:pointer}
+tr.biz:hover{background:var(--hover)}
+tr.done{opacity:.45}
+.phone{font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+.tag{font-size:11px;font-weight:700;border-radius:99px;padding:3px 9px;white-space:nowrap}
+.t-new{background:#e8f1f8;color:var(--blue)}
+[data-dark] .t-new{background:#1a3b57;color:var(--teal)}
+.t-meet{background:var(--green-bg);color:var(--green)}
+.t-cb{background:var(--amber-bg);color:#d97706}
+.t-no{background:var(--red-bg);color:var(--red)}
+.t-na{background:var(--chip);color:var(--muted)}
+.t-gold{background:#fdf6dc;color:#8a6d00}
+[data-dark] .t-gold{background:#3a300a;color:var(--gold)}
+.t-hot{background:linear-gradient(135deg,#fde68a,#fbbf24);color:#713f12}
+.empty{text-align:center;color:var(--muted2);padding:30px 10px;font-size:14px}
+.hint{font-size:12.5px;color:var(--muted);margin-top:6px}
+.tabs{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+.tabs button{background:transparent;color:var(--muted);padding:8px 14px;border-radius:10px;font-size:13.5px}
+.tabs button.on{background:var(--navy);color:#fff}
+[data-dark] .tabs button.on{background:var(--blue)}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;text-align:center}
+.kpi b{font-size:21px;display:block;color:var(--blue);font-variant-numeric:tabular-nums}
+[data-dark] .kpi b{color:var(--teal)}
+.kpi span{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;font-weight:700}
+.bars{display:flex;align-items:flex-end;gap:5px;height:90px;margin-top:14px}
+.bars .b{flex:1;background:linear-gradient(180deg,var(--teal),var(--blue));border-radius:5px 5px 0 0;min-height:2px;position:relative}
+.bars .b i{position:absolute;top:-17px;left:0;right:0;text-align:center;font-size:9.5px;font-style:normal;color:var(--muted2);font-weight:700}
+.bars .b u{position:absolute;bottom:-17px;left:0;right:0;text-align:center;font-size:9px;text-decoration:none;color:var(--muted2)}
+#overlay{position:fixed;inset:0;background:rgba(10,22,36,.68);display:none;z-index:40}
+#overlay.show{display:block}
+#callmodal{position:fixed;inset:0;z-index:50;display:none;align-items:flex-start;justify-content:center;overflow-y:auto;padding:22px 12px}
+#callmodal.show{display:flex}
+#cm{background:var(--card);border-radius:20px;width:780px;max-width:100%;box-shadow:0 36px 100px rgba(0,0,0,.5);overflow:hidden;animation:pop .22s ease}
+@keyframes pop{from{transform:translateY(16px) scale(.98);opacity:0}to{transform:none;opacity:1}}
+#cm .head{background:linear-gradient(135deg,#0e2235,#17405f);color:#fff;padding:18px 22px}
+#cm .head h2{font-size:21px}
+#cm .head .sub{font-size:12.5px;color:#bcd0e2;margin-top:3px}
+.gstats{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.gstat{background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.15);border-radius:11px;padding:7px 13px;font-size:11px;color:#cfdce8;text-align:center}
+.gstat b{color:var(--gold);font-size:15px;display:block}
+.gstat.alert b{color:#ff9d9d}
+#cm .body{padding:18px 22px}
+#bignum{font-size:34px;font-weight:800;color:var(--blue);text-decoration:none;display:inline-block}
+[data-dark] #bignum{color:var(--teal)}
+.weblinks{margin-top:4px;font-size:13px}
+.weblinks a{color:var(--blue);font-weight:600;margin-right:14px}
+[data-dark] .weblinks a{color:var(--teal)}
+.script{background:var(--script-bg);border:1px solid var(--script-line);border-radius:12px;padding:14px 16px;font-size:14.5px;line-height:1.75;white-space:pre-wrap;margin-top:10px}
+.vm{background:var(--vm-bg);border-color:var(--vm-line)}
+.obj{background:var(--bg);border-radius:10px;padding:10px 12px;margin-top:8px;font-size:13px;line-height:1.55;cursor:pointer}
+.obj:hover{background:var(--hover)}
+.obj b{color:var(--blue)}
+[data-dark] .obj b{color:var(--teal)}
+.obj .r{display:none;margin-top:6px}
+.obj.open .r{display:block}
+h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin:18px 0 6px;display:flex;align-items:center;gap:8px}
+.outs{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:10px}
+.outs button{padding:12px 6px;font-size:13px;position:relative}
+.outs button kbd{position:absolute;top:4px;right:7px;font-size:9.5px;opacity:.55;font-family:inherit}
+.o-na{background:var(--chip);color:var(--text)}
+.o-cb{background:var(--amber-bg);color:#d97706}
+.o-no{background:var(--red-bg);color:var(--red)}
+.o-dnc{background:#3b0d0d;color:#ffb4b4}
+.o-meet{background:linear-gradient(135deg,#16a34a,#107a38);color:#fff;grid-column:1/-1;font-size:15px;padding:14px;box-shadow:0 6px 18px rgba(22,163,74,.35)}
+#cm .foot{border-top:1px solid var(--line);padding:12px 22px;display:flex;align-items:center;gap:10px;background:var(--foot);flex-wrap:wrap}
+#callTimer{font-variant-numeric:tabular-nums;font-weight:800;color:var(--green);font-size:15px}
+.histline{font-size:12.5px;background:var(--bg);border-radius:9px;padding:8px 11px;margin-top:6px;color:var(--muted)}
+.histline b{color:var(--text)}
+.due{border-left:4px solid #d97706;background:var(--amber-bg);color:#92600a}
+.fupquick{display:flex;gap:6px;margin-top:6px}
+.fupquick button{font-size:11.5px;padding:5px 10px;background:var(--chip);color:var(--muted);font-weight:600}
+.besttime{font-size:12px;color:#92600a;background:var(--amber-bg);border-radius:9px;padding:7px 11px;margin-top:10px;display:inline-block}
+.seqbox{border:1.5px dashed var(--teal);border-radius:12px;padding:12px 14px;margin-top:10px;background:rgba(87,180,228,.06)}
+.emailchip{display:inline-block;background:var(--chip);border-radius:99px;padding:5px 12px;margin:4px 6px 0 0;font-size:12.5px;cursor:pointer;font-weight:600}
+.emailchip:hover{background:var(--teal);color:#fff}
+#toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(100px);background:var(--navy);color:#fff;border-radius:13px;padding:12px 18px;font-size:14px;z-index:95;transition:transform .25s;box-shadow:0 12px 36px rgba(0,0,0,.4);max-width:92vw;display:flex;gap:12px;align-items:center}
+#toast.show{transform:translateX(-50%) translateY(0)}
+#toast button{background:var(--gold);color:#0e2235;padding:5px 10px;font-size:12px}
+.modal2{position:fixed;inset:0;z-index:60;display:none;align-items:center;justify-content:center;padding:16px;background:rgba(10,22,36,.6)}
+.modal2.show{display:flex}
+.modal2 .inner{background:var(--card);border-radius:18px;padding:22px;width:540px;max-width:100%;box-shadow:0 30px 80px rgba(0,0,0,.5);max-height:90vh;overflow-y:auto}
+#phChip{display:none;background:rgba(254,200,20,.15);border-color:rgba(254,200,20,.4)}
+.confetti{position:fixed;width:9px;height:14px;z-index:99;pointer-events:none;top:-20px;border-radius:2px;animation:fall linear forwards}
+@keyframes fall{to{transform:translateY(108vh) rotate(720deg)}}
+.pulse{animation:pulse 1.6s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.55}}
+/* login */
+#login{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#0e2235,#17405f);padding:16px}
+#login .box{background:#fff;border-radius:20px;padding:34px;width:400px;max-width:100%;box-shadow:0 36px 100px rgba(0,0,0,.5);text-align:center}
+#login img{height:60px;margin-bottom:10px}
+#login h1{font-size:20px;color:#0e2235}
+#login .sub{font-size:13px;color:#5b6b80;margin:6px 0 18px}
+#login input{width:100%;margin-bottom:10px;text-align:center}
+@media(max-width:680px){#top{padding:12px 14px}.hidem{display:none}#bignum{font-size:27px}.g4{grid-template-columns:1fr 1fr}.g3{grid-template-columns:1fr}.outs{grid-template-columns:1fr 1fr}#top img.logo{height:32px}}
+</style>
+</head>
+<body>
+
+<!-- ============ LOGIN ============ -->
+<div id="login">
+  <div class="box">
+    <img src="https://www.burketwebdesign.com/assets/logo.png" alt="Burket Web Design" onerror="this.style.display='none'">
+    <h1>SDR Hub</h1>
+    <div class="sub">Burket Web Design sales headquarters</div>
+    <input id="l-email" type="email" placeholder="Email" autocomplete="username">
+    <input id="l-pass" type="password" placeholder="Password" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
+    <button class="btn-go" style="width:100%" id="l-btn" onclick="doLogin()">Sign In</button>
+    <div class="hint" id="l-err" style="color:#dc2626;min-height:18px;margin-top:10px"></div>
+  </div>
+</div>
+
+<!-- ============ APP ============ -->
+<div id="app" style="display:none">
+<div id="top">
+  <img class="logo" src="https://www.burketwebdesign.com/assets/logo.png" alt="BWD" onerror="this.style.display='none'">
+  <div>
+    <div class="brand">SDR <span>Hub</span></div>
+    <div class="plan" id="planLine"></div>
+  </div>
+  <div class="spacer"></div>
+  <div id="ringWrap" title="Daily goal: 50 dials">
+    <svg width="58" height="58"><circle cx="29" cy="29" r="24" fill="none" stroke="rgba(255,255,255,.14)" stroke-width="6"/><circle id="ringArc" cx="29" cy="29" r="24" fill="none" stroke="#fec814" stroke-width="6" stroke-linecap="round" stroke-dasharray="150.8" stroke-dashoffset="150.8" style="transition:stroke-dashoffset .5s"/></svg>
+    <div id="ringTxt">0</div>
+  </div>
+  <div class="statchip"><b id="st-meet">0</b>meetings</div>
+  <div class="statchip hidem"><b id="st-earned">$0</b>unpaid comm.</div>
+  <div class="statchip" id="phChip"><b id="phTime">60:00</b>power hour</div>
+  <button class="iconbtn" onclick="togglePH()" title="Power Hour sprint">&#9889;</button>
+  <button class="iconbtn" onclick="toggleDark()" title="Dark mode">&#127769;</button>
+  <button class="iconbtn" onclick="logout()" title="Sign out">&#10162;</button>
+</div>
+
+<div id="wrap">
+
+  <div class="card" style="padding:12px 18px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+    <span style="font-size:18px">&#128293;</span>
+    <span id="quoteTxt" style="font-size:13.5px;color:var(--muted);font-style:italic"></span>
+    <div style="flex:1"></div>
+    <span id="moneyMath" class="tag t-gold"></span>
+  </div>
+
+  <div class="card">
+    <div class="row" style="align-items:flex-end">
+      <div><label>Market</label><select id="market"></select></div>
+      <div><label>Industry</label><select id="industry"></select></div>
+      <div style="flex:1;min-width:110px"><label>Or any town (PA)</label><input id="customCity" placeholder="e.g. Bedford"></div>
+      <button class="btn-go" id="goBtn" onclick="hunt()">Build My 50 &rarr;</button>
+    </div>
+    <div class="hint" id="suggestHint"></div>
+    <div id="dueTodayBanner"></div>
+  </div>
+
+  <div class="tabs" id="tabbar">
+    <button id="tab-today" class="on" onclick="showTab('today')">Dialer</button>
+    <button id="tab-past" onclick="showTab('past')">Past Calls <span id="dueBadge" class="tag t-cb" style="display:none"></span></button>
+    <button id="tab-seq" onclick="showTab('seq')">Sequences</button>
+    <button id="tab-comm" onclick="showTab('comm')">Commissions</button>
+    <button id="tab-owner" style="display:none" onclick="showTab('owner')">Owner <span id="apprBadge" class="tag t-cb" style="display:none"></span></button>
+  </div>
+
+  <div id="view-today">
+    <div class="card">
+      <div class="row">
+        <b style="font-size:15px" id="listTitle">Call List</b>
+        <div style="flex:1"></div>
+        <div id="bar"><div id="barfill"></div></div>
+        <span style="font-size:13px;font-weight:700;color:var(--muted)" id="barTxt">0 / 0</span>
+        <button class="btn-green" id="startBtn" style="display:none" onclick="startCalling()">&#9654; Start Calling</button>
+        <button class="btn-ghost btn-sm" onclick="sortHot()">&#128293; Hot first</button>
+        <button class="btn-ghost btn-sm" onclick="exportCsv()">CSV</button>
+        <button class="btn-ghost btn-sm" onclick="clearList()">Clear</button>
+      </div>
+      <div style="overflow-x:auto;margin-top:8px">
+        <table>
+          <thead><tr><th style="width:26px">#</th><th>Business</th><th>Phone</th><th class="hidem">Google</th><th class="hidem">Website</th><th>Status</th></tr></thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="g4">
+      <div class="kpi"><b id="k-dials">0</b><span>dials today</span></div>
+      <div class="kpi"><b id="k-connect">0%</b><span>connect rate</span></div>
+      <div class="kpi"><b id="k-meet">0</b><span>meetings today</span></div>
+      <div class="kpi"><b id="k-alltime">0</b><span>all-time dials</span></div>
+    </div>
+    <div class="card" style="margin-top:16px">
+      <b style="font-size:15px">Last 14 Days</b>
+      <div class="bars" id="chart"></div>
+      <div style="height:18px"></div>
+    </div>
+  </div>
+
+  <div class="card" id="view-past" style="display:none">
+    <div class="row">
+      <b style="font-size:15px">Past Calls</b>
+      <div style="flex:1"></div>
+      <input id="histSearch" placeholder="Search name, phone, note..." oninput="debHist()" style="min-width:200px">
+      <button class="btn-ghost btn-sm" onclick="loadHistory()">Refresh</button>
+    </div>
+    <div id="dueWrap" style="margin-top:12px"></div>
+    <div style="overflow-x:auto;margin-top:8px">
+      <table>
+        <thead><tr><th>When</th><th>Business</th><th>Phone</th><th class="hidem">Market</th><th>Outcome</th><th class="hidem">Note</th></tr></thead>
+        <tbody id="histRows"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card" id="view-seq" style="display:none">
+    <b style="font-size:15px">Email Sequences</b>
+    <p class="hint">Started from the call screen after a voicemail or no-answer. Three emails over about ten days, each with the free scan link. Replies go straight to your inbox. Sequences stop automatically when a meeting is booked or a number goes do-not-call.</p>
+    <div style="overflow-x:auto;margin-top:10px">
+      <table>
+        <thead><tr><th>Business</th><th>Email</th><th>Step</th><th>Status</th><th>Next send</th><th></th></tr></thead>
+        <tbody id="seqRows"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="view-comm" style="display:none">
+    <div class="card">
+      <div class="row"><b style="font-size:15px">Submit a Closed Deal</b></div>
+      <div class="row" style="margin-top:10px;align-items:flex-end">
+        <div style="flex:1;min-width:160px"><label>Business</label><input id="d-biz" placeholder="Joe's Plumbing" style="width:100%"></div>
+        <div><label>Product</label><select id="d-prod" onchange="prodHint()"></select></div>
+        <div id="d-amtWrap" style="display:none"><label>Amount $</label><input id="d-amt" type="number" style="width:110px"></div>
+        <button class="btn-blue" onclick="submitDeal()">Submit for approval</button>
+      </div>
+      <div class="hint" id="d-hint"></div>
+      <input id="d-note" placeholder="Note for Ty (optional)" style="width:100%;margin-top:10px">
+    </div>
+    <div class="g3">
+      <div class="kpi"><b id="c-pending">$0</b><span>pending review</span></div>
+      <div class="kpi"><b id="c-earned">$0</b><span>earned, unpaid</span></div>
+      <div class="kpi"><b id="c-paid">$0</b><span>paid out</span></div>
+    </div>
+    <div class="card" style="margin-top:16px">
+      <b style="font-size:15px">My Deals</b>
+      <div style="overflow-x:auto;margin-top:8px">
+        <table><thead><tr><th>Business</th><th>Product</th><th>Commission</th><th>Status</th><th>Submitted</th></tr></thead><tbody id="dealRows"></tbody></table>
+      </div>
+    </div>
+    <div class="card">
+      <b style="font-size:15px">Commission Ledger</b>
+      <div style="overflow-x:auto;margin-top:8px">
+        <table><thead><tr><th>Item</th><th>Type</th><th>Amount</th><th>Status</th><th>Date</th></tr></thead><tbody id="ledgerRows"></tbody></table>
+      </div>
+    </div>
+  </div>
+
+  <div id="view-owner" style="display:none">
+    <div class="card">
+      <b style="font-size:15px">Team Today &amp; This Week</b>
+      <div style="overflow-x:auto;margin-top:8px">
+        <table><thead><tr><th>Rep</th><th>Today</th><th>7 days</th><th>All time</th></tr></thead><tbody id="teamRows"></tbody></table>
+      </div>
+      <p class="hint" id="teamExtra"></p>
+    </div>
+    <div class="card">
+      <div class="row"><b style="font-size:15px">Deal Approvals</b></div>
+      <div id="apprList" style="margin-top:8px"></div>
+    </div>
+    <div class="card">
+      <div class="row">
+        <b style="font-size:15px">Payouts</b>
+        <div style="flex:1"></div>
+        <button class="btn-green btn-sm" onclick="payAll()">Mark all earned as paid</button>
+      </div>
+      <div style="overflow-x:auto;margin-top:8px">
+        <table><thead><tr><th>Rep</th><th>Item</th><th>Amount</th><th>Status</th><th>Date</th></tr></thead><tbody id="ownLedger"></tbody></table>
+      </div>
+    </div>
+    <div class="card">
+      <b style="font-size:15px">All Sequences</b>
+      <div style="overflow-x:auto;margin-top:8px">
+        <table><thead><tr><th>Business</th><th>Rep</th><th>Step</th><th>Status</th></tr></thead><tbody id="ownSeqs"></tbody></table>
+      </div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<!-- ============ CALL MODAL ============ -->
+<div id="overlay"></div>
+<div id="callmodal">
+  <div id="cm">
+    <div class="head">
+      <div class="row" style="flex-wrap:nowrap">
+        <div style="flex:1;min-width:0">
+          <h2 id="p-name">Business</h2>
+          <div class="sub" id="p-meta"></div>
+        </div>
+        <button class="btn-ghost btn-sm" onclick="closeCall()" style="background:rgba(255,255,255,.12);color:#fff;flex:none">&#10005;</button>
+      </div>
+      <div class="gstats" id="p-gstats"></div>
+    </div>
+    <div class="body">
+      <div class="row" style="flex-wrap:nowrap;align-items:flex-start">
+        <div style="flex:1;min-width:0">
+          <a id="bignum" href="#">(000) 000-0000</a>
+          <div class="weblinks" id="p-links"></div>
+        </div>
+        <button class="btn-ghost btn-sm" onclick="copyTxt($('bignum').textContent,'Number copied.')" style="flex:none">Copy #</button>
+      </div>
+      <div class="besttime" id="p-besttime" style="display:none"></div>
+      <div id="p-prevcalls"></div>
+
+      <div class="seqbox" id="seqPanel">
+        <b style="font-size:13px">&#9993; No answer? Hit them by email.</b>
+        <div class="hint" id="seqStatus" style="margin-top:4px"></div>
+        <div class="row" style="margin-top:8px">
+          <input id="seq-email" placeholder="their email address" style="flex:1;min-width:170px">
+          <button class="btn-ghost btn-sm" id="scrapeBtn" onclick="scrapeNow()">&#128269; Find email on their site</button>
+          <button class="btn-blue btn-sm" id="seqBtn" onclick="startSeq()">&#9654; Start email sequence</button>
+        </div>
+        <div id="scrapeOut"></div>
+      </div>
+
+      <h3 class="sec">The Script <button class="btn-ghost btn-sm" onclick="copyTxt($('p-script').textContent,'Script copied.')" style="margin-left:auto">Copy</button></h3>
+      <div class="script" id="p-script"></div>
+
+      <h3 class="sec">Voicemail version</h3>
+      <div class="script vm" id="p-vm"></div>
+
+      <h3 class="sec">When they push back (tap to open)</h3>
+      <div id="p-objs"></div>
+
+      <h3 class="sec">Log this call</h3>
+      <input id="p-note" placeholder="Call note (who answered, what they said, next step)" style="width:100%">
+      <div class="row" style="margin-top:8px;align-items:flex-end">
+        <div><label>Follow up on</label><input type="date" id="p-fup"></div>
+        <div class="fupquick">
+          <button onclick="quickFup(1)">tomorrow</button>
+          <button onclick="quickFup(3)">+3 days</button>
+          <button onclick="quickFup(7)">next week</button>
+        </div>
+      </div>
+      <div class="outs">
+        <button class="o-na" onclick="logOutcome('no_answer')">No answer<kbd>1</kbd></button>
+        <button class="o-na" onclick="logOutcome('voicemail')">Left voicemail<kbd>2</kbd></button>
+        <button class="o-cb" onclick="logOutcome('callback')">Callback<kbd>3</kbd></button>
+        <button class="o-no" onclick="logOutcome('not_interested')">Not interested<kbd>4</kbd></button>
+        <button class="o-na" onclick="logOutcome('gatekeeper')">Gatekeeper<kbd>5</kbd></button>
+        <button class="o-dnc" onclick="logOutcome('dnc')">Do not call<kbd>6</kbd></button>
+        <button class="o-meet" onclick="logOutcome('meeting')">&#128197; Meeting set<kbd>M</kbd></button>
+      </div>
+    </div>
+    <div class="foot">
+      <button class="btn-ghost btn-sm" onclick="navCall(-1)">&larr; Prev</button>
+      <button class="btn-ghost btn-sm" onclick="navCall(1)">Skip &rarr;</button>
+      <span id="callTimer" class="pulse">0:00</span>
+      <div style="flex:1"></div>
+      <div style="font-size:13px;font-weight:700;color:var(--muted)" id="p-progress"></div>
+    </div>
+  </div>
+</div>
+
+<div class="modal2" id="recapmodal">
+  <div class="inner" style="text-align:center">
+    <div style="font-size:40px">&#127942;</div>
+    <h2 style="font-size:20px;margin-top:6px">List finished.</h2>
+    <div id="recapBody" class="hint" style="font-size:14px;line-height:2;margin-top:10px"></div>
+    <div class="row" style="margin-top:16px;justify-content:center">
+      <button class="btn-blue" onclick="$('recapmodal').classList.remove('show')">Done</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"><span id="toastTxt"></span><button id="undoBtn" style="display:none" onclick="undoLast()">Undo</button></div>
+
+<script>
+'use strict';
+
+/* ================= CONFIG ================= */
+var MARKETS = ['Hollidaysburg','Altoona','Duncansville','Tyrone','Bellwood','Ebensburg','Johnstown','Huntingdon','State College','Bedford','Lewistown','Harrisburg','York','Lancaster','Pittsburgh','Greensburg','Monroeville'];
+var INDUSTRIES = [
+  { label:'Plumbers', noun:'plumber', best:'7:00-9:00 AM or 4:30-6:00 PM' },
+  { label:'Electricians', noun:'electrician', best:'7:00-9:00 AM or after 4:30 PM' },
+  { label:'Roofers', noun:'roofer', best:'7:00-8:30 AM, or rain days' },
+  { label:'HVAC', noun:'HVAC company', best:'7:30-9:00 AM, dispatch time' },
+  { label:'Auto Repair', noun:'auto shop', best:'9:30-11:30 AM after drop-offs' },
+  { label:'Landscapers', noun:'landscaper', best:'7:00-8:00 AM or rain days' },
+  { label:'Hair Salons', noun:'salon', best:'10:00 AM-12:00 PM, Tue-Thu' },
+  { label:'Beauty / Nails', noun:'beauty studio', best:'10:00 AM-12:00 PM midweek' },
+  { label:'Dentists', noun:'dental office', best:'12:00-1:30 PM, ask for the office manager' },
+  { label:'Chiropractors', noun:'chiropractor', best:'12:00-2:00 PM between patient blocks' },
+  { label:'Restaurants', noun:'restaurant', best:'2:00-4:00 PM. Never 11:30-1:30' },
+  { label:'Cafes / Bakeries', noun:'cafe', best:'1:30-3:30 PM after lunch rush' },
+  { label:'Gyms / Fitness', noun:'gym', best:'1:00-3:00 PM' },
+  { label:'Law Offices', noun:'law office', best:'8:00-9:00 AM or 4:00-5:00 PM' },
+  { label:'Accountants', noun:'accounting firm', best:'10:00 AM-4:00 PM' },
+  { label:'Real Estate', noun:'real estate office', best:'9:00-11:00 AM' },
+  { label:'Veterinarians', noun:'vet clinic', best:'12:30-2:00 PM, ask for practice manager' },
+  { label:'Florists', noun:'flower shop', best:'10:00 AM-12:00 PM, never near holidays' },
+  { label:'Pet Groomers', noun:'pet business', best:'11:00 AM-1:00 PM' },
+  { label:'Carpenters / Builders', noun:'builder', best:'7:00-8:30 AM or 4:30-6:00 PM' }
+];
+var TARGET = 50;
+var QUOTES = [
+  'Fifty dials. One industry. No mercy.',
+  'The phone weighs a thousand pounds until you pick it up.',
+  'Every no gets you closer to the yes that pays you monthly.',
+  'Amateurs wait for motivation. Closers dial.',
+  'Meetings booked today become commission next month.',
+  'The best time to call was 8 AM. The second best time is now.',
+  'Talk less, book more. The meeting is the close.',
+  'A full call list is a full pipeline is a full paycheck.',
+  'They cannot say yes if you never call.',
+  'Your competitors hit snooze. You hit dial.',
+  'Voicemail is not a dead end. It is an email waiting to happen.',
+  'One meeting a day pays better than any hourly job you have had.'
+];
+
+/* ================= STATE ================= */
+function load(k,d){ try{ var v=localStorage.getItem(k); return v?JSON.parse(v):d; }catch(e){ return d; } }
+function save(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+var TOKEN = load('sdr_token','');
+var BOOT = null;           // server bootstrap payload
+var LIST = load('sdr_list', []);
+var LISTMETA = load('sdr_listmeta', {});
+var CUR = null, CURFUP = null;
+var CALLSTART = 0, CALLTICK = null, LASTLOG = null;
+var PH = load('sdr_ph', null);
+
+/* ================= HELPERS ================= */
+function $(id){ return document.getElementById(id); }
+function esc(s){ var d=document.createElement('div'); d.textContent=String(s==null?'':s); return d.innerHTML; }
+function toast(m, undoable){
+  $('toastTxt').textContent = m;
+  $('undoBtn').style.display = undoable ? 'inline-block' : 'none';
+  var t=$('toast'); t.className='show';
+  clearTimeout(toast._t); toast._t=setTimeout(function(){ t.className=''; }, undoable?5000:2800);
+}
+function todayKey(){ return new Date().toISOString().slice(0,10); }
+function fmtPhone(p){ var d=String(p||'').replace(/\D/g,''); if(d.length===11&&d[0]==='1')d=d.slice(1); return d.length===10?'('+d.substr(0,3)+') '+d.substr(3,3)+'-'+d.substr(6):p; }
+function fdate(x){ try{ return new Date(x).toLocaleDateString(undefined,{month:'short',day:'numeric'}); }catch(e){ return x; } }
+function fsec(s){ return Math.floor(s/60)+':'+String(s%60).padStart(2,'0'); }
+function money(n){ return '$'+Number(n||0).toLocaleString(undefined,{maximumFractionDigits:2}); }
+function copyTxt(t,msg){ try{ navigator.clipboard.writeText(t); toast(msg||'Copied.'); }catch(e){ toast('Copy failed.'); } }
+function isHot(b){ return (!b.website && (b.reviews==null||b.reviews<10)) || b.reviews===0 || (b.pos||0)>10; }
+function api(a, params){
+  var body = Object.assign({ a:a, token:TOKEN }, params||{});
+  return fetch('/api/hub', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) })
+    .then(function(r){ return r.json(); })
+    .then(function(j){
+      if (!j.ok) {
+        if (j.error==='AUTH'){ logout(); throw new Error('Signed out.'); }
+        throw new Error(j.error||'Request failed');
+      }
+      return j.data;
+    });
+}
+function beep(f,d,v,t){
+  try{
+    var ctx = beep._c = beep._c || new (window.AudioContext||window.webkitAudioContext)();
+    var o=ctx.createOscillator(), g=ctx.createGain();
+    o.type=t||'sine'; o.frequency.value=f; g.gain.value=v||.06;
+    o.connect(g); g.connect(ctx.destination);
+    o.start(); g.gain.exponentialRampToValueAtTime(.0001, ctx.currentTime+(d||.12)); o.stop(ctx.currentTime+(d||.12)+.02);
+  }catch(e){}
+}
+function tick(){ beep(660,.07,.04,'square'); }
+function chime(){ beep(523,.14,.07); setTimeout(function(){beep(659,.14,.07);},130); setTimeout(function(){beep(784,.3,.08);},260); }
+function confetti(){
+  var colors=['#fec814','#1f5d8c','#57b4e4','#16a34a','#fff'];
+  for (var i=0;i<60;i++){
+    var c=document.createElement('div'); c.className='confetti';
+    c.style.left=Math.random()*100+'vw'; c.style.background=colors[i%colors.length];
+    c.style.animationDuration=(2+Math.random()*2)+'s'; c.style.animationDelay=(Math.random()*.6)+'s';
+    document.body.appendChild(c);
+    setTimeout(function(el){return function(){el.remove();};}(c),5000);
+  }
+}
+
+/* ================= AUTH ================= */
+function doLogin(){
+  $('l-err').textContent='';
+  $('l-btn').disabled=true;
+  fetch('/api/hub',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({a:'auth.login',email:$('l-email').value.trim(),pass:$('l-pass').value})})
+    .then(function(r){return r.json();})
+    .then(function(j){
+      if(!j.ok) throw new Error(j.error);
+      TOKEN=j.data.token; save('sdr_token',TOKEN);
+      boot();
+    })
+    .catch(function(e){ $('l-err').textContent=e.message||'Login failed.'; })
+    .finally(function(){ $('l-btn').disabled=false; });
+}
+function logout(){
+  TOKEN=''; save('sdr_token','');
+  $('app').style.display='none'; $('login').style.display='flex';
+}
+
+/* ================= BOOT ================= */
+function dayOfYear(){ var n=new Date(), s=new Date(n.getFullYear(),0,0); return Math.floor((n-s)/86400000); }
+function boot(){
+  api('bootstrap').then(function(d){
+    BOOT=d;
+    $('login').style.display='none'; $('app').style.display='block';
+    initControls();
+    if (BOOT.user.role==='owner') $('tab-owner').style.display='inline-block';
+    renderAll();
+  }).catch(function(e){
+    $('login').style.display='flex'; $('app').style.display='none';
+    if (e.message!=='Signed out.') $('l-err').textContent=e.message;
+  });
+}
+function refresh(){ api('bootstrap').then(function(d){ BOOT=d; renderAll(); }).catch(function(){}); }
+function initControls(){
+  $('market').innerHTML = MARKETS.map(function(m){return '<option>'+esc(m)+'</option>';}).join('');
+  $('industry').innerHTML = INDUSTRIES.map(function(x,i){return '<option value="'+i+'">'+esc(x.label)+'</option>';}).join('');
+  var lastMarket = load('sdr_market', MARKETS[0]);
+  if (MARKETS.indexOf(lastMarket)>-1) $('market').value=lastMarket;
+  var sug = INDUSTRIES[dayOfYear()%INDUSTRIES.length];
+  $('industry').value = String(INDUSTRIES.indexOf(sug));
+  $('planLine').textContent = new Date().toLocaleDateString(undefined,{weekday:'long',month:'short',day:'numeric'}) + ' - ' + BOOT.user.name.split(' ')[0] + ' - today: ' + sug.label;
+  $('suggestHint').textContent = 'Best window for '+sug.label.toLowerCase()+': '+sug.best+'. Industry rotates daily, numbers already called are skipped automatically.';
+  $('quoteTxt').textContent = '"'+QUOTES[dayOfYear()%QUOTES.length]+'"';
+  $('d-prod').innerHTML = BOOT.products.map(function(p){return '<option value="'+p.id+'">'+esc(p.label)+'</option>';}).join('');
+  prodHint();
+}
+
+/* ================= HUNT ================= */
+function hunt(){
+  var city = $('customCity').value.trim() || $('market').value;
+  var ind = INDUSTRIES[Number($('industry').value)];
+  save('sdr_market', $('market').value);
+  var btn=$('goBtn'); btn.disabled=true; btn.textContent='Finding '+ind.label+'...';
+  $('rows').innerHTML='<tr><td colspan="6"><div class="empty">Scanning '+esc(city)+', PA for '+esc(ind.label.toLowerCase())+'...</div></td></tr>';
+  api('hunt',{city:city,industry:ind.label}).then(function(d){
+    LIST = d.list.map(function(b){ b.status=''; b.note=''; b.town=city; return b; });
+    LISTMETA = { city:city, industry:ind.label, noun:ind.noun, best:ind.best, date:todayKey() };
+    save('sdr_list',LIST); save('sdr_listmeta',LISTMETA);
+    renderList();
+    beep(880,.1,.05);
+    toast(LIST.length ? (LIST.length+' loaded. '+d.skipped+' already-worked numbers skipped.') : 'Nothing new there. Next market or industry.');
+  }).catch(function(e){
+    $('rows').innerHTML='<tr><td colspan="6"><div class="empty">'+esc(e.message)+'</div></td></tr>';
+    toast(e.message);
+  }).finally(function(){ btn.disabled=false; btn.textContent='Build My 50 →'; });
+}
+
+/* ================= RENDER ================= */
+function statusTag(s){
+  if (s==='meeting') return '<span class="tag t-meet">meeting set</span>';
+  if (s==='callback') return '<span class="tag t-cb">callback</span>';
+  if (s==='not_interested') return '<span class="tag t-no">not interested</span>';
+  if (s==='no_answer') return '<span class="tag t-na">no answer</span>';
+  if (s==='voicemail') return '<span class="tag t-na">voicemail</span>';
+  if (s==='gatekeeper') return '<span class="tag t-na">gatekeeper</span>';
+  if (s==='dnc') return '<span class="tag t-no">do not call</span>';
+  if (s==='email') return '<span class="tag t-cb">emailed</span>';
+  return '<span class="tag t-new">to call</span>';
+}
+function gCell(b){
+  if (b.src!=='google') return '<span style="color:var(--muted2)">-</span>';
+  return '<span style="font-size:12.5px">'+esc('#'+b.pos+' · '+(b.reviews>0?(b.rating+'★ ('+b.reviews+')'):'no reviews'))+'</span>';
+}
+function renderAll(){ renderList(); renderStats(); renderHistoryBoot(); renderSeqs(); renderComm(); if(BOOT&&BOOT.user.role==='owner')renderOwner(); }
+function renderList(){
+  $('listTitle').textContent = LISTMETA.city ? (LISTMETA.industry+' - '+LISTMETA.city) : 'Call List';
+  if (!LIST.length) {
+    $('rows').innerHTML='<tr><td colspan="6"><div class="empty">Pick a market and industry, then hit Build My 50.<br>One industry a day. Fifty dials. One call at a time.</div></td></tr>';
+  } else {
+    $('rows').innerHTML = LIST.map(function(b,i){
+      return '<tr class="biz'+(b.status?' done':'')+'" onclick="openCall('+i+')">'+
+        '<td style="color:var(--muted2)">'+(i+1)+'</td>'+
+        '<td><b>'+esc(b.name)+'</b>'+(isHot(b)?' <span class="tag t-hot">&#128293; prime</span>':'')+'</td>'+
+        '<td class="phone">'+esc(fmtPhone(b.phone))+'</td>'+
+        '<td class="hidem">'+gCell(b)+'</td>'+
+        '<td class="hidem">'+(b.website?'yes':'<b style="color:var(--blue)">none</b>')+'</td>'+
+        '<td>'+statusTag(b.status)+'</td></tr>';
+    }).join('');
+  }
+  var called = LIST.filter(function(b){return b.status;}).length;
+  $('barfill').style.width = (LIST.length?Math.round(called/LIST.length*100):0)+'%';
+  $('barTxt').textContent = called+' / '+LIST.length;
+  $('startBtn').style.display = (LIST.length && called<LIST.length) ? 'inline-block' : 'none';
+}
+function renderStats(){
+  if (!BOOT) return;
+  var today = BOOT.today || [];
+  var dials = today.length;
+  $('ringTxt').textContent = dials;
+  $('ringArc').style.strokeDashoffset = String(150.8*(1-Math.min(1,dials/TARGET)));
+  var meets = today.filter(function(h){return h.outcome==='meeting';}).length;
+  $('st-meet').textContent = meets;
+  var earned = (BOOT.ledger||[]).filter(function(l){return l.status==='earned';}).reduce(function(s,l){return s+Number(l.amount);},0);
+  $('st-earned').textContent = money(earned);
+  var convos = today.filter(function(h){return ['callback','not_interested','meeting','gatekeeper'].indexOf(h.outcome)>-1;}).length;
+  $('k-dials').textContent=dials;
+  $('k-connect').textContent = dials?Math.round(convos/dials*100)+'%':'0%';
+  $('k-meet').textContent=meets;
+  $('k-alltime').textContent=BOOT.totals.dials;
+  $('moneyMath').textContent = meets ? (meets+' meeting'+(meets===1?'':'s')+' today, keep swinging') : 'first meeting of the day is out there';
+  var byDay={}, labels=[];
+  for (var i=13;i>=0;i--){ var dd=new Date(); dd.setDate(dd.getDate()-i); labels.push(dd.toISOString().slice(0,10)); byDay[labels[labels.length-1]]=0; }
+  (BOOT.fourteen||[]).forEach(function(r){ var k=String(r.d).slice(0,10); if(byDay[k]!=null)byDay[k]=r.n; });
+  byDay[todayKey()]=dials;
+  var max=Math.max(5, Math.max.apply(null, labels.map(function(k){return byDay[k];})));
+  $('chart').innerHTML = labels.map(function(k){
+    var v=byDay[k];
+    return '<div class="b" style="height:'+Math.round(v/max*100)+'%"><i>'+(v||'')+'</i><u>'+k.slice(8)+'</u></div>';
+  }).join('');
+  var due=BOOT.fups||[];
+  $('dueBadge').style.display=due.length?'inline-block':'none';
+  $('dueBadge').textContent=due.length+' due';
+  $('dueTodayBanner').innerHTML = due.length ? '<div class="histline due" style="margin-top:12px;cursor:pointer" onclick="showTab(\'past\')"><b>'+due.length+' follow-up'+(due.length===1?'':'s')+' due.</b> Promises kept book meetings. Knock these out first.</div>' : '';
+}
+function renderHistoryBoot(){
+  var due=(BOOT&&BOOT.fups)||[];
+  $('dueWrap').innerHTML = due.length ? ('<div class="hint" style="margin-bottom:6px"><b>Follow-ups due:</b></div>'+due.map(function(h,i){
+    return '<div class="histline due" style="cursor:pointer" onclick="openFup('+i+')"><b>'+esc(h.name||fmtPhone(h.phone))+'</b> · '+esc(fmtPhone(h.phone))+' · promised '+esc(fdate(h.fup))+(h.note?' · "'+esc(h.note)+'"':'')+'</div>';
+  }).join('')) : '';
+}
+var histTimer=null;
+function debHist(){ clearTimeout(histTimer); histTimer=setTimeout(loadHistory,350); }
+function loadHistory(){
+  api('history',{q:$('histSearch').value.trim()}).then(function(rows){
+    HIST_CACHE = rows;
+    $('histRows').innerHTML = rows.length ? rows.map(function(h,hi){
+      return '<tr class="biz" onclick="openPastIdx('+hi+')">'+
+        '<td style="white-space:nowrap">'+esc(fdate(h.ts))+'</td>'+
+        '<td><b>'+esc(h.name||'-')+'</b></td>'+
+        '<td class="phone">'+esc(fmtPhone(h.phone))+'</td>'+
+        '<td class="hidem">'+esc((h.city||'')+(h.industry?' · '+h.industry:''))+'</td>'+
+        '<td>'+statusTag(h.outcome)+(h.fup&&!h.fup_done?' <span class="tag t-gold">f/u '+esc(fdate(h.fup))+'</span>':'')+'</td>'+
+        '<td class="hidem" style="color:var(--muted);max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(h.note||'')+'</td></tr>';
+    }).join('') : '<tr><td colspan="6"><div class="empty">No calls logged yet.</div></td></tr>';
+  }).catch(function(e){ toast(e.message); });
+}
+function renderSeqs(){
+  var rows=(BOOT&&BOOT.seqs)||[];
+  $('seqRows').innerHTML = rows.length ? rows.map(function(s){
+    return '<tr><td><b>'+esc(s.business||fmtPhone(s.phone))+'</b></td><td>'+esc(s.to_email)+'</td>'+
+      '<td>'+s.step+' / 3</td><td>'+(s.status==='active'?'<span class="tag t-cb">active</span>':s.status==='done'?'<span class="tag t-meet">finished</span>':'<span class="tag t-na">stopped</span>')+'</td>'+
+      '<td>'+(s.status==='active'?esc(fdate(s.next_at)):'-')+'</td>'+
+      '<td>'+(s.status==='active'?'<button class="btn-ghost btn-sm" onclick="stopSeq('+s.id+')">Stop</button>':'')+'</td></tr>';
+  }).join('') : '<tr><td colspan="6"><div class="empty">No sequences yet. Start one from the call screen after a voicemail.</div></td></tr>';
+}
+function stopSeq(id){ api('seq.stop',{id:id}).then(function(){ toast('Sequence stopped.'); refresh(); }).catch(function(e){toast(e.message);}); }
+
+/* ================= COMMISSIONS ================= */
+function prodHint(){
+  if (!BOOT) return;
+  var p = BOOT.products.find(function(x){return x.id===$('d-prod').value;});
+  if (!p) return;
+  var needsAmt = (p.kind==='one_time'&&!p.amount)||(p.kind==='recurring'&&!p.monthly);
+  $('d-amtWrap').style.display = needsAmt?'block':'none';
+  if (p.kind==='one_time') $('d-hint').textContent = 'You earn '+p.pct+'% one time'+(p.amount?(' = '+money(p.amount*p.pct/100)):'')+'.';
+  else $('d-hint').textContent = 'You earn '+p.firstPct+'% of the first month'+(p.monthly?(' ('+money(p.monthly*p.firstPct/100)+')'):'')+' plus '+p.recPct+'% every month the client stays'+(p.monthly?(' ('+money(p.monthly*p.recPct/100)+'/mo)'):'')+'.';
+}
+function submitDeal(){
+  var p = BOOT.products.find(function(x){return x.id===$('d-prod').value;});
+  var biz = $('d-biz').value.trim();
+  if (!biz) return toast('Who is the client? Business name first.');
+  var amt = Number($('d-amt').value)||0;
+  api('deal.submit',{business:biz,product:p.id,amount:p.kind==='one_time'?(amt||p.amount):0,monthly:p.kind==='recurring'?(amt||p.monthly):0,note:$('d-note').value.trim()})
+    .then(function(){ chime(); toast('Deal sent to Ty for approval.'); $('d-biz').value='';$('d-note').value='';$('d-amt').value=''; refresh(); })
+    .catch(function(e){ toast(e.message); });
+}
+function renderComm(){
+  if (!BOOT) return;
+  var deals=BOOT.deals||[], ledger=BOOT.ledger||[];
+  var pend = deals.filter(function(d){return d.status==='pending';}).reduce(function(s,d){return s+Number(d.first_comm);},0);
+  var earned = ledger.filter(function(l){return l.status==='earned';}).reduce(function(s,l){return s+Number(l.amount);},0);
+  var paid = ledger.filter(function(l){return l.status==='paid';}).reduce(function(s,l){return s+Number(l.amount);},0);
+  $('c-pending').textContent=money(pend); $('c-earned').textContent=money(earned); $('c-paid').textContent=money(paid);
+  $('dealRows').innerHTML = deals.length ? deals.map(function(d){
+    var comm = money(d.first_comm)+(Number(d.rec_comm)?' + '+money(d.rec_comm)+'/mo':'');
+    var st = d.status==='approved'?'<span class="tag t-meet">approved</span>':d.status==='pending'?'<span class="tag t-cb">pending</span>':d.status==='denied'?'<span class="tag t-no">denied</span>':'<span class="tag t-na">'+esc(d.status)+'</span>';
+    return '<tr><td><b>'+esc(d.business)+'</b></td><td style="font-size:12.5px">'+esc(d.product)+'</td><td>'+comm+'</td><td>'+st+'</td><td>'+esc(fdate(d.ts))+'</td></tr>';
+  }).join('') : '<tr><td colspan="5"><div class="empty">Close your first one. The ledger is waiting.</div></td></tr>';
+  $('ledgerRows').innerHTML = ledger.length ? ledger.map(function(l){
+    return '<tr><td>'+esc(l.label)+'</td><td>'+esc(String(l.type).replace('_',' '))+'</td><td><b>'+money(l.amount)+'</b></td>'+
+      '<td>'+(l.status==='paid'?'<span class="tag t-meet">paid</span>':'<span class="tag t-cb">earned</span>')+'</td><td>'+esc(fdate(l.ts))+'</td></tr>';
+  }).join('') : '<tr><td colspan="5"><div class="empty">Nothing here yet.</div></td></tr>';
+}
+
+/* ================= OWNER ================= */
+function renderOwner(){
+  var t=BOOT.team; if(!t)return;
+  var pend=t.pending||[];
+  $('apprBadge').style.display=pend.length?'inline-block':'none';
+  $('apprBadge').textContent=pend.length;
+  $('teamRows').innerHTML=(t.reps||[]).map(function(r){
+    return '<tr><td><b>'+esc(r.name)+'</b></td><td>'+r.dials_today+' dials · '+r.meet_today+' mtg</td>'+
+      '<td>'+r.dials_7d+' dials · '+r.meet_7d+' mtg</td><td>'+r.dials_all+' dials · '+r.meet_all+' mtg</td></tr>';
+  }).join('');
+  $('teamExtra').textContent = (t.emails7||0)+' sequence emails sent in the last 7 days · '+(t.seqs||[]).filter(function(s){return s.status==='active';}).length+' sequences active.';
+  $('apprList').innerHTML = pend.length ? pend.map(function(d){
+    return '<div class="histline" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><div style="flex:1"><b>'+esc(d.business)+'</b> · '+esc(d.product)+
+      (Number(d.monthly)?' · '+money(d.monthly)+'/mo':' · '+money(d.amount))+
+      '<br><span style="font-size:12px">by '+esc(d.rep)+(d.note?' · "'+esc(d.note)+'"':'')+' · commission '+money(d.first_comm)+(Number(d.rec_comm)?' + '+money(d.rec_comm)+'/mo':'')+'</span></div>'+
+      '<button class="btn-green btn-sm" onclick="reviewDeal('+d.id+',true)">Approve</button>'+
+      '<button class="btn-red btn-sm" onclick="reviewDeal('+d.id+',false)">Deny</button></div>';
+  }).join('') : '<div class="empty">Nothing waiting on you.</div>';
+  $('ownLedger').innerHTML=(t.ledger||[]).map(function(l){
+    return '<tr><td>'+esc(l.rep)+'</td><td>'+esc(l.label)+'</td><td><b>'+money(l.amount)+'</b></td>'+
+      '<td>'+(l.status==='paid'?'<span class="tag t-meet">paid</span>':'<span class="tag t-cb">earned</span>')+'</td><td>'+esc(fdate(l.ts))+'</td></tr>';
+  }).join('')||'<tr><td colspan="5"><div class="empty">No commissions yet.</div></td></tr>';
+  $('ownSeqs').innerHTML=(t.seqs||[]).map(function(s){
+    return '<tr><td><b>'+esc(s.business||fmtPhone(s.phone))+'</b></td><td>'+esc(s.rep)+'</td><td>'+s.step+' / 3</td><td>'+esc(s.status)+'</td></tr>';
+  }).join('')||'<tr><td colspan="4"><div class="empty">None yet.</div></td></tr>';
+}
+function reviewDeal(id, approve){
+  api('deal.review',{id:id,approve:approve}).then(function(){ toast(approve?'Approved. Commission moved to earned.':'Denied.'); refresh(); }).catch(function(e){toast(e.message);});
+}
+function payAll(){
+  var sdr = (BOOT.team.reps||[]).find(function(r){ return r.email!==BOOT.user.email; });
+  var rep = sdr ? sdr.email : '';
+  if (!rep) return toast('No rep found.');
+  if (!confirm('Mark every earned commission for '+rep+' as paid?')) return;
+  api('ledger.payAll',{rep:rep}).then(function(){ toast('Marked paid.'); refresh(); }).catch(function(e){toast(e.message);});
+}
+
+/* ================= TABS ================= */
+function showTab(t){
+  ['today','past','seq','comm','owner'].forEach(function(x){
+    var b=$('tab-'+x); if(b) b.className = t===x?'on':'';
+    var v=$('view-'+x); if(v) v.style.display = t===x?'block':'none';
+  });
+  if (t==='past') loadHistory();
+  if (t==='owner'||t==='comm'||t==='seq') refresh();
+}
+
+/* ================= SCRIPT ================= */
+function hook(b){
+  var noun=LISTMETA.noun||'business', town=b.town||LISTMETA.city||'town';
+  if (!b.website) return 'you don’t have a website, so your Google listing is carrying your entire reputation online, and it’s sitting unmanaged';
+  if (b.reviews===0) return 'you have zero Google reviews, which tells customers nothing, while your competitors’ reviews do their selling for them';
+  if (b.reviews>0&&b.reviews<15) return 'you’ve got '+b.reviews+' Google reviews while the businesses winning the map have 50 or more';
+  if ((b.pos||0)>3) return 'when somebody searches for a '+noun+' around '+town+', you’re sitting at number '+b.pos+', and the top three spots get basically all the calls';
+  if (b.rating>0&&b.rating<4.3) return 'you’re at '+b.rating+' stars with reviews going unanswered, and that’s the first thing customers see';
+  return 'your Google listing has clearly been sitting unmanaged, and that’s quietly costing you calls';
+}
+function buildScript(b){
+  var me=BOOT.user.name, noun=LISTMETA.noun||'business', city=b.town||LISTMETA.city||'your area';
+  return '"Hey, is this the owner of '+b.name+'? ...\n\n'+
+    'I’ll be straight with you: this is a cold call. You can hang up right now, or you can give me one minute and I’ll tell you exactly why I called you and nobody else. ...\n\n'+
+    '(They almost always laugh or say go ahead.)\n\n'+
+    'Appreciate it. I’m '+me+', a sales representative with Burket Web Design, local here in the Altoona area. Before I dialed, I pulled up '+b.name+' on Google, and honestly, '+hook(b)+'.\n\n'+
+    'When somebody in '+city+' searches for a '+noun+', the top three spots on the map get basically all the calls. We make sure businesses like yours own one of those spots. Our Local Presence program starts at 299 a month, flat.\n\n'+
+    'I’m not asking you to buy anything today. I’d like to set up 15 minutes with Ty Burket, the owner, so he can show you on your actual listing what’s leaking. If it’s nothing, you got a free audit.\n\n'+
+    'Does tomorrow morning or afternoon treat you better?"';
+}
+function buildVM(b){
+  var first=BOOT.user.name.split(' ')[0];
+  return '"Hey, this is '+first+' with Burket Web Design, local in the Altoona area. I was on '+b.name+'’s Google listing right before this call and found something that’s probably costing you customers. Takes two minutes to show you. I’ll shoot over the free scan by email too. Call me back, again it’s '+first+', and I’ll say my number slow, twice. Thanks."';
+}
+function OBJECTIONS(){
+  return [
+    { l:'"I’m busy."', r:'"Totally fair, that’s why I asked for one minute. One-liner: your Google listing is losing you calls and Ty can prove it in 15 minutes this week. Early morning, lunch, or end of day, what’s least painful?"' },
+    { l:'"Not interested."', r:'"No problem, I’ll let you go. One thing: I’m going to email you the free scan of how you show up on Google. If it looks fine, toss it. If it doesn’t, my number is on it. What’s the best email?"' },
+    { l:'"All word of mouth."', r:'"That’s the best kind, and here’s the catch: when somebody gets your name from a friend, the first thing they do is Google you. If a competitor with 60 reviews shows up above you, that referral you already earned just leaked away. We make sure it lands."' },
+    { l:'"We have a website / a guy."', r:'"Keep them, this isn’t that. Quick question: is anyone posting to your Google Business Profile every week and answering your reviews? That’s the piece everybody skips, and it’s the piece that decides who wins the map."' },
+    { l:'"How much is it?"', r:'"Websites are one-time, 650 for a one-pager, 850 for a full site. The Local Presence program is 299 a month flat, 500 if you want the works. But the 15 minutes with Ty is free, and you’ll see real numbers on your real listing before you spend a dime."' },
+    { l:'Gatekeeper answers.', r:'"Hey, it’s '+BOOT.user.name.split(' ')[0]+', is the owner around? ... It’s about their Google listing." Short and calm. If pressed: "There’s an issue with how the business shows up when customers search, takes two minutes." Get the owner’s name and best time back.' }
+  ];
+}
+
+/* ================= CALL MODAL ================= */
+function startCallTimer(){
+  CALLSTART=Date.now();
+  clearInterval(CALLTICK);
+  CALLTICK=setInterval(function(){ $('callTimer').textContent=fsec(Math.floor((Date.now()-CALLSTART)/1000)); },1000);
+  $('callTimer').textContent='0:00';
+}
+function fillModal(b, progressTxt){
+  $('p-name').textContent=b.name||fmtPhone(b.phone);
+  $('p-meta').textContent=[(LISTMETA.industry||b.industry||''), b.addr||b.town||''].filter(Boolean).join(' · ');
+  var gs=[];
+  if (b.src==='google'||b.pos){
+    gs.push('<div class="gstat"><b>#'+(b.pos||'?')+'</b>Google position</div>');
+    gs.push('<div class="gstat'+(b.rating&&b.rating<4.3?' alert':'')+'"><b>'+(b.reviews>0?b.rating+'★':'-')+'</b>rating</div>');
+    gs.push('<div class="gstat'+(b.reviews>-1&&b.reviews<15?' alert':'')+'"><b>'+(b.reviews>-1?b.reviews:'?')+'</b>reviews</div>');
+  }
+  gs.push('<div class="gstat'+(b.website?'':' alert')+'"><b>'+(b.website?'yes':'NO')+'</b>website</div>');
+  if (isHot(b)) gs.push('<div class="gstat"><b>&#128293;</b>prime target</div>');
+  $('p-gstats').innerHTML=gs.join('');
+  $('bignum').textContent=fmtPhone(b.phone);
+  $('bignum').href='tel:+1'+b.phone;
+  var links=[];
+  if (b.website) links.push('<a href="'+esc(b.website)+'" target="_blank" rel="noopener">their website</a>');
+  if (b.maps) links.push('<a href="'+esc(b.maps)+'" target="_blank" rel="noopener">their Google listing</a>');
+  links.push('<a href="https://www.google.com/search?q='+encodeURIComponent((b.name||'')+' '+(b.town||LISTMETA.city||'')+' PA')+'" target="_blank" rel="noopener">Google them</a>');
+  links.push('<a href="'+esc(BOOT.auditUrl)+'" target="_blank" rel="noopener">audit tool</a>');
+  $('p-links').innerHTML=links.join('');
+  $('p-besttime').style.display=LISTMETA.best?'inline-block':'none';
+  $('p-besttime').textContent=LISTMETA.best?('⏰ Best window: '+LISTMETA.best):'';
+  $('p-prevcalls').innerHTML='';
+  api('prev.calls',{phone:b.phone}).then(function(prev){
+    if (!prev.length) return;
+    $('p-prevcalls').innerHTML='<h3 class="sec">Called before</h3>'+prev.slice(0,4).map(function(h){
+      return '<div class="histline"><b>'+esc(fdate(h.ts))+'</b> · '+esc(String(h.outcome).replace(/_/g,' '))+(h.secs?' · '+fsec(h.secs):'')+(h.note?' · "'+esc(h.note)+'"':'')+'</div>';
+    }).join('');
+  }).catch(function(){});
+  // sequence panel
+  $('seq-email').value=b.email||'';
+  $('scrapeOut').innerHTML='';
+  $('scrapeBtn').style.display=b.website?'inline-block':'none';
+  $('seqStatus').textContent=b.website?'Scrape their site for an email, or paste one, then fire the 3-step sequence with the free scan link.':'No website on file. Paste their email if you can find one (Facebook page is usually the spot).';
+  $('p-script').textContent=buildScript(b);
+  $('p-vm').textContent=buildVM(b);
+  $('p-objs').innerHTML=OBJECTIONS().map(function(o){
+    return '<div class="obj" onclick="this.classList.toggle(\'open\')"><b>'+esc(o.l)+'</b><div class="r">'+esc(o.r)+'</div></div>';
+  }).join('');
+  $('p-note').value=''; $('p-fup').value='';
+  $('p-progress').textContent=progressTxt||'';
+  $('overlay').classList.add('show');
+  $('callmodal').classList.add('show');
+  startCallTimer();
+}
+function openCall(i){
+  CUR=i; CURFUP=null;
+  var called=LIST.filter(function(b){return b.status;}).length;
+  fillModal(LIST[i],'Call '+(called+1)+' of '+LIST.length);
+}
+function openFup(i){
+  var h=BOOT.fups[i]; if(!h)return;
+  CUR=null; CURFUP=h;
+  fillModal(normHist(h),'Follow-up · promised '+fdate(h.fup));
+}
+var HIST_CACHE=[];
+function openPastIdx(i){
+  var h=HIST_CACHE[i]; if(!h)return;
+  CUR=null; CURFUP=h;
+  fillModal(normHist(h),'Repeat call · last outcome: '+String(h.outcome).replace(/_/g,' '));
+}
+function normHist(h){
+  return { name:h.name, phone:h.phone, website:h.website||'', email:h.email||'', rating:Number(h.rating)||0,
+           reviews:h.reviews==null?-1:Number(h.reviews), pos:Number(h.pos)||0, addr:h.addr||'', maps:h.maps||'',
+           town:h.city||'', industry:h.industry||'', src:h.src||(h.pos?'google':'') };
+}
+function startCalling(){
+  for (var i=0;i<LIST.length;i++){ if(!LIST[i].status) return openCall(i); }
+  toast('Everything on this list is already called.');
+}
+function navCall(dir){
+  if (CUR==null){ closeCall(); return; }
+  var i=CUR+dir;
+  while (i>=0&&i<LIST.length&&LIST[i].status) i+=dir;
+  if (i<0||i>=LIST.length) return toast(dir>0?'End of the list.':'Top of the list.');
+  openCall(i);
+}
+function closeCall(){
+  $('overlay').classList.remove('show');
+  $('callmodal').classList.remove('show');
+  clearInterval(CALLTICK);
+  CUR=null; CURFUP=null;
+}
+function quickFup(days){ var d=new Date(); d.setDate(d.getDate()+days); $('p-fup').value=d.toISOString().slice(0,10); }
+function curBiz(){ return CUR!=null?LIST[CUR]:(CURFUP?normHist(CURFUP):null); }
+function logOutcome(out){
+  var b=curBiz(); if(!b)return;
+  if (out==='callback'&&!$('p-fup').value) quickFup(1);
+  var secs=CALLSTART?Math.floor((Date.now()-CALLSTART)/1000):0;
+  var payload={ phone:b.phone, name:b.name, outcome:out, note:$('p-note').value.trim(), secs:secs,
+    fup:(out==='dnc'?'':($('p-fup').value||null)), city:b.town||LISTMETA.city||'', industry:LISTMETA.industry||b.industry||'',
+    website:b.website||'', email:$('seq-email').value.trim()||b.email||'', rating:b.rating||0,
+    reviews:b.reviews==null?-1:b.reviews, pos:b.pos||0, addr:b.addr||'', maps:b.maps||'', src:b.src||'' };
+  var wasCur=CUR;
+  api('call.log',payload).then(function(r){
+    LASTLOG={id:r.id,listIndex:wasCur};
+    if (PH&&Date.now()<PH.end){ PH.dials++; save('sdr_ph',PH); }
+    if (out==='meeting'){ chime(); confetti(); toast('🎉 Meeting set with '+(b.name||'them')+'. Ty just got the email.',true); }
+    else { tick(); toast(out.replace(/_/g,' ')+' logged.',true); }
+    refresh();
+  }).catch(function(e){ toast(e.message); });
+  if (wasCur!=null){
+    LIST[wasCur].status=out; LIST[wasCur].note=$('p-note').value.trim();
+    save('sdr_list',LIST);
+    if (out==='voicemail'||out==='no_answer'){
+      // keep the modal open so they can fire the email sequence
+      renderList();
+      $('seqStatus').innerHTML='<b>Logged.</b> Now hit them by email while the dial is fresh, then move on.';
+      return;
+    }
+    var next=-1;
+    for (var i=0;i<LIST.length;i++){ if(!LIST[i].status){next=i;break;} }
+    renderList();
+    if (next>-1) openCall(next);
+    else { closeCall(); showRecap(); }
+  } else {
+    closeCall();
+  }
+}
+function undoLast(){
+  if (!LASTLOG) return;
+  api('call.undo',{id:LASTLOG.id}).then(function(){
+    if (LASTLOG.listIndex!=null&&LIST[LASTLOG.listIndex]) LIST[LASTLOG.listIndex].status='';
+    save('sdr_list',LIST);
+    LASTLOG=null; $('toast').className='';
+    renderList(); refresh();
+    toast('Undone.');
+  }).catch(function(e){toast(e.message);});
+}
+function showRecap(){
+  var m=LIST.filter(function(x){return x.status==='meeting';}).length;
+  var cb=LIST.filter(function(x){return x.status==='callback';}).length;
+  var em=LIST.filter(function(x){return x.seqStarted;}).length;
+  $('recapBody').innerHTML='<b>'+LIST.length+'</b> dials on this list<br>'+
+    '<b style="color:var(--green)">'+m+' meetings booked</b> · '+cb+' callbacks · '+em+' email sequences fired<br>'+
+    'Build tomorrow’s 50 before you close the laptop.';
+  $('recapmodal').classList.add('show');
+  if (m) confetti();
+}
+
+/* ================= SCRAPE + SEQUENCE ================= */
+function scrapeNow(){
+  var b=curBiz(); if(!b||!b.website)return toast('No website to scrape.');
+  $('scrapeBtn').disabled=true; $('scrapeBtn').textContent='Scanning their site...';
+  api('scrape',{url:b.website}).then(function(d){
+    if (!d.emails.length){ $('scrapeOut').innerHTML='<div class="hint">No email found on the site. Check their Facebook page, or skip it.</div>'; return; }
+    $('scrapeOut').innerHTML='<div class="hint" style="margin-top:6px">Tap one:</div>'+d.emails.map(function(e){
+      return '<span class="emailchip" onclick="$(\'seq-email\').value=\''+esc(e)+'\';toast(\'Email set.\')">'+esc(e)+'</span>';
+    }).join('');
+  }).catch(function(e){ $('scrapeOut').innerHTML='<div class="hint">'+esc(e.message)+'</div>'; })
+    .finally(function(){ $('scrapeBtn').disabled=false; $('scrapeBtn').textContent='🔍 Find email on their site'; });
+}
+function startSeq(){
+  var b=curBiz(); if(!b)return;
+  var to=$('seq-email').value.trim();
+  if (!to) return toast('Need their email first. Scrape the site or paste one.');
+  $('seqBtn').disabled=true;
+  api('seq.start',{phone:b.phone,business:b.name,toEmail:to,industry:LISTMETA.industry||b.industry||'',city:b.town||LISTMETA.city||'',website:b.website||''})
+    .then(function(){
+      chime();
+      if (CUR!=null){ LIST[CUR].seqStarted=true; save('sdr_list',LIST); }
+      $('seqStatus').innerHTML='<b style="color:var(--green)">Email 1 just went out with the scan link.</b> Two more follow automatically. Replies land in your inbox.';
+      toast('Sequence started for '+(b.name||to)+'.');
+      if (CUR!=null){
+        var next=-1;
+        for (var i=0;i<LIST.length;i++){ if(!LIST[i].status){next=i;break;} }
+        setTimeout(function(){ if(next>-1)openCall(next); else {closeCall();showRecap();} },900);
+      }
+    })
+    .catch(function(e){ toast(e.message); })
+    .finally(function(){ $('seqBtn').disabled=false; });
+}
+
+/* ================= POWER HOUR / EXTRAS ================= */
+function togglePH(){
+  if (PH&&Date.now()<PH.end){
+    if (!confirm('End the power hour early?')) return;
+    PH=null; save('sdr_ph',PH); $('phChip').style.display='none'; return;
+  }
+  PH={end:Date.now()+3600000,dials:0}; save('sdr_ph',PH);
+  $('phChip').style.display='block';
+  beep(880,.1,.06);
+  toast('⚡ Power hour started. 60 minutes, as many dials as you have in you.');
+}
+setInterval(function(){
+  if (!PH) return;
+  var left=PH.end-Date.now();
+  if (left<=0){ toast('⚡ Power hour done: '+PH.dials+' dials.'); chime(); PH=null; save('sdr_ph',PH); $('phChip').style.display='none'; return; }
+  $('phChip').style.display='block';
+  var s=Math.floor(left/1000);
+  $('phTime').textContent=Math.floor(s/60)+':'+String(s%60).padStart(2,'0');
+},1000);
+document.addEventListener('keydown',function(e){
+  if (!$('callmodal').classList.contains('show')) return;
+  var tag=(document.activeElement&&document.activeElement.tagName)||'';
+  if (tag==='INPUT'||tag==='TEXTAREA'){ if(e.key==='Escape')document.activeElement.blur(); return; }
+  var k=e.key.toLowerCase();
+  if (k==='1') logOutcome('no_answer');
+  else if (k==='2') logOutcome('voicemail');
+  else if (k==='3') logOutcome('callback');
+  else if (k==='4') logOutcome('not_interested');
+  else if (k==='5') logOutcome('gatekeeper');
+  else if (k==='6') logOutcome('dnc');
+  else if (k==='m') logOutcome('meeting');
+  else if (k==='n') navCall(1);
+  else if (k==='p') navCall(-1);
+  else if (k==='escape') closeCall();
+});
+function sortHot(){
+  LIST.sort(function(a,b){
+    if (!!a.status!==!!b.status) return a.status?1:-1;
+    return (isHot(b)?1:0)-(isHot(a)?1:0);
+  });
+  save('sdr_list',LIST); renderList();
+  toast('Prime targets moved to the top.');
+}
+function exportCsv(){
+  var rows=[['Name','Phone','Town','Google Position','Rating','Reviews','Website','Status','Note']];
+  LIST.forEach(function(b){ rows.push([b.name,fmtPhone(b.phone),b.town||'',b.pos||'',b.rating||'',(b.reviews>-1?b.reviews:''),b.website||'',b.status||'to call',b.note||'']); });
+  var csv=rows.map(function(r){return r.map(function(c){return '"'+String(c).replace(/"/g,'""')+'"';}).join(',');}).join('\n');
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+  a.download='calls-'+(LISTMETA.city||'list')+'-'+todayKey()+'.csv';
+  a.click();
+}
+function clearList(){
+  if (!confirm('Clear this list? Logged calls stay in Past Calls.')) return;
+  LIST=[]; LISTMETA={};
+  save('sdr_list',LIST); save('sdr_listmeta',LISTMETA);
+  renderList();
+}
+function toggleDark(){
+  var on=document.body.hasAttribute('data-dark');
+  if (on) document.body.removeAttribute('data-dark'); else document.body.setAttribute('data-dark','1');
+  save('sdr_dark',!on);
+}
+
+/* ================= BOOT ================= */
+if (load('sdr_dark',false)) document.body.setAttribute('data-dark','1');
+if (LISTMETA.date&&LISTMETA.date!==todayKey()&&LIST.length&&LIST.every(function(b){return b.status;})){
+  LIST=[]; LISTMETA={};
+  save('sdr_list',LIST); save('sdr_listmeta',LISTMETA);
+}
+if (PH&&Date.now()>=PH.end){ PH=null; save('sdr_ph',PH); }
+if (TOKEN) boot(); else { $('login').style.display='flex'; }
+</script>
+</body>
+</html>
