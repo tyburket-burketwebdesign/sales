@@ -651,20 +651,33 @@ function initControls(){
 
 /* ================= HUNT ================= */
 function hunt(){
-  var city = $('customCity').value.trim() || $('market').value;
+  var custom = $('customCity').value.trim();
+  var city = custom || $('market').value;
+  var metros;
+  if (custom) metros = custom+', FL';
+  else {
+    var mi = MARKETS.indexOf($('market').value);
+    metros = [MARKETS[mi], MARKETS[(mi+1)%MARKETS.length], MARKETS[(mi+2)%MARKETS.length]].map(function(m){return m+', FL';}).join(', ');
+  }
   var ind = INDUSTRIES[Number($('industry').value)];
   save('sdr_market', $('market').value);
   var btn=$('goBtn'); btn.disabled=true; btn.textContent='Qualifying '+ind.label+'...';
   $('rows').innerHTML='<tr><td colspan="6"><div class="empty">Scanning '+esc(city)+', FL for '+esc(ind.label.toLowerCase())+' sitting at positions 4 through 12 on the map...</div></td></tr>';
-  api('listbuild',{vertical:ind.label,metros:city+', FL',minReviews:3,maxReviews:120,target:TARGET}).then(function(d){
+  api('listbuild',{vertical:ind.label,metros:metros,minReviews:3,maxReviews:120,target:TARGET}).then(function(d){
     LIST = d.list.map(function(b){ b.status=''; b.note=''; return b; });
     LISTMETA = { city:city, industry:ind.label, noun:ind.noun, best:ind.best, date:todayKey(), pro:true };
     save('sdr_list',LIST); save('sdr_listmeta',LISTMETA);
     renderList();
     beep(880,.1,.05);
-    var msg = LIST.length+' qualified targets loaded, fastest wins first. '+d.skipped+' already-worked skipped.';
-    if (d.notes&&d.notes.length) msg += ' ('+d.notes.join(' / ')+')';
-    toast(LIST.length ? msg : 'Nothing qualified there today. Try the next market, or the next industry.');
+    if (LIST.length){
+      var msg = LIST.length+' qualified targets loaded, fastest wins first. '+d.skipped+' already-worked skipped.';
+      toast(msg);
+    } else if (d.notes&&d.notes.length){
+      toast('Search problem: '+d.notes.join(' / '));
+      $('rows').innerHTML='<tr><td colspan="6"><div class="empty">'+esc(d.notes.join(' / '))+'</div></td></tr>';
+    } else {
+      toast('Nothing qualified there today. Try the next market, or the next industry.');
+    }
   }).catch(function(e){
     $('rows').innerHTML='<tr><td colspan="6"><div class="empty">'+esc(e.message)+'</div></td></tr>';
     toast(e.message);
