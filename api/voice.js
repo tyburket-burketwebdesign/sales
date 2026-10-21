@@ -28,6 +28,12 @@ module.exports = async function handler(req, res) {
     if (req.query.cb === '1') {
       const st = P.DialCallStatus || '';
       const from = String(P.From || '').replace(/[^\d+]/g, '');
+      const fallback = C.twE164(process.env.TWILIO_FALLBACK || '');
+      if (st !== 'completed' && fallback && req.query.fb !== '1') {
+        // nobody online in the hub: ring the real cell before giving up
+        const action2 = '/api/voice?k=' + encodeURIComponent(key) + '&cb=1&fb=1';
+        return xml(res, '<Response><Dial answerOnBridge="true" timeout="25" action="' + escXml(action2) + '" method="POST"><Number>' + escXml(fallback) + '</Number></Dial></Response>');
+      }
       if (st !== 'completed') {
         try {
           await C.ensureSchema();

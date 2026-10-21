@@ -38,6 +38,7 @@ Tables create themselves on first request. The cron in `vercel.json` runs daily 
 | `TWILIO_FROM2` | no | Second caller ID number, +1 format |
 | `TWILIO_CAP_MIN` | no | Monthly calling minutes cap, default 1100 (about $20/mo) |
 | `TWILIO_WEBHOOK_KEY` | for dialer | Any random string; must match the ?k= in the webhook URL below |
+| `TWILIO_FALLBACK` | no | A real cell in +1 format. If nobody has the hub open, inbound calls ring this phone before going to the missed-call message |
 
 ## Browser dialer setup
 
