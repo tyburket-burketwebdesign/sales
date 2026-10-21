@@ -94,6 +94,60 @@ module.exports = async function handler(req, res) {
       return ok({ list: fresh, skipped: items.length - fresh.length });
     }
 
+    /* ---------------- QUALIFIED LIST BUILDER ----------------
+     * Businesses losing to the top three but close enough to move:
+     * positions 4-12, review band, storm-zone excluded, deduped by place id. */
+    if (a === 'listbuild') {
+      const vertical = String(P.vertical || '').trim();
+      if (!vertical) return err('What service? e.g. pool resurfacing and repair');
+      const metros = (Array.isArray(P.metros) ? P.metros : String(P.metros || '').split(','))
+        .map(x => String(x).trim()).filter(Boolean).slice(0, 8);
+      if (!metros.length) return err('At least one metro, e.g. Tampa FL, Orlando FL');
+      const maxReviews = Number(P.maxReviews) || 120;
+      const minReviews = P.minReviews == null ? 3 : Number(P.minReviews);
+      const target = Number(P.target) || 25;
+      const seenIds = {};
+      const out = [];
+      const notes = [];
+      for (const metro of metros) {
+        if (out.length >= target) break;
+        let loc;
+        try { loc = await C.geocodeCity(metro); }
+        catch (e) { notes.push(metro + ': ' + e.message); continue; }
+        let results;
+        try { results = await C.placesBiased(vertical + ' in ' + metro, loc.lat, loc.lng, 35000); }
+        catch (e) { notes.push(metro + ': ' + e.message); continue; }
+        for (const b of results) {
+          if (b.status !== 'OPERATIONAL') continue;          // closed or moved
+          if (b.pos <= 3) continue;                          // already winning, nothing to sell
+          if (b.pos > 12) continue;                          // too far back to move cheaply
+          if (b.reviews > maxReviews) continue;              // established, does not feel the problem
+          if (b.reviews < minReviews) continue;              // dead or unclaimed listing
+          if (C.inStormZone(b.addr)) continue;               // storm backlog, revisit in January
+          if (!b.id || seenIds[b.id]) continue;              // service areas overlap metros
+          seenIds[b.id] = true;
+          const np = C.normPhone(b.phone);
+          if (!np) continue;                                 // cannot call what has no number
+          let why;
+          if (b.reviews < 25) why = 'only ' + b.reviews + ' reviews';
+          else if (!b.website) why = 'no website on the profile';
+          else if (b.rating > 0 && b.rating < 4.3) why = 'rating ' + b.rating.toFixed(1);
+          else why = 'ranked #' + b.pos + ', close enough to catch the top three';
+          out.push({ name: b.name, phone: np, website: b.website, rating: b.rating, reviews: b.reviews,
+                     pos: b.pos, addr: b.addr, maps: b.maps, town: metro, src: 'google', why: why });
+        }
+      }
+      out.sort((x, y) => x.reviews - y.reviews);              // lowest counts are the fastest wins
+      const phones = out.map(b => b.phone);
+      let known = {};
+      if (phones.length) {
+        (await sql`SELECT DISTINCT phone FROM calls WHERE phone = ANY(${phones})`).forEach(r => known[r.phone] = true);
+        (await sql`SELECT phone FROM dnc WHERE phone = ANY(${phones})`).forEach(r => known[r.phone] = true);
+      }
+      const fresh = out.filter(b => !known[b.phone]).slice(0, target);
+      return ok({ list: fresh, skipped: out.length - fresh.length, notes: notes });
+    }
+
     /* ---------------- CALL LOGGING ---------------- */
     if (a === 'call.log') {
       const phone = C.normPhone(P.phone);

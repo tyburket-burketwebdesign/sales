@@ -208,6 +208,23 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--m
       <button class="btn-ghost" onclick="reattack()" title="Rebuild a list from no-answers older than 30 days">&#9851; Re-attack</button>
     </div>
     <div class="hint" id="suggestHint"></div>
+    <div class="row" style="margin-top:10px">
+      <button class="btn-ghost btn-sm" onclick="var p=$('proWrap');p.style.display=p.style.display==='none'?'block':'none'">&#127919; Pro builder: qualified list (positions 4-12)</button>
+    </div>
+    <div id="proWrap" style="display:none;border-top:1px solid var(--line);margin-top:12px;padding-top:12px">
+      <p class="hint" style="margin:0 0 10px">Finds businesses losing to the top three on the map but close enough that fixing the profile actually moves them. Top three have nothing to buy. Past twelfth cannot be moved cheaply. Sorted so the lowest review counts, the fastest wins, come first.</p>
+      <div class="row" style="align-items:flex-end">
+        <div style="flex:1;min-width:170px"><label>Service / vertical</label><input id="pb-vertical" placeholder="pool resurfacing and repair" style="width:100%"></div>
+        <div style="flex:1;min-width:200px"><label>Metros (comma separated)</label><input id="pb-metros" placeholder="Tampa FL, Orlando FL, Lakeland FL" style="width:100%"></div>
+      </div>
+      <div class="row" style="align-items:flex-end;margin-top:8px">
+        <div><label>Min reviews</label><input id="pb-min" type="number" value="3" style="width:90px"></div>
+        <div><label>Max reviews</label><input id="pb-max" type="number" value="120" style="width:90px"></div>
+        <div><label>Target</label><input id="pb-target" type="number" value="25" style="width:80px"></div>
+        <button class="btn-go" id="pb-go" onclick="proBuild()">Build Qualified List &rarr;</button>
+      </div>
+      <div class="hint">Thin list: raise max reviews. Too established: lower it. Gulf coast storm towns are excluded automatically until January 2027.</div>
+    </div>
     <div id="dueTodayBanner"></div>
   </div>
 
@@ -646,6 +663,26 @@ function hunt(){
   }).finally(function(){ btn.disabled=false; btn.textContent='Build My 50 →'; });
 }
 
+function proBuild(){
+  var vertical=$('pb-vertical').value.trim();
+  var metros=$('pb-metros').value.trim();
+  if(!vertical||!metros)return toast('Vertical and at least one metro.');
+  var btn=$('pb-go'); btn.disabled=true; btn.textContent='Qualifying...';
+  $('rows').innerHTML='<tr><td colspan="6"><div class="empty">Running biased searches in each metro, keeping positions 4 through 12, filtering the review band...</div></td></tr>';
+  api('listbuild',{vertical:vertical,metros:metros,minReviews:Number($('pb-min').value)||3,maxReviews:Number($('pb-max').value)||120,target:Number($('pb-target').value)||25})
+    .then(function(d){
+      LIST=d.list.map(function(x){x.status='';x.note='';return x;});
+      LISTMETA={city:metros.split(',')[0].trim()+(metros.indexOf(',')>-1?' +':''),industry:vertical,noun:vertical,best:'',date:todayKey(),pro:true};
+      save('sdr_list',LIST); save('sdr_listmeta',LISTMETA);
+      renderList(); beep(880,.1,.05);
+      var msg=LIST.length+' qualified. '+d.skipped+' already worked or DNC.';
+      if(d.notes&&d.notes.length)msg+=' ('+d.notes.join(' / ')+')';
+      toast(LIST.length?msg:'Nothing qualified. Raise max reviews or add metros.');
+    })
+    .catch(function(e){ $('rows').innerHTML='<tr><td colspan="6"><div class="empty">'+esc(e.message)+'</div></td></tr>'; toast(e.message); })
+    .finally(function(){ btn.disabled=false; btn.textContent='Build Qualified List \u2192'; });
+}
+
 /* ================= RENDER ================= */
 function statusTag(s){
   if (s==='meeting') return '<span class="tag t-meet">meeting set</span>';
@@ -717,7 +754,7 @@ function renderList(){
     $('rows').innerHTML = LIST.map(function(b,i){
       return '<tr class="biz'+(b.status?' done':'')+'" onclick="openCall('+i+')">'+
         '<td style="color:var(--muted2)">'+(i+1)+'</td>'+
-        '<td><b>'+esc(b.name)+'</b>'+(isHot(b)?' <span class="tag t-hot">&#128293; prime</span>':'')+'</td>'+
+        '<td><b>'+esc(b.name)+'</b>'+(b.why?' <span class="tag t-gold">'+esc(b.why)+'</span>':(isHot(b)?' <span class="tag t-hot">&#128293; prime</span>':''))+'</td>'+
         '<td class="phone">'+esc(fmtPhone(b.phone))+'</td>'+
         '<td class="hidem">'+gCell(b)+'</td>'+
         '<td class="hidem">'+(b.website?'yes':'<b style="color:var(--blue)">none</b>')+'</td>'+
@@ -887,6 +924,10 @@ function showTab(t){
 /* ================= SCRIPT ================= */
 function hook(b){
   var noun=LISTMETA.noun||'business', town=b.town||LISTMETA.city||'town';
+  if (b.why==='no website on the profile') return 'there\u2019s no website on your Google profile, so your listing is doing all the work alone, and it\u2019s sitting unmanaged';
+  if (b.why&&b.why.indexOf('only ')===0) return 'you\u2019ve got '+b.reviews+' Google reviews while the three businesses above you on the map have the rest of the market\u2019s';
+  if (b.why&&b.why.indexOf('rating ')===0) return 'you\u2019re sitting at '+b.rating+' stars with reviews going unanswered, and that\u2019s the first thing customers compare';
+  if (b.why&&b.why.indexOf('ranked #')===0) return 'you\u2019re at position '+b.pos+' on the map for '+noun+' around '+town+', and the three spots above you get basically all the calls, which is a fixable gap, not a talent gap';
   if (!b.website) return 'you don’t have a website, so your Google listing is carrying your entire reputation online, and it’s sitting unmanaged';
   if (b.reviews===0) return 'you have zero Google reviews, which tells customers nothing, while your competitors’ reviews do their selling for them';
   if (b.reviews>0&&b.reviews<15) return 'you’ve got '+b.reviews+' Google reviews while the businesses winning the map have 50 or more';
@@ -937,6 +978,7 @@ function fillModal(b, progressTxt){
   }
   gs.push('<div class="gstat'+(b.website?'':' alert')+'"><b>'+(b.website?'yes':'NO')+'</b>website</div>');
   if (isHot(b)) gs.push('<div class="gstat"><b>&#128293;</b>prime target</div>');
+  if (b.why) gs.push('<div class="gstat" style="border-color:rgba(254,200,20,.5)"><b>&#127919;</b>'+esc(b.why)+'</div>');
   $('p-gstats').innerHTML=gs.join('');
   $('bignum').textContent=fmtPhone(b.phone);
   $('bignum').href='tel:+1'+b.phone;
@@ -1190,8 +1232,14 @@ function sortHot(){
   toast('Prime targets moved to the top.');
 }
 function exportCsv(){
-  var rows=[['Name','Phone','Town','Google Position','Rating','Reviews','Website','Status','Note']];
+  var rows;
+  if (LISTMETA.pro){
+    rows=[['Business','Phone','Metro','Map position','Reviews','Rating','Website','Address','Why call them','Called','Outcome']];
+    LIST.forEach(function(b){ rows.push([b.name,fmtPhone(b.phone),b.town||'',b.pos||'',(b.reviews>-1?b.reviews:''),b.rating||'',b.website||'',b.addr||'',b.why||'',b.status?'yes':'',b.status||'']); });
+  } else {
+  rows=[['Name','Phone','Town','Google Position','Rating','Reviews','Website','Status','Note']];
   LIST.forEach(function(b){ rows.push([b.name,fmtPhone(b.phone),b.town||'',b.pos||'',b.rating||'',(b.reviews>-1?b.reviews:''),b.website||'',b.status||'to call',b.note||'']); });
+  }
   var csv=rows.map(function(r){return r.map(function(c){return '"'+String(c).replace(/"/g,'""')+'"';}).join(',');}).join('\n');
   var a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));

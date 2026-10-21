@@ -154,6 +154,59 @@ async function placesSearch(query) {
   return all;
 }
 
+/* ---- qualified list builder support ---- */
+const STORM_ZONE = {
+  until: '2027-01-01', // Hurricane Isaias backlog; these flip to the best list in the state after this date
+  places: ['Destin', 'Fort Walton', 'Panama City', 'Pensacola', 'Niceville', 'Crestview', 'Santa Rosa Beach', 'Navarre', 'Miramar Beach']
+};
+function inStormZone(address) {
+  if (new Date().toISOString().slice(0, 10) >= STORM_ZONE.until) return false;
+  const a = String(address || '').toLowerCase();
+  return STORM_ZONE.places.some(p => a.includes(p.toLowerCase()));
+}
+async function geocodeCity(city) {
+  const url = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=us&q=' + encodeURIComponent(city);
+  const r = await fetch(url, { headers: { 'Accept': 'application/json', 'User-Agent': 'BWDHub/1.0 (sales tool)' } });
+  const j = await r.json();
+  if (!j.length) throw new Error('Could not place the metro: ' + city);
+  return { lat: Number(j[0].lat), lng: Number(j[0].lon) };
+}
+/* One page, order preserved, biased to where a real customer stands. */
+async function placesBiased(query, lat, lng, radiusM) {
+  const key = process.env.GOOGLE_PLACES_KEY;
+  if (!key) throw new Error('GOOGLE_PLACES_KEY is not set.');
+  const body = {
+    textQuery: query, pageSize: 20,
+    locationBias: { circle: { center: { latitude: lat, longitude: lng }, radius: radiusM || 35000 } }
+  };
+  const r = await fetch('https://places.googleapis.com/v1/places:searchText', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Goog-Api-Key': key,
+      'X-Goog-FieldMask': 'places.id,places.displayName,places.nationalPhoneNumber,places.websiteUri,places.rating,places.userRatingCount,places.formattedAddress,places.googleMapsUri,places.businessStatus'
+    },
+    body: JSON.stringify(body)
+  });
+  if (!r.ok) {
+    const j = await r.json().catch(() => ({}));
+    throw new Error((j.error && j.error.message) || ('Google error ' + r.status));
+  }
+  const j = await r.json();
+  return (j.places || []).map((pl, i) => ({
+    id: pl.id || '',
+    name: (pl.displayName && pl.displayName.text) || '',
+    phone: pl.nationalPhoneNumber || '',
+    website: pl.websiteUri || '',
+    rating: pl.rating || 0,
+    reviews: pl.userRatingCount == null ? 0 : pl.userRatingCount,
+    addr: pl.formattedAddress || '',
+    maps: pl.googleMapsUri || '',
+    status: pl.businessStatus || 'OPERATIONAL',
+    pos: i + 1
+  }));
+}
+
 /* ---- email scraping ---- */
 const EMAIL_RX = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g;
 const BAD_EMAIL = /\.(png|jpg|jpeg|gif|webp|svg|css|js)$|sentry|wixpress|example\.|godaddy|@[\d.]+$|schema\.org|yourdomain|email@|domain\.com/i;
@@ -239,5 +292,5 @@ function seqTemplates(s, repName) {
   ];
 }
 
-module.exports = { sql, ensureSchema, userFromToken, login, sendMail, placesSearch, scrapeEmails, isChain,
+module.exports = { sql, ensureSchema, userFromToken, login, sendMail, placesSearch, scrapeEmails, isChain, geocodeCity, placesBiased, inStormZone,
                    PRODUCTS, seqTemplates, auditUrl, normPhone, uid };
