@@ -30,6 +30,22 @@ Tables create themselves on first request. The cron in `vercel.json` runs daily 
 | `MAIL_TO` | no | Where owner notifications and daily reports go. Defaults to OWNER_EMAIL |
 | `AUDIT_URL` | no | Defaults to https://www.burketwebdesign.com/scan/ |
 | `CRON_SECRET` | no | If set, Vercel protects the cron endpoint with it automatically |
+| `TWILIO_ACCOUNT_SID` | for dialer | Twilio Console dashboard, starts with AC |
+| `TWILIO_API_KEY_SID` | for dialer | Console -> Account -> API keys, starts with SK |
+| `TWILIO_API_KEY_SECRET` | for dialer | Shown once when the API key is created |
+| `TWILIO_TWIML_APP_SID` | for dialer | Console -> Voice -> TwiML Apps, starts with AP |
+| `TWILIO_FROM` | for dialer | Your Twilio number in +1 format |
+| `TWILIO_FROM2` | no | Second caller ID number, +1 format |
+| `TWILIO_CAP_MIN` | no | Monthly calling minutes cap, default 1100 (about $20/mo) |
+| `TWILIO_WEBHOOK_KEY` | for dialer | Any random string; must match the ?k= in the webhook URL below |
+
+## Browser dialer setup
+
+1. Add the Twilio env vars above and redeploy.
+2. Twilio Console -> Voice -> TwiML Apps -> create one. Voice Request URL (HTTP POST):
+   `https://YOUR-APP.vercel.app/api/voice?k=YOUR_TWILIO_WEBHOOK_KEY`
+3. Phone Numbers -> your number -> Voice Configuration -> "A call comes in" -> Webhook -> same URL, HTTP POST. Repeat for the second number.
+4. Hard refresh the hub. A green "dialer ready" chip appears in the top bar, every call screen gains a Call button, and inbound callbacks ring both seats with Answer/Decline. Calls count against the monthly minutes cap; missed inbound calls email the team.
 
 To change a password, change the env var and redeploy. Seats re-sync from env on every cold start.
 

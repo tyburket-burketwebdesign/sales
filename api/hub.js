@@ -64,7 +64,8 @@ module.exports = async function handler(req, res) {
         team.objections = await sql`SELECT obj, count(*)::int AS n FROM calls WHERE obj <> '' AND ts > now() - interval '30 days' GROUP BY obj ORDER BY n DESC`;
       }
       return ok({ user, products: C.PRODUCTS, today, fups, fourteen, totals: totals[0],
-                  deals: myDeals, ledger: myLedger, seqs: mySeqs, meetings: myMeetings, team, auditUrl: C.auditUrl() });
+                  deals: myDeals, ledger: myLedger, seqs: mySeqs, meetings: myMeetings, team, auditUrl: C.auditUrl(),
+                  twilio: { enabled: C.twilioReady(), numbers: C.twilioNumbers() } });
     }
 
     /* ---------------- PROSPECTING ---------------- */
@@ -342,6 +343,24 @@ module.exports = async function handler(req, res) {
         '<p>' + user.name + '<br>Burket Web Design, Altoona PA</p>';
       await C.sendMail(to, subject, html, user.email);
       await sql`INSERT INTO emails_log (seq_id, phone, to_email, rep, step, subject) VALUES (0, ${C.normPhone(P.phone) || ''}, ${to}, ${user.email}, 0, ${subject})`;
+      return ok(true);
+    }
+
+    /* ---------------- TWILIO BROWSER DIALER ---------------- */
+    if (a === 'twilio.token') {
+      if (!C.twilioReady()) return err('The browser dialer is not configured. Ask Ty to add the Twilio env vars in Vercel.');
+      const mk = 'twMin_' + new Date().toISOString().slice(0, 7);
+      const row = await sql`SELECT v FROM kv WHERE k=${mk}`;
+      const used = row[0] ? Number(row[0].v) : 0;
+      const cap = Number(process.env.TWILIO_CAP_MIN) || 1100;
+      if (used >= cap) return err('The monthly calling budget (' + cap + ' min) is used up. It resets on the 1st, or Ty can raise TWILIO_CAP_MIN.');
+      return ok({ token: C.twilioToken(user.email), numbers: C.twilioNumbers(), minutesLeft: cap - used });
+    }
+    if (a === 'twilio.log') {
+      const mins = Math.max(1, Math.ceil((Number(P.seconds) || 0) / 60));
+      const mk = 'twMin_' + new Date().toISOString().slice(0, 7);
+      await sql`INSERT INTO kv (k, v) VALUES (${mk}, ${String(mins)})
+                ON CONFLICT (k) DO UPDATE SET v = (kv.v::int + ${mins})::text`;
       return ok(true);
     }
 

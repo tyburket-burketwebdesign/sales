@@ -40,6 +40,7 @@ async function ensureSchema() {
   await sql`CREATE INDEX IF NOT EXISTS idx_calls_rep_ts ON calls (rep, ts)`;
   await sql`ALTER TABLE calls ADD COLUMN IF NOT EXISTS obj TEXT DEFAULT ''`;
   await sql`CREATE TABLE IF NOT EXISTS dnc ( phone TEXT PRIMARY KEY, ts TIMESTAMPTZ DEFAULT now() )`;
+  await sql`CREATE TABLE IF NOT EXISTS kv ( k TEXT PRIMARY KEY, v TEXT )`;
   await sql`CREATE TABLE IF NOT EXISTS meetings (
     id SERIAL PRIMARY KEY, phone TEXT, business TEXT, rep TEXT, meet_date DATE, status TEXT DEFAULT 'set',
     note TEXT DEFAULT '', alerted BOOLEAN DEFAULT false, ts TIMESTAMPTZ DEFAULT now()
@@ -243,6 +244,39 @@ async function scrapeEmails(siteUrl) {
   return Array.from(found).slice(0, 6);
 }
 
+/* ---- Twilio browser dialer ---- */
+function twE164(s2) {
+  let d = String(s2 || '').replace(/\D/g, '');
+  if (d.length === 10) return '+1' + d;
+  if (d.length === 11 && d[0] === '1') return '+' + d;
+  return String(s2 || '').trim();
+}
+function twilioReady() {
+  return !!(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_API_KEY_SID && process.env.TWILIO_API_KEY_SECRET &&
+            process.env.TWILIO_TWIML_APP_SID && process.env.TWILIO_FROM);
+}
+function twilioNumbers() {
+  return [process.env.TWILIO_FROM, process.env.TWILIO_FROM2].filter(Boolean).map(twE164);
+}
+function b64url(buf) {
+  return Buffer.from(buf).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+function twilioToken(identityEmail) {
+  const now = Math.floor(Date.now() / 1000);
+  const identity = String(identityEmail).replace(/[^a-zA-Z0-9_]/g, '_');
+  const header = b64url(JSON.stringify({ typ: 'JWT', alg: 'HS256', cty: 'twilio-fpa;v=1' }));
+  const payload = b64url(JSON.stringify({
+    jti: process.env.TWILIO_API_KEY_SID + '-' + now,
+    iss: process.env.TWILIO_API_KEY_SID,
+    sub: process.env.TWILIO_ACCOUNT_SID,
+    iat: now, exp: now + 3600,
+    grants: { identity: identity,
+              voice: { outgoing: { application_sid: process.env.TWILIO_TWIML_APP_SID }, incoming: { allow: true } } }
+  }));
+  const sig = b64url(crypto.createHmac('sha256', process.env.TWILIO_API_KEY_SECRET).update(header + '.' + payload).digest());
+  return header + '.' + payload + '.' + sig;
+}
+
 /* ---- chain / franchise filter ---- */
 const CHAIN_RX = /mcdonald|subway\b|domino|pizza hut|papa john|burger king|wendy|taco bell|kfc\b|dunkin|starbucks|walmart|autozone|advance auto|napa auto|midas\b|jiffy lube|valvoline|pep boys|firestone|monro\b|meineke|great clips|supercuts|sport clips|holiday hair|planet fitness|anytime fitness|crunch fitness|aspen dental|banfield|maaco|sherwin|h&r block|jackson hewitt|re\/max|remax|century 21|coldwell|keller williams|berkshire hathaway|petco\b|petsmart/i;
 function isChain(name) { return CHAIN_RX.test(String(name || '')); }
@@ -292,5 +326,5 @@ function seqTemplates(s, repName) {
   ];
 }
 
-module.exports = { sql, ensureSchema, userFromToken, login, sendMail, placesSearch, scrapeEmails, isChain, geocodeCity, placesBiased, inStormZone,
+module.exports = { sql, ensureSchema, userFromToken, login, sendMail, placesSearch, scrapeEmails, isChain, geocodeCity, placesBiased, inStormZone, twE164, twilioReady, twilioNumbers, twilioToken,
                    PRODUCTS, seqTemplates, auditUrl, normPhone, uid };

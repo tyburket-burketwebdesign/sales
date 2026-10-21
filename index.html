@@ -144,6 +144,17 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--m
 @keyframes fall{to{transform:translateY(108vh) rotate(720deg)}}
 .pulse{animation:pulse 1.6s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.55}}
+/* call bar */
+#callbar{position:fixed;bottom:20px;right:20px;background:var(--navy);color:#fff;border-radius:16px;padding:14px 18px;z-index:120;box-shadow:0 16px 48px rgba(0,0,0,.45);display:none;min-width:270px;border:1px solid rgba(255,255,255,.12)}
+#callbar.show{display:block}
+#callbar .cbnum{font-weight:700;font-size:14px}
+#callbar .cbstatus{font-size:12px;color:var(--teal);margin-top:2px}
+#callbar .cbtimer{font-size:22px;font-weight:800;font-variant-numeric:tabular-nums;margin:8px 0}
+#callbar .row button{flex:1;padding:9px;border-radius:9px;font-weight:700;font-size:13px}
+.cbm{background:rgba(255,255,255,.14);color:#fff}
+.cbh{background:var(--red);color:#fff}
+.cba{background:var(--green);color:#fff}
+#twReady{display:none;font-size:11px;font-weight:700;color:#4ade80;background:rgba(22,163,74,.18);border-radius:99px;padding:4px 10px;white-space:nowrap}
 /* login */
 #login{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#0e2235,#17405f);padding:16px}
 #login .box{background:#fff;border-radius:20px;padding:34px;width:400px;max-width:100%;box-shadow:0 36px 100px rgba(0,0,0,.5);text-align:center}
@@ -184,6 +195,7 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--m
   </div>
   <div class="statchip"><b id="st-meet">0</b>meetings</div>
   <div class="statchip hidem"><b id="st-earned">$0</b>unpaid comm.</div>
+  <span id="twReady" title="Inbound calls ring here">&#128222; dialer ready</span>
   <div class="statchip" id="phChip"><b id="phTime">60:00</b>power hour</div>
   <button class="iconbtn" onclick="togglePH()" title="Power Hour sprint">&#9889;</button>
   <button class="iconbtn" onclick="toggleDark()" title="Dark mode">&#127769;</button>
@@ -387,6 +399,8 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--m
           <a id="bignum" href="#">(000) 000-0000</a>
           <div class="weblinks" id="p-links"></div>
         </div>
+        <button class="btn-green btn-sm" id="twCallBtn" style="flex:none;display:none" onclick="twDial($('bignum').textContent)">&#127911; Call</button>
+        <select id="twCid" style="flex:none;display:none;max-width:140px" onchange="try{localStorage.setItem('sdr_cid',this.value)}catch(e){}" title="Caller ID"></select>
         <button class="btn-ghost btn-sm" onclick="copyTxt($('bignum').textContent,'Number copied.')" style="flex:none">Copy #</button>
       </div>
       <div class="besttime" id="p-besttime" style="display:none"></div>
@@ -469,6 +483,14 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--m
       <button class="btn-blue" onclick="$('recapmodal').classList.remove('show')">Done</button>
     </div>
   </div>
+</div>
+
+<div id="callbar">
+  <div class="cbnum" id="cb-num">-</div>
+  <div class="cbstatus" id="cb-status">Connecting...</div>
+  <div class="cbtimer" id="cb-timer">00:00</div>
+  <div class="row" id="cb-actions"><button class="cbm" id="cb-mute" onclick="twMute()">&#127908; Mute</button><button class="cbh" onclick="twHangup()">&#128683; Hang Up</button></div>
+  <div class="row" id="cb-inc" style="display:none"><button class="cba" onclick="twAnswer()">&#9989; Answer</button><button class="cbh" onclick="twReject()">&#10060; Decline</button></div>
 </div>
 
 <div id="toast"><span id="toastTxt"></span><button id="undoBtn" style="display:none" onclick="undoLast()">Undo</button></div>
@@ -606,6 +628,7 @@ function boot(){
     initControls();
     if (BOOT.user.role==='owner') $('tab-owner').style.display='inline-block';
     renderAll();
+    twInit();
   }).catch(function(e){
     $('login').style.display='flex'; $('app').style.display='none';
     if (e.message!=='Signed out.') $('l-err').textContent=e.message;
@@ -948,6 +971,7 @@ function fillModal(b, progressTxt){
   $('p-gstats').innerHTML=gs.join('');
   $('bignum').textContent=fmtPhone(b.phone);
   $('bignum').href='tel:+1'+b.phone;
+  $('twCallBtn').style.display=twEnabled()?'inline-block':'none';
   var links=[];
   if (b.website) links.push('<a href="'+esc(b.website)+'" target="_blank" rel="noopener">their website</a>');
   if (b.maps) links.push('<a href="'+esc(b.maps)+'" target="_blank" rel="noopener">their Google listing</a>');
@@ -1114,6 +1138,117 @@ function startSeq(){
     })
     .catch(function(e){ toast(e.message); })
     .finally(function(){ $('seqBtn').disabled=false; });
+}
+
+/* ================= TWILIO BROWSER DIALER ================= */
+var TW={device:null,conn:null,inc:null,inited:false,sdk:false,timer:null,startAt:0,to:''};
+function twEnabled(){ return BOOT&&BOOT.twilio&&BOOT.twilio.enabled; }
+function twSdk(){
+  return new Promise(function(res,rej){
+    if(TW.sdk&&window.Twilio)return res();
+    var s=document.createElement('script');
+    s.src='https://cdn.jsdelivr.net/npm/@twilio/voice-sdk@2.11.1/dist/twilio.min.js';
+    s.onload=function(){TW.sdk=true;res();};
+    s.onerror=function(){rej(new Error('Could not load the dialer.'));};
+    document.head.appendChild(s);
+  });
+}
+function twSetup(token){
+  if(TW.device){try{TW.device.updateToken(token);}catch(e){}return TW.device;}
+  TW.device=new Twilio.Device(token,{codecPreferences:['opus','pcmu']});
+  TW.device.on('registered',function(){$('twReady').style.display='inline-block';});
+  TW.device.on('unregistered',function(){$('twReady').style.display='none';});
+  TW.device.on('incoming',twIncoming);
+  TW.device.on('tokenWillExpire',function(){api('twilio.token').then(function(t){TW.device.updateToken(t.token);}).catch(function(){});});
+  try{TW.device.register();}catch(e){}
+  return TW.device;
+}
+function twInit(){
+  if(TW.inited||!twEnabled())return;
+  TW.inited=true;
+  twSdk().then(function(){return api('twilio.token');}).then(function(t){twSetup(t.token);twCidFill(t.numbers);}).catch(function(){TW.inited=false;});
+}
+function twCidFill(nums){
+  nums=nums||[];
+  if(nums.length<2){$('twCid').style.display='none';return;}
+  var saved='';try{saved=localStorage.getItem('sdr_cid')||'';}catch(e){}
+  $('twCid').innerHTML=nums.map(function(n){return '<option value="'+esc(n)+'"'+(n===saved?' selected':'')+'>show '+esc(fmtPhone(n))+'</option>';}).join('');
+  $('twCid').style.display='inline-block';
+}
+function twTimerStart(){
+  TW.startAt=Date.now();
+  clearInterval(TW.timer);
+  TW.timer=setInterval(function(){
+    var s2=Math.floor((Date.now()-TW.startAt)/1000);
+    $('cb-timer').textContent=String(Math.floor(s2/60)).padStart(2,'0')+':'+String(s2%60).padStart(2,'0');
+  },1000);
+}
+function twDial(phone){
+  if(!twEnabled())return toast('Dialer is not configured yet.');
+  var d2=String(phone||'').replace(/\D/g,''); if(d2.length===11&&d2[0]==='1')d2=d2.slice(1);
+  if(d2.length!==10)return toast('That number does not look dialable.');
+  if(TW.conn)return toast('Finish the current call first.');
+  TW.to=d2;
+  $('cb-num').textContent=fmtPhone(d2);
+  $('cb-status').textContent='Connecting...';
+  $('cb-timer').textContent='00:00';
+  $('cb-inc').style.display='none';$('cb-actions').style.display='flex';
+  $('callbar').classList.add('show');
+  twSdk().then(function(){return api('twilio.token');}).then(function(t){
+    if(t.minutesLeft<60)toast('Heads up: '+t.minutesLeft+' calling minutes left this month.');
+    var dev=twSetup(t.token);TW.inited=true;twCidFill(t.numbers);
+    var params={To:'+1'+d2};
+    var cid='';try{cid=localStorage.getItem('sdr_cid')||'';}catch(e){}
+    if(cid)params.Cid=cid;
+    return dev.connect({params:params});
+  }).then(function(conn){
+    TW.conn=conn;
+    conn.on('accept',function(){$('cb-status').textContent='On call';twTimerStart();});
+    conn.on('disconnect',twEnded);
+    conn.on('cancel',twEnded);
+    conn.on('error',function(e2){toast('Call error: '+(e2.message||e2));twEnded();});
+  }).catch(function(e2){toast(e2.message||String(e2));$('callbar').classList.remove('show');TW.conn=null;});
+}
+function twIncoming(inc){
+  if(TW.conn||TW.inc){try{inc.reject();}catch(e){}return;}
+  TW.inc=inc;
+  $('cb-num').textContent=fmtPhone(inc.parameters.From||'')||'Unknown caller';
+  $('cb-status').textContent='Incoming call';
+  $('cb-timer').textContent='00:00';
+  $('cb-inc').style.display='flex';$('cb-actions').style.display='none';
+  $('callbar').classList.add('show');
+  inc.on('cancel',twIncEnd);inc.on('reject',twIncEnd);inc.on('disconnect',twEnded);
+  toast('\uD83D\uDCDE Incoming call from '+(fmtPhone(inc.parameters.From||'')||'unknown'));
+}
+function twIncEnd(){
+  TW.inc=null;
+  $('cb-inc').style.display='none';$('cb-actions').style.display='flex';
+  if(!TW.conn)$('callbar').classList.remove('show');
+}
+function twAnswer(){
+  var inc=TW.inc;if(!inc)return;
+  TW.conn=inc;TW.to=String(inc.parameters.From||'').replace(/\D/g,'');TW.inc=null;
+  $('cb-inc').style.display='none';$('cb-actions').style.display='flex';
+  inc.on('accept',function(){$('cb-status').textContent='On call';twTimerStart();});
+  inc.accept();
+}
+function twReject(){if(TW.inc){try{TW.inc.reject();}catch(e){}}twIncEnd();}
+function twEnded(){
+  clearInterval(TW.timer);
+  var secs=TW.startAt?Math.round((Date.now()-TW.startAt)/1000):0;
+  $('callbar').classList.remove('show');
+  if(secs>0){
+    api('twilio.log',{seconds:secs}).catch(function(){});
+    toast('Call ended, '+Math.floor(secs/60)+'m '+(secs%60)+'s. Log the outcome.');
+  }
+  TW.conn=null;TW.startAt=0;
+}
+function twHangup(){if(TW.conn){try{TW.conn.disconnect();}catch(e){}}else twEnded();}
+function twMute(){
+  if(!TW.conn)return;
+  var m=!TW.conn.isMuted();
+  TW.conn.mute(m);
+  $('cb-mute').textContent=m?'\uD83D\uDD07 Muted':'\uD83C\uDFA4 Mute';
 }
 
 var OBJ_PICK='';
