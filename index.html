@@ -203,7 +203,7 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--m
     <div class="row" style="align-items:flex-end">
       <div><label>Market</label><select id="market"></select></div>
       <div><label>Industry</label><select id="industry"></select></div>
-      <div style="flex:1;min-width:110px"><label>Or any town (PA)</label><input id="customCity" placeholder="e.g. Bedford"></div>
+      <div style="flex:1;min-width:110px"><label>Or any town (FL)</label><input id="customCity" placeholder="e.g. Punta Gorda"></div>
       <button class="btn-go" id="goBtn" onclick="hunt()">Build My 50 &rarr;</button>
       <button class="btn-ghost" onclick="reattack()" title="Rebuild a list from no-answers older than 30 days">&#9851; Re-attack</button>
     </div>
@@ -494,28 +494,28 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--m
 'use strict';
 
 /* ================= CONFIG ================= */
-var MARKETS = ['Hollidaysburg','Altoona','Duncansville','Tyrone','Bellwood','Ebensburg','Johnstown','Huntingdon','State College','Bedford','Lewistown','Harrisburg','York','Lancaster','Pittsburgh','Greensburg','Monroeville'];
+var MARKETS = ['Lakeland','Winter Haven','Plant City','Brandon','Tampa','St. Petersburg','Clearwater','Sarasota','Bradenton','Port Charlotte','Fort Myers','Cape Coral','Naples','Ocala','The Villages','Kissimmee','Orlando','Sanford','Daytona Beach','Melbourne','Port St. Lucie','Gainesville','Jacksonville'];
 var INDUSTRIES = [
+  { label:'Pool Service & Repair', noun:'pool company', best:'7:00-9:00 AM before routes, or 3:30-5:00 PM' },
+  { label:'Pool Resurfacing', noun:'pool resurfacing company', best:'7:30-9:00 AM or 4:00-5:30 PM' },
+  { label:'Pressure Washing', noun:'pressure washing company', best:'7:00-9:00 AM or rain days' },
+  { label:'Lawn Care & Landscaping', noun:'lawn company', best:'7:00-8:00 AM or rain days' },
+  { label:'Roofers', noun:'roofer', best:'7:00-8:30 AM, or rain days at the desk' },
+  { label:'HVAC / AC Repair', noun:'AC company', best:'7:30-9:00 AM, dispatch time' },
+  { label:'Pest Control', noun:'pest control company', best:'7:30-9:30 AM' },
   { label:'Plumbers', noun:'plumber', best:'7:00-9:00 AM or 4:30-6:00 PM' },
   { label:'Electricians', noun:'electrician', best:'7:00-9:00 AM or after 4:30 PM' },
-  { label:'Roofers', noun:'roofer', best:'7:00-8:30 AM, or rain days' },
-  { label:'HVAC', noun:'HVAC company', best:'7:30-9:00 AM, dispatch time' },
-  { label:'Auto Repair', noun:'auto shop', best:'9:30-11:30 AM after drop-offs' },
-  { label:'Landscapers', noun:'landscaper', best:'7:00-8:00 AM or rain days' },
+  { label:'Paver & Concrete', noun:'paver company', best:'7:00-8:30 AM or 4:30-6:00 PM' },
+  { label:'Screen Enclosures', noun:'screen enclosure company', best:'8:00-10:00 AM' },
+  { label:'Hurricane Shutters & Windows', noun:'shutter company', best:'9:00-11:00 AM' },
+  { label:'Boat & Marine Services', noun:'marine service', best:'9:30-11:30 AM, weekdays' },
+  { label:'Auto Repair & Detailing', noun:'auto shop', best:'9:30-11:30 AM after drop-offs' },
   { label:'Hair Salons', noun:'salon', best:'10:00 AM-12:00 PM, Tue-Thu' },
-  { label:'Beauty / Nails', noun:'beauty studio', best:'10:00 AM-12:00 PM midweek' },
-  { label:'Dentists', noun:'dental office', best:'12:00-1:30 PM, ask for the office manager' },
-  { label:'Chiropractors', noun:'chiropractor', best:'12:00-2:00 PM between patient blocks' },
   { label:'Restaurants', noun:'restaurant', best:'2:00-4:00 PM. Never 11:30-1:30' },
-  { label:'Cafes / Bakeries', noun:'cafe', best:'1:30-3:30 PM after lunch rush' },
   { label:'Gyms / Fitness', noun:'gym', best:'1:00-3:00 PM' },
-  { label:'Law Offices', noun:'law office', best:'8:00-9:00 AM or 4:00-5:00 PM' },
-  { label:'Accountants', noun:'accounting firm', best:'10:00 AM-4:00 PM' },
-  { label:'Real Estate', noun:'real estate office', best:'9:00-11:00 AM' },
-  { label:'Veterinarians', noun:'vet clinic', best:'12:30-2:00 PM, ask for practice manager' },
-  { label:'Florists', noun:'flower shop', best:'10:00 AM-12:00 PM, never near holidays' },
-  { label:'Pet Groomers', noun:'pet business', best:'11:00 AM-1:00 PM' },
-  { label:'Carpenters / Builders', noun:'builder', best:'7:00-8:30 AM or 4:30-6:00 PM' }
+  { label:'Cleaning Services', noun:'cleaning company', best:'8:00-10:00 AM' },
+  { label:'Moving Companies', noun:'moving company', best:'9:00-11:00 AM, midweek' },
+  { label:'Property Management', noun:'property manager', best:'9:00-11:00 AM' }
 ];
 var TARGET = 50;
 var QUOTES = [
@@ -637,7 +637,7 @@ function initControls(){
   var sug = INDUSTRIES[dayOfYear()%INDUSTRIES.length];
   $('industry').value = String(INDUSTRIES.indexOf(sug));
   $('planLine').textContent = new Date().toLocaleDateString(undefined,{weekday:'long',month:'short',day:'numeric'}) + ' - ' + BOOT.user.name.split(' ')[0] + ' - today: ' + sug.label;
-  $('suggestHint').textContent = 'Best window for '+sug.label.toLowerCase()+': '+sug.best+'. Industry rotates daily, numbers already called are skipped automatically.';
+  $('suggestHint').textContent = 'Best window for '+sug.label.toLowerCase()+': '+sug.best+' (their local time). Florida push: work the I-4 corridor and Gulf coast in order, numbers already called are skipped automatically.';
   $('quoteTxt').textContent = '"'+QUOTES[dayOfYear()%QUOTES.length]+'"';
   $('d-prod').innerHTML = BOOT.products.map(function(p){return '<option value="'+p.id+'">'+esc(p.label)+'</option>';}).join('');
   prodHint();
@@ -649,7 +649,7 @@ function hunt(){
   var ind = INDUSTRIES[Number($('industry').value)];
   save('sdr_market', $('market').value);
   var btn=$('goBtn'); btn.disabled=true; btn.textContent='Finding '+ind.label+'...';
-  $('rows').innerHTML='<tr><td colspan="6"><div class="empty">Scanning '+esc(city)+', PA for '+esc(ind.label.toLowerCase())+'...</div></td></tr>';
+  $('rows').innerHTML='<tr><td colspan="6"><div class="empty">Scanning '+esc(city)+', FL for '+esc(ind.label.toLowerCase())+'...</div></td></tr>';
   api('hunt',{city:city,industry:ind.label}).then(function(d){
     LIST = d.list.map(function(b){ b.status=''; b.note=''; b.town=city; return b; });
     LISTMETA = { city:city, industry:ind.label, noun:ind.noun, best:ind.best, date:todayKey() };
@@ -940,14 +940,14 @@ function buildScript(b){
   return '"Hey, is this the owner of '+b.name+'? ...\n\n'+
     'I’ll be straight with you: this is a cold call. You can hang up right now, or you can give me one minute and I’ll tell you exactly why I called you and nobody else. ...\n\n'+
     '(They almost always laugh or say go ahead.)\n\n'+
-    'Appreciate it. I’m '+me+', a sales representative with Burket Web Design, local here in the Altoona area. Before I dialed, I pulled up '+b.name+' on Google, and honestly, '+hook(b)+'.\n\n'+
+    'Appreciate it. I’m '+me+', a sales representative with Burket Web Design. We help Florida service businesses win the Google map. Before I dialed, I pulled up '+b.name+' on Google, and honestly, '+hook(b)+'.\n\n'+
     'When somebody in '+city+' searches for a '+noun+', the top three spots on the map get basically all the calls. We make sure businesses like yours own one of those spots. Our Local Presence program starts at 299 a month, flat.\n\n'+
     'I’m not asking you to buy anything today. I’d like to set up 15 minutes with Ty Burket, the owner, so he can show you on your actual listing what’s leaking. If it’s nothing, you got a free audit.\n\n'+
     'Does tomorrow morning or afternoon treat you better?"';
 }
 function buildVM(b){
   var first=BOOT.user.name.split(' ')[0];
-  return '"Hey, this is '+first+' with Burket Web Design, local in the Altoona area. I was on '+b.name+'’s Google listing right before this call and found something that’s probably costing you customers. Takes two minutes to show you. I’ll shoot over the free scan by email too. Call me back, again it’s '+first+', and I’ll say my number slow, twice. Thanks."';
+  return '"Hey, this is '+first+' with Burket Web Design. I was on '+b.name+'’s Google listing right before this call and found something that’s probably costing you customers. Takes two minutes to show you. I’ll shoot over the free scan by email too. Call me back, again it’s '+first+', and I’ll say my number slow, twice. Thanks."';
 }
 function OBJECTIONS(){
   return [
@@ -985,7 +985,7 @@ function fillModal(b, progressTxt){
   var links=[];
   if (b.website) links.push('<a href="'+esc(b.website)+'" target="_blank" rel="noopener">their website</a>');
   if (b.maps) links.push('<a href="'+esc(b.maps)+'" target="_blank" rel="noopener">their Google listing</a>');
-  links.push('<a href="https://www.google.com/search?q='+encodeURIComponent((b.name||'')+' '+(b.town||LISTMETA.city||'')+' PA')+'" target="_blank" rel="noopener">Google them</a>');
+  links.push('<a href="https://www.google.com/search?q='+encodeURIComponent((b.name||'')+' '+(b.town||LISTMETA.city||'')+' FL')+'" target="_blank" rel="noopener">Google them</a>');
   links.push('<a href="'+esc(BOOT.auditUrl)+'" target="_blank" rel="noopener">audit tool</a>');
   $('p-links').innerHTML=links.join('');
   $('p-besttime').style.display=LISTMETA.best?'inline-block':'none';

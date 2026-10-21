@@ -69,7 +69,7 @@ module.exports = async function handler(req, res) {
 
     /* ---------------- PROSPECTING ---------------- */
     if (a === 'hunt') {
-      const q = (P.industry || 'businesses') + ' in ' + (P.city || 'Altoona') + ', Pennsylvania';
+      const q = (P.industry || 'businesses') + ' in ' + (P.city || 'Tampa') + ', Florida';
       const found = await C.placesSearch(q);
       const phones = [];
       const items = [];
