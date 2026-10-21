@@ -204,28 +204,11 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--m
       <div><label>Market</label><select id="market"></select></div>
       <div><label>Industry</label><select id="industry"></select></div>
       <div style="flex:1;min-width:110px"><label>Or any town (FL)</label><input id="customCity" placeholder="e.g. Punta Gorda"></div>
-      <button class="btn-go" id="goBtn" onclick="hunt()">Build My 50 &rarr;</button>
+      <button class="btn-go" id="goBtn" onclick="hunt()">Build Today's 25 &rarr;</button>
       <button class="btn-ghost" onclick="reattack()" title="Rebuild a list from no-answers older than 30 days">&#9851; Re-attack</button>
     </div>
     <div class="hint" id="suggestHint"></div>
-    <div class="row" style="margin-top:10px">
-      <button class="btn-ghost btn-sm" onclick="var p=$('proWrap');p.style.display=p.style.display==='none'?'block':'none'">&#127919; Pro builder: qualified list (positions 4-12)</button>
-    </div>
-    <div id="proWrap" style="display:none;border-top:1px solid var(--line);margin-top:12px;padding-top:12px">
-      <p class="hint" style="margin:0 0 10px">Finds businesses losing to the top three on the map but close enough that fixing the profile actually moves them. Top three have nothing to buy. Past twelfth cannot be moved cheaply. Sorted so the lowest review counts, the fastest wins, come first.</p>
-      <div class="row" style="align-items:flex-end">
-        <div style="flex:1;min-width:170px"><label>Service / vertical</label><input id="pb-vertical" placeholder="pool resurfacing and repair" style="width:100%"></div>
-        <div style="flex:1;min-width:200px"><label>Metros (comma separated)</label><input id="pb-metros" placeholder="Tampa FL, Orlando FL, Lakeland FL" style="width:100%"></div>
-      </div>
-      <div class="row" style="align-items:flex-end;margin-top:8px">
-        <div><label>Min reviews</label><input id="pb-min" type="number" value="3" style="width:90px"></div>
-        <div><label>Max reviews</label><input id="pb-max" type="number" value="120" style="width:90px"></div>
-        <div><label>Target</label><input id="pb-target" type="number" value="25" style="width:80px"></div>
-        <button class="btn-go" id="pb-go" onclick="proBuild()">Build Qualified List &rarr;</button>
-      </div>
-      <div class="hint">Thin list: raise max reviews. Too established: lower it. Gulf coast storm towns are excluded automatically until January 2027.</div>
-    </div>
-    <div id="dueTodayBanner"></div>
+        <div id="dueTodayBanner"></div>
   </div>
 
   <div class="tabs" id="tabbar">
@@ -517,7 +500,7 @@ var INDUSTRIES = [
   { label:'Moving Companies', noun:'moving company', best:'9:00-11:00 AM, midweek' },
   { label:'Property Management', noun:'property manager', best:'9:00-11:00 AM' }
 ];
-var TARGET = 50;
+var TARGET = 25;
 var QUOTES = [
   'Fifty dials. One industry. No mercy.',
   'The phone weighs a thousand pounds until you pick it up.',
@@ -648,40 +631,23 @@ function hunt(){
   var city = $('customCity').value.trim() || $('market').value;
   var ind = INDUSTRIES[Number($('industry').value)];
   save('sdr_market', $('market').value);
-  var btn=$('goBtn'); btn.disabled=true; btn.textContent='Finding '+ind.label+'...';
-  $('rows').innerHTML='<tr><td colspan="6"><div class="empty">Scanning '+esc(city)+', FL for '+esc(ind.label.toLowerCase())+'...</div></td></tr>';
-  api('hunt',{city:city,industry:ind.label}).then(function(d){
-    LIST = d.list.map(function(b){ b.status=''; b.note=''; b.town=city; return b; });
-    LISTMETA = { city:city, industry:ind.label, noun:ind.noun, best:ind.best, date:todayKey() };
+  var btn=$('goBtn'); btn.disabled=true; btn.textContent='Qualifying '+ind.label+'...';
+  $('rows').innerHTML='<tr><td colspan="6"><div class="empty">Scanning '+esc(city)+', FL for '+esc(ind.label.toLowerCase())+' sitting at positions 4 through 12 on the map...</div></td></tr>';
+  api('listbuild',{vertical:ind.label,metros:city+', FL',minReviews:3,maxReviews:120,target:TARGET}).then(function(d){
+    LIST = d.list.map(function(b){ b.status=''; b.note=''; return b; });
+    LISTMETA = { city:city, industry:ind.label, noun:ind.noun, best:ind.best, date:todayKey(), pro:true };
     save('sdr_list',LIST); save('sdr_listmeta',LISTMETA);
     renderList();
     beep(880,.1,.05);
-    toast(LIST.length ? (LIST.length+' loaded. '+d.skipped+' already-worked numbers skipped.') : 'Nothing new there. Next market or industry.');
+    var msg = LIST.length+' qualified targets loaded, fastest wins first. '+d.skipped+' already-worked skipped.';
+    if (d.notes&&d.notes.length) msg += ' ('+d.notes.join(' / ')+')';
+    toast(LIST.length ? msg : 'Nothing qualified there today. Try the next market, or the next industry.');
   }).catch(function(e){
     $('rows').innerHTML='<tr><td colspan="6"><div class="empty">'+esc(e.message)+'</div></td></tr>';
     toast(e.message);
-  }).finally(function(){ btn.disabled=false; btn.textContent='Build My 50 →'; });
+  }).finally(function(){ btn.disabled=false; btn.textContent="Build Today's 25 \u2192"; });
 }
 
-function proBuild(){
-  var vertical=$('pb-vertical').value.trim();
-  var metros=$('pb-metros').value.trim();
-  if(!vertical||!metros)return toast('Vertical and at least one metro.');
-  var btn=$('pb-go'); btn.disabled=true; btn.textContent='Qualifying...';
-  $('rows').innerHTML='<tr><td colspan="6"><div class="empty">Running biased searches in each metro, keeping positions 4 through 12, filtering the review band...</div></td></tr>';
-  api('listbuild',{vertical:vertical,metros:metros,minReviews:Number($('pb-min').value)||3,maxReviews:Number($('pb-max').value)||120,target:Number($('pb-target').value)||25})
-    .then(function(d){
-      LIST=d.list.map(function(x){x.status='';x.note='';return x;});
-      LISTMETA={city:metros.split(',')[0].trim()+(metros.indexOf(',')>-1?' +':''),industry:vertical,noun:vertical,best:'',date:todayKey(),pro:true};
-      save('sdr_list',LIST); save('sdr_listmeta',LISTMETA);
-      renderList(); beep(880,.1,.05);
-      var msg=LIST.length+' qualified. '+d.skipped+' already worked or DNC.';
-      if(d.notes&&d.notes.length)msg+=' ('+d.notes.join(' / ')+')';
-      toast(LIST.length?msg:'Nothing qualified. Raise max reviews or add metros.');
-    })
-    .catch(function(e){ $('rows').innerHTML='<tr><td colspan="6"><div class="empty">'+esc(e.message)+'</div></td></tr>'; toast(e.message); })
-    .finally(function(){ btn.disabled=false; btn.textContent='Build Qualified List \u2192'; });
-}
 
 /* ================= RENDER ================= */
 function statusTag(s){
@@ -749,7 +715,7 @@ function loadBreakdown(){
 function renderList(){
   $('listTitle').textContent = LISTMETA.city ? (LISTMETA.industry+' - '+LISTMETA.city) : 'Call List';
   if (!LIST.length) {
-    $('rows').innerHTML='<tr><td colspan="6"><div class="empty">Pick a market and industry, then hit Build My 50.<br>One industry a day. Fifty dials. One call at a time.</div></td></tr>';
+    $('rows').innerHTML='<tr><td colspan="6"><div class="empty">Pick a market, the industry rotates itself daily, hit Build Today’s 25.<br>Only businesses losing to the top three but close enough to catch them.</div></td></tr>';
   } else {
     $('rows').innerHTML = LIST.map(function(b,i){
       return '<tr class="biz'+(b.status?' done':'')+'" onclick="openCall('+i+')">'+
