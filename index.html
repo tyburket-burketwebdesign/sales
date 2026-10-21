@@ -654,10 +654,10 @@ function hunt(){
   var custom = $('customCity').value.trim();
   var city = custom || $('market').value;
   var metros;
-  if (custom) metros = custom+', FL';
+  if (custom) metros = custom.replace(/,/g,' ')+' FL';
   else {
     var mi = MARKETS.indexOf($('market').value);
-    metros = [MARKETS[mi], MARKETS[(mi+1)%MARKETS.length], MARKETS[(mi+2)%MARKETS.length]].map(function(m){return m+', FL';}).join(', ');
+    metros = [MARKETS[mi], MARKETS[(mi+1)%MARKETS.length], MARKETS[(mi+2)%MARKETS.length]].map(function(m){return m+' FL';}).join(', ');
   }
   var ind = INDUSTRIES[Number($('industry').value)];
   save('sdr_market', $('market').value);
