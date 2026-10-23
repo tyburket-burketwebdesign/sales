@@ -4,54 +4,39 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#0e2235">
-<title>BWD SDR Hub</title>
+<title>BWD Sales Hub</title>
 <link rel="icon" href="https://www.burketwebdesign.com/assets/logo.png">
 <style>
 :root{
-  --gold:#fec814;--blue:#1f5d8c;--teal:#57b4e4;--navy:#0e2235;
-  --bg:#eef2f7;--card:#ffffff;--line:#e3e9f0;--text:#1a2435;--muted:#5b6b80;--muted2:#8b9ab0;
+  --gold:#fec814;--gold2:#f5b400;--blue:#1f5d8c;--teal:#57b4e4;--navy:#0e2235;--navy2:#14334e;
+  --bg:#f0f3f8;--card:#ffffff;--line:#e3e9f0;--text:#1a2435;--muted:#5b6b80;--muted2:#8b9ab0;
   --green:#16a34a;--green-bg:#e9f8ef;--red:#dc2626;--red-bg:#fdecec;--amber-bg:#fdf3e2;
   --script-bg:#fffdf3;--script-line:#f1e3ad;--vm-bg:#f4f8fd;--vm-line:#cfe2f1;--chip:#eef2f7;--hover:#f6f9fc;--foot:#fafbfd;
-  --shadow:0 1px 4px rgba(14,34,53,.06),0 10px 30px rgba(14,34,53,.05);
+  --shadow:0 1px 3px rgba(14,34,53,.05),0 12px 32px rgba(14,34,53,.06);
 }
 [data-dark]{
-  --bg:#0b1826;--card:#122940;--line:#1d3850;--text:#eaf1f8;--muted:#9fb3c8;--muted2:#6d8299;
+  --bg:#0a1623;--card:#111f30;--line:#1d3850;--text:#eaf1f8;--muted:#9fb3c8;--muted2:#6d8299;
   --green-bg:#0d2f1e;--red-bg:#331313;--amber-bg:#33260b;
   --script-bg:#1a3049;--script-line:#2c4a67;--vm-bg:#152c42;--vm-line:#27465f;--chip:#1a3049;--hover:#16304a;--foot:#0f2336;
-  --shadow:0 1px 4px rgba(0,0,0,.3),0 10px 30px rgba(0,0,0,.25);
+  --shadow:0 1px 3px rgba(0,0,0,.3),0 12px 32px rgba(0,0,0,.28);
 }
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
-#top{background:linear-gradient(135deg,#0e2235 0%,#14334e 60%,#1f5d8c 130%);color:#fff;padding:14px 20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;box-shadow:0 4px 24px rgba(14,34,53,.35)}
-#top img.logo{height:42px;width:auto;filter:drop-shadow(0 2px 6px rgba(0,0,0,.4))}
-#top .brand{font-weight:800;font-size:17px;line-height:1.2}
-#top .brand span{color:var(--gold)}
-#top .plan{font-size:12.5px;color:#bcd0e2;margin-top:2px}
-#top .spacer{flex:1}
-.statchip{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.13);border-radius:12px;padding:7px 13px;font-size:11px;text-align:center;color:#cfdce8}
-.statchip b{display:block;font-size:17px;color:var(--gold);font-variant-numeric:tabular-nums}
-.iconbtn{background:rgba(255,255,255,.1);color:#fff;border-radius:11px;padding:9px 12px;font-size:15px;cursor:pointer;border:1px solid rgba(255,255,255,.14)}
-.iconbtn:hover{background:rgba(255,255,255,.2)}
-#ringWrap{position:relative;width:58px;height:58px;flex:none}
-#ringWrap svg{transform:rotate(-90deg)}
-#ringTxt{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:var(--gold)}
-#wrap{max-width:1140px;margin:0 auto;padding:18px 16px 70px}
-.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px 18px;margin-bottom:16px;box-shadow:var(--shadow)}
-.row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:4px}
-select,input,textarea{border:1.5px solid var(--line);border-radius:10px;padding:9px 12px;font-size:14px;font-family:inherit;background:var(--card);color:var(--text);outline:none}
-select:focus,input:focus,textarea:focus{border-color:var(--teal)}
-button{border:none;border-radius:10px;padding:10px 16px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;transition:transform .12s,filter .12s}
+button{border:none;border-radius:10px;padding:10px 16px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;transition:transform .12s,filter .12s,background .15s}
 button:active{transform:scale(.97)}
 button:disabled{opacity:.55;cursor:default}
-.btn-go{background:linear-gradient(135deg,var(--gold),#f5b400);color:#0e2235;font-size:15px;padding:12px 22px;box-shadow:0 6px 18px rgba(254,200,20,.35)}
+select,input,textarea{border:1.5px solid var(--line);border-radius:10px;padding:9px 12px;font-size:14px;font-family:inherit;background:var(--card);color:var(--text);outline:none;transition:border .15s}
+select:focus,input:focus,textarea:focus{border-color:var(--teal)}
+label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:4px}
+.row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px 18px;margin-bottom:16px;box-shadow:var(--shadow)}
+.btn-go{background:linear-gradient(135deg,var(--gold),var(--gold2));color:#0e2235;font-size:15px;padding:12px 22px;box-shadow:0 6px 18px rgba(254,200,20,.35)}
+.btn-go:hover{filter:brightness(1.06)}
 .btn-blue{background:var(--blue);color:#fff}
 .btn-green{background:linear-gradient(135deg,#16a34a,#15803d);color:#fff;box-shadow:0 6px 18px rgba(22,163,74,.3)}
 .btn-red{background:var(--red-bg);color:var(--red)}
 .btn-ghost{background:var(--chip);color:var(--text)}
 .btn-sm{padding:7px 12px;font-size:12.5px}
-#bar{height:12px;background:var(--chip);border-radius:99px;overflow:hidden;flex:1;min-width:120px}
-#barfill{height:100%;width:0;background:linear-gradient(90deg,var(--blue),var(--teal));border-radius:99px;transition:width .4s}
 table{width:100%;border-collapse:collapse}
 th{font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted2);text-align:left;padding:8px 10px;border-bottom:1px solid var(--line)}
 td{padding:10px;border-bottom:1px solid var(--line);font-size:13.5px;vertical-align:middle}
@@ -71,26 +56,81 @@ tr.done{opacity:.45}
 .t-hot{background:linear-gradient(135deg,#fde68a,#fbbf24);color:#713f12}
 .empty{text-align:center;color:var(--muted2);padding:30px 10px;font-size:14px}
 .hint{font-size:12.5px;color:var(--muted);margin-top:6px}
-.tabs{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
-.tabs button{background:transparent;color:var(--muted);padding:8px 14px;border-radius:10px;font-size:13.5px}
-.tabs button.on{background:var(--navy);color:#fff}
-[data-dark] .tabs button.on{background:var(--blue)}
-.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
-.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
-.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.kpi{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;text-align:center}
-.kpi b{font-size:21px;display:block;color:var(--blue);font-variant-numeric:tabular-nums}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px 16px;text-align:center;box-shadow:var(--shadow)}
+.kpi b{font-size:23px;display:block;color:var(--blue);font-variant-numeric:tabular-nums}
 [data-dark] .kpi b{color:var(--teal)}
 .kpi span{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;font-weight:700}
 .bars{display:flex;align-items:flex-end;gap:5px;height:90px;margin-top:14px}
 .bars .b{flex:1;background:linear-gradient(180deg,var(--teal),var(--blue));border-radius:5px 5px 0 0;min-height:2px;position:relative}
 .bars .b i{position:absolute;top:-17px;left:0;right:0;text-align:center;font-size:9.5px;font-style:normal;color:var(--muted2);font-weight:700}
 .bars .b u{position:absolute;bottom:-17px;left:0;right:0;text-align:center;font-size:9px;text-decoration:none;color:var(--muted2)}
-#overlay{position:fixed;inset:0;background:rgba(10,22,36,.68);display:none;z-index:40}
+#app{display:none;min-height:100vh}
+#shell{display:flex;min-height:100vh}
+#side{width:232px;flex:none;background:linear-gradient(180deg,#0e2235 0%,#122c44 70%,#17405f 130%);color:#fff;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;box-shadow:4px 0 24px rgba(14,34,53,.25);z-index:30}
+#side .brand{padding:20px 18px 14px;display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(255,255,255,.08)}
+#side .brand img{height:38px;filter:drop-shadow(0 2px 6px rgba(0,0,0,.4))}
+#side .brand div b{font-size:14.5px;display:block;line-height:1.15}
+#side .brand div span{font-size:10.5px;color:var(--gold);font-weight:700;letter-spacing:.8px}
+#nav{flex:1;overflow-y:auto;padding:12px 10px}
+.navsec{font-size:9.5px;font-weight:800;letter-spacing:1px;color:#5e7894;padding:12px 10px 5px}
+.nv{display:flex;align-items:center;gap:11px;width:100%;padding:10px 12px;border-radius:11px;color:#aebbd0;font-size:13.5px;font-weight:600;margin-bottom:2px;background:transparent;text-align:left;transition:all .16s}
+.nv:hover{background:rgba(87,180,228,.12);color:#fff;transform:translateX(2px)}
+.nv.on{background:linear-gradient(135deg,rgba(254,200,20,.16),rgba(31,93,140,.55));color:#fff;box-shadow:inset 3px 0 0 var(--gold)}
+.nv .ic{width:20px;text-align:center;flex:none;font-size:15px}
+.nv .pill{margin-left:auto;background:var(--gold);color:var(--navy);font-size:10px;font-weight:800;border-radius:99px;padding:1px 7px}
+#side .foot{padding:12px;border-top:1px solid rgba(255,255,255,.08)}
+#side .me{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:11px;background:rgba(255,255,255,.06)}
+#side .me .av{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--gold),#f59e0b);color:#0e2235;font-weight:800;display:flex;align-items:center;justify-content:center;font-size:14px;flex:none}
+#side .me b{font-size:12.5px;display:block}
+#side .me span{font-size:10.5px;color:#8ba3bc}
+#side .footbtns{display:flex;gap:6px;margin-top:10px}
+#side .footbtns button{flex:1;background:rgba(255,255,255,.08);color:#cdd9e5;font-size:12px;padding:8px}
+#side .footbtns button:hover{background:rgba(255,255,255,.16)}
+#maincol{flex:1;min-width:0;display:flex;flex-direction:column}
+#topbar{height:66px;background:var(--card);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:14px;padding:0 22px;position:sticky;top:0;z-index:20}
+#topbar h1{font-size:17px;font-weight:800}
+#topbar .sub{font-size:12px;color:var(--muted);margin-top:1px}
+#content{padding:20px 22px 70px;max-width:1180px;width:100%;margin:0 auto}
+.view{display:none}
+.view.on{display:block;animation:fadein .22s ease}
+@keyframes fadein{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.statchip{background:var(--chip);border-radius:12px;padding:6px 12px;font-size:10.5px;text-align:center;color:var(--muted)}
+.statchip b{display:block;font-size:16px;color:var(--blue);font-variant-numeric:tabular-nums}
+[data-dark] .statchip b{color:var(--teal)}
+#ringWrap{position:relative;width:52px;height:52px;flex:none}
+#ringWrap svg{transform:rotate(-90deg)}
+#ringTxt{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:800;color:var(--gold2)}
+#twReady{display:none;font-size:11px;font-weight:700;color:#16a34a;background:var(--green-bg);border-radius:99px;padding:4px 10px;white-space:nowrap}
+#phChip{display:none;background:var(--amber-bg);border-radius:12px;padding:6px 12px;font-size:10.5px;text-align:center;color:#92600a}
+#phChip b{display:block;font-size:15px;color:#d97706}
+.iconbtn{background:var(--chip);color:var(--text);border-radius:11px;padding:9px 12px;font-size:15px}
+.hero{background:linear-gradient(135deg,#0e2235 0%,#17405f 80%,#1f5d8c 130%);border-radius:20px;color:#fff;padding:22px 24px;margin-bottom:16px;position:relative;overflow:hidden;box-shadow:0 16px 40px rgba(14,34,53,.35)}
+.hero::after{content:'';position:absolute;right:-60px;top:-80px;width:260px;height:260px;border-radius:50%;background:radial-gradient(circle,rgba(254,200,20,.22),transparent 65%)}
+.hero h2{font-size:21px}
+.hero .sub{color:#bcd0e2;font-size:13px;margin-top:4px}
+.hero .quote{font-size:12.5px;color:#9db5ca;font-style:italic;margin-top:12px}
+#board{display:flex;gap:10px;overflow-x:auto;padding-bottom:8px}
+.col{min-width:195px;flex:1;background:var(--bg);border-radius:14px;padding:10px}
+.col h4{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:8px;display:flex;justify-content:space-between}
+.pcard{background:var(--card);border:1px solid var(--line);border-radius:11px;padding:9px 11px;margin-bottom:8px;cursor:pointer;font-size:12.5px;box-shadow:0 1px 3px rgba(14,34,53,.06)}
+.pcard:hover{border-color:var(--teal)}
+.pcard b{display:block;font-size:13px}
+.pcard .sub2{color:var(--muted2);font-size:11px;margin-top:2px}
+.stage-won{border-left:4px solid var(--green)}
+.stage-lost{opacity:.5}
+.kpiwrap{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.kpidots{display:flex;gap:8px}
+.kpidot{width:34px;height:34px;border-radius:50%;background:var(--chip);display:flex;align-items:center;justify-content:center;font-weight:800;color:var(--muted2);font-size:14px}
+.kpidot.hit{background:linear-gradient(135deg,#16a34a,#15803d);color:#fff;box-shadow:0 4px 12px rgba(22,163,74,.4)}
+.kpidot.bonus{background:linear-gradient(135deg,var(--gold),#f59e0b);color:#0e2235;box-shadow:0 4px 12px rgba(254,200,20,.45)}
+#overlay{position:fixed;inset:0;background:rgba(10,22,36,.68);display:none;z-index:40;backdrop-filter:blur(2px)}
 #overlay.show{display:block}
 #callmodal{position:fixed;inset:0;z-index:50;display:none;align-items:flex-start;justify-content:center;overflow-y:auto;padding:22px 12px}
 #callmodal.show{display:flex}
-#cm{background:var(--card);border-radius:20px;width:780px;max-width:100%;box-shadow:0 36px 100px rgba(0,0,0,.5);overflow:hidden;animation:pop .22s ease}
+#cm{background:var(--card);border-radius:20px;width:790px;max-width:100%;box-shadow:0 36px 100px rgba(0,0,0,.5);overflow:hidden;animation:pop .22s ease}
 @keyframes pop{from{transform:translateY(16px) scale(.98);opacity:0}to{transform:none;opacity:1}}
 #cm .head{background:linear-gradient(135deg,#0e2235,#17405f);color:#fff;padding:18px 22px}
 #cm .head h2{font-size:21px}
@@ -121,7 +161,8 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--m
 .o-cb{background:var(--amber-bg);color:#d97706}
 .o-no{background:var(--red-bg);color:var(--red)}
 .o-dnc{background:#3b0d0d;color:#ffb4b4}
-.o-meet{background:linear-gradient(135deg,#16a34a,#107a38);color:#fff;grid-column:1/-1;font-size:15px;padding:14px;box-shadow:0 6px 18px rgba(22,163,74,.35)}
+.o-meet{background:var(--green-bg);color:var(--green)}
+.o-close{background:linear-gradient(135deg,var(--gold),var(--gold2));color:#0e2235;grid-column:1/-1;font-size:15px;padding:14px;box-shadow:0 6px 18px rgba(254,200,20,.4)}
 #cm .foot{border-top:1px solid var(--line);padding:12px 22px;display:flex;align-items:center;gap:10px;background:var(--foot);flex-wrap:wrap}
 #callTimer{font-variant-numeric:tabular-nums;font-weight:800;color:var(--green);font-size:15px}
 .histline{font-size:12.5px;background:var(--bg);border-radius:9px;padding:8px 11px;margin-top:6px;color:var(--muted)}
@@ -131,6 +172,7 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--m
 .fupquick button{font-size:11.5px;padding:5px 10px;background:var(--chip);color:var(--muted);font-weight:600}
 .besttime{font-size:12px;color:#92600a;background:var(--amber-bg);border-radius:9px;padding:7px 11px;margin-top:10px;display:inline-block}
 .seqbox{border:1.5px dashed var(--teal);border-radius:12px;padding:12px 14px;margin-top:10px;background:rgba(87,180,228,.06)}
+.closebox{border:2px solid var(--gold);border-radius:14px;padding:14px 16px;margin-top:12px;background:linear-gradient(135deg,rgba(254,200,20,.08),rgba(254,200,20,.02))}
 .emailchip{display:inline-block;background:var(--chip);border-radius:99px;padding:5px 12px;margin:4px 6px 0 0;font-size:12.5px;cursor:pointer;font-weight:600}
 .emailchip:hover{background:var(--teal);color:#fff}
 #toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(100px);background:var(--navy);color:#fff;border-radius:13px;padding:12px 18px;font-size:14px;z-index:95;transition:transform .25s;box-shadow:0 12px 36px rgba(0,0,0,.4);max-width:92vw;display:flex;gap:12px;align-items:center}
@@ -139,28 +181,10 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--m
 .modal2{position:fixed;inset:0;z-index:60;display:none;align-items:center;justify-content:center;padding:16px;background:rgba(10,22,36,.6)}
 .modal2.show{display:flex}
 .modal2 .inner{background:var(--card);border-radius:18px;padding:22px;width:540px;max-width:100%;box-shadow:0 30px 80px rgba(0,0,0,.5);max-height:90vh;overflow-y:auto}
-#phChip{display:none;background:rgba(254,200,20,.15);border-color:rgba(254,200,20,.4)}
 .confetti{position:fixed;width:9px;height:14px;z-index:99;pointer-events:none;top:-20px;border-radius:2px;animation:fall linear forwards}
 @keyframes fall{to{transform:translateY(108vh) rotate(720deg)}}
 .pulse{animation:pulse 1.6s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.55}}
-/* pipeline board */
-#board{display:flex;gap:10px;overflow-x:auto;padding-bottom:8px}
-.col{min-width:200px;flex:1;background:var(--bg);border-radius:14px;padding:10px}
-.col h4{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:8px;display:flex;justify-content:space-between}
-.pcard{background:var(--card);border:1px solid var(--line);border-radius:11px;padding:9px 11px;margin-bottom:8px;cursor:pointer;font-size:12.5px;box-shadow:0 1px 3px rgba(14,34,53,.06)}
-.pcard:hover{border-color:var(--teal)}
-.pcard b{display:block;font-size:13px}
-.pcard .sub2{color:var(--muted2);font-size:11px;margin-top:2px}
-.stage-won{border-left:4px solid var(--green)}
-.stage-lost{opacity:.5}
-/* kpi gauge */
-.kpiwrap{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
-.kpidots{display:flex;gap:8px}
-.kpidot{width:34px;height:34px;border-radius:50%;background:var(--chip);display:flex;align-items:center;justify-content:center;font-weight:800;color:var(--muted2);font-size:14px}
-.kpidot.hit{background:linear-gradient(135deg,#16a34a,#15803d);color:#fff;box-shadow:0 4px 12px rgba(22,163,74,.4)}
-.kpidot.bonus{background:linear-gradient(135deg,var(--gold),#f59e0b);color:#0e2235;box-shadow:0 4px 12px rgba(254,200,20,.45)}
-/* call bar */
 #callbar{position:fixed;bottom:20px;right:20px;background:var(--navy);color:#fff;border-radius:16px;padding:14px 18px;z-index:120;box-shadow:0 16px 48px rgba(0,0,0,.45);display:none;min-width:270px;border:1px solid rgba(255,255,255,.12)}
 #callbar.show{display:block}
 #callbar .cbnum{font-weight:700;font-size:14px}
@@ -170,245 +194,314 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--m
 .cbm{background:rgba(255,255,255,.14);color:#fff}
 .cbh{background:var(--red);color:#fff}
 .cba{background:var(--green);color:#fff}
-#twReady{display:none;font-size:11px;font-weight:700;color:#4ade80;background:rgba(22,163,74,.18);border-radius:99px;padding:4px 10px;white-space:nowrap}
-/* login */
-#login{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#0e2235,#17405f);padding:16px}
-#login .box{background:#fff;border-radius:20px;padding:34px;width:400px;max-width:100%;box-shadow:0 36px 100px rgba(0,0,0,.5);text-align:center}
-#login img{height:60px;margin-bottom:10px}
-#login h1{font-size:20px;color:#0e2235}
-#login .sub{font-size:13px;color:#5b6b80;margin:6px 0 18px}
-#login input{width:100%;margin-bottom:10px;text-align:center}
-@media(max-width:680px){#top{padding:12px 14px}.hidem{display:none}#bignum{font-size:27px}.g4{grid-template-columns:1fr 1fr}.g3{grid-template-columns:1fr}.outs{grid-template-columns:1fr 1fr}#top img.logo{height:32px}}
+#login{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#0e2235,#17405f 70%,#1f5d8c);padding:16px;position:relative;overflow:hidden}
+#login::before{content:'';position:absolute;width:600px;height:600px;border-radius:50%;background:radial-gradient(circle,rgba(254,200,20,.12),transparent 60%);top:-200px;right:-150px}
+#login .box{background:#fff;border-radius:22px;padding:36px;width:420px;max-width:100%;box-shadow:0 36px 100px rgba(0,0,0,.5);text-align:center;position:relative}
+#login img{height:64px;margin-bottom:12px}
+#login h1{font-size:21px;color:#0e2235}
+#login .sub{font-size:13px;color:#5b6b80;margin:6px 0 20px}
+#login input{width:100%;margin-bottom:10px;text-align:center;padding:12px}
+.playcard{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px 18px;margin-bottom:14px;box-shadow:var(--shadow)}
+.playcard h3{font-size:15px;color:var(--blue);margin-bottom:8px}
+[data-dark] .playcard h3{color:var(--teal)}
+@media(max-width:860px){
+  #side{position:fixed;left:-240px;transition:left .22s;height:100vh}
+  #side.open{left:0}
+  #hamb{display:inline-flex !important}
+  .g4{grid-template-columns:1fr 1fr}
+  .g3,.g2{grid-template-columns:1fr}
+  .outs{grid-template-columns:1fr 1fr}
+  #bignum{font-size:27px}
+  .hidem{display:none}
+}
+#hamb{display:none}
 </style>
 </head>
 <body>
 
-<!-- ============ LOGIN ============ -->
 <div id="login">
   <div class="box">
     <img src="https://www.burketwebdesign.com/assets/logo.png" alt="Burket Web Design" onerror="this.style.display='none'">
-    <h1>SDR Hub</h1>
-    <div class="sub">Burket Web Design sales headquarters</div>
-    <input id="l-email" type="email" placeholder="Email" autocomplete="username">
-    <input id="l-pass" type="password" placeholder="Password" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
-    <button class="btn-go" style="width:100%" id="l-btn" onclick="doLogin()">Sign In</button>
+    <div id="loginForm">
+      <h1>Sales Hub</h1>
+      <div class="sub">Burket Web Design team headquarters</div>
+      <input id="l-email" type="email" placeholder="Email" autocomplete="username">
+      <input id="l-pass" type="password" placeholder="Password" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
+      <button class="btn-go" style="width:100%" id="l-btn" onclick="doLogin()">Sign In</button>
+    </div>
+    <div id="inviteForm" style="display:none">
+      <h1>Welcome to the team</h1>
+      <div class="sub" id="inv-sub">Create your account to get started.</div>
+      <input id="inv-name" placeholder="Your full name" autocomplete="name">
+      <input id="inv-pass" type="password" placeholder="Create a password (8+ characters)" autocomplete="new-password">
+      <input id="inv-pass2" type="password" placeholder="Repeat the password" autocomplete="new-password" onkeydown="if(event.key==='Enter')acceptInvite()">
+      <button class="btn-go" style="width:100%" id="inv-btn" onclick="acceptInvite()">Create My Account &rarr;</button>
+    </div>
     <div class="hint" id="l-err" style="color:#dc2626;min-height:18px;margin-top:10px"></div>
   </div>
 </div>
 
-<!-- ============ APP ============ -->
-<div id="app" style="display:none">
-<div id="top">
-  <img class="logo" src="https://www.burketwebdesign.com/assets/logo.png" alt="BWD" onerror="this.style.display='none'">
-  <div>
-    <div class="brand">SDR <span>Hub</span></div>
-    <div class="plan" id="planLine"></div>
-  </div>
-  <div class="spacer"></div>
-  <div id="ringWrap" title="Daily goal: 50 dials">
-    <svg width="58" height="58"><circle cx="29" cy="29" r="24" fill="none" stroke="rgba(255,255,255,.14)" stroke-width="6"/><circle id="ringArc" cx="29" cy="29" r="24" fill="none" stroke="#fec814" stroke-width="6" stroke-linecap="round" stroke-dasharray="150.8" stroke-dashoffset="150.8" style="transition:stroke-dashoffset .5s"/></svg>
-    <div id="ringTxt">0</div>
-  </div>
-  <div class="statchip"><b id="st-meet">0</b>meetings</div>
-  <div class="statchip hidem"><b id="st-earned">$0</b>unpaid comm.</div>
-  <span id="twReady" title="Inbound calls ring here">&#128222; dialer ready</span>
-  <div class="statchip" id="phChip"><b id="phTime">60:00</b>power hour</div>
-  <button class="iconbtn" onclick="togglePH()" title="Power Hour sprint">&#9889;</button>
-  <button class="iconbtn" onclick="toggleDark()" title="Dark mode">&#127769;</button>
-  <button class="iconbtn" onclick="logout()" title="Sign out">&#10162;</button>
-</div>
+<div id="app">
+<div id="shell">
 
-<div id="wrap">
-
-  <div class="card" style="padding:12px 18px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-    <span style="font-size:18px">&#128293;</span>
-    <span id="quoteTxt" style="font-size:13.5px;color:var(--muted);font-style:italic"></span>
-    <div style="flex:1"></div>
-    <span id="moneyMath" class="tag t-gold"></span>
-  </div>
-
-  <div class="card">
-    <div class="row" style="align-items:flex-end">
-      <div><label>Market</label><select id="market"></select></div>
-      <div><label>Industry</label><select id="industry"></select></div>
-      <div style="flex:1;min-width:110px"><label>Or any town (FL)</label><input id="customCity" placeholder="e.g. Punta Gorda"></div>
-      <button class="btn-go" id="goBtn" onclick="hunt()">Build Today's 25 &rarr;</button>
-      <button class="btn-ghost" onclick="reattack()" title="Rebuild a list from no-answers older than 30 days">&#9851; Re-attack</button>
+  <nav id="side">
+    <div class="brand">
+      <img src="https://www.burketwebdesign.com/assets/logo.png" alt="BWD" onerror="this.style.display='none'">
+      <div><b>Burket Web Design</b><span>SALES HUB</span></div>
     </div>
-    <div class="hint" id="suggestHint"></div>
-        <div id="dueTodayBanner"></div>
-  </div>
-
-  <div class="tabs" id="tabbar">
-    <button id="tab-today" class="on" onclick="showTab('today')">Dialer</button>
-    <button id="tab-past" onclick="showTab('past')">Past Calls <span id="dueBadge" class="tag t-cb" style="display:none"></span></button>
-    <button id="tab-pipe" onclick="showTab('pipe')">Pipeline</button>
-    <button id="tab-meet" onclick="showTab('meet')">Meetings</button>
-    <button id="tab-seq" onclick="showTab('seq')">Sequences</button>
-    <button id="tab-comm" onclick="showTab('comm')">Commissions</button>
-    <button id="tab-owner" style="display:none" onclick="showTab('owner')">Owner <span id="apprBadge" class="tag t-cb" style="display:none"></span></button>
-  </div>
-
-  <div id="view-today">
-    <div class="card">
-      <div class="row">
-        <b style="font-size:15px" id="listTitle">Call List</b>
-        <div style="flex:1"></div>
-        <div id="bar"><div id="barfill"></div></div>
-        <span style="font-size:13px;font-weight:700;color:var(--muted)" id="barTxt">0 / 0</span>
-        <button class="btn-green" id="startBtn" style="display:none" onclick="startCalling()">&#9654; Start Calling</button>
-        <button class="btn-ghost btn-sm" onclick="sortHot()">&#128293; Hot first</button>
-        <button class="btn-ghost btn-sm" onclick="exportCsv()">CSV</button>
-        <button class="btn-ghost btn-sm" onclick="clearList()">Clear</button>
-      </div>
-      <div style="overflow-x:auto;margin-top:8px">
-        <table>
-          <thead><tr><th style="width:26px">#</th><th>Business</th><th>Phone</th><th class="hidem">Google</th><th class="hidem">Website</th><th>Status</th></tr></thead>
-          <tbody id="rows"></tbody>
-        </table>
+    <div id="nav">
+      <div class="navsec">WORK</div>
+      <button class="nv on" data-view="dash"><span class="ic">&#127968;</span>Dashboard</button>
+      <button class="nv" data-view="dialer"><span class="ic">&#128222;</span>Dialer<span class="pill" id="navDialPill" style="display:none"></span></button>
+      <button class="nv" data-view="pipe"><span class="ic">&#128202;</span>Pipeline</button>
+      <button class="nv" data-view="meet"><span class="ic">&#129309;</span>Meetings</button>
+      <button class="nv" data-view="seq"><span class="ic">&#9993;&#65039;</span>Sequences</button>
+      <button class="nv" data-view="past"><span class="ic">&#128337;</span>Past Calls<span class="pill" id="dueBadge" style="display:none"></span></button>
+      <div class="navsec">MONEY</div>
+      <button class="nv" data-view="comm"><span class="ic">&#128176;</span>Commissions</button>
+      <div class="navsec">LEARN</div>
+      <button class="nv" data-view="play"><span class="ic">&#128218;</span>Playbook</button>
+      <div id="ownerNav" style="display:none">
+        <div class="navsec">OWNER</div>
+        <button class="nv" data-view="owner"><span class="ic">&#9881;&#65039;</span>Command Center<span class="pill" id="apprBadge" style="display:none"></span></button>
       </div>
     </div>
-    <div class="g4">
-      <div class="kpi"><b id="k-dials">0</b><span>dials today</span></div>
-      <div class="kpi"><b id="k-connect">0%</b><span>connect rate</span></div>
-      <div class="kpi"><b id="k-meet">0</b><span>meetings today</span></div>
-      <div class="kpi"><b id="k-alltime">0</b><span>all-time dials</span></div>
+    <div class="foot">
+      <div class="me">
+        <div class="av" id="meAv">T</div>
+        <div><b id="meName">-</b><span id="meRole">-</span></div>
+      </div>
+      <div class="footbtns">
+        <button onclick="togglePH()" title="Power hour">&#9889;</button>
+        <button onclick="toggleDark()" title="Dark mode">&#127769;</button>
+        <button onclick="logout()" title="Sign out">&#10162;</button>
+      </div>
     </div>
-    <div class="card" style="margin-top:16px">
-      <b style="font-size:15px">Last 14 Days</b>
-      <div class="bars" id="chart"></div>
-      <div style="height:18px"></div>
-    </div>
-    <div class="g2">
-      <div class="card"><b style="font-size:15px">When they pick up</b><div class="hint">Connect rate by hour, all your calls.</div><div class="bars" id="hourChart"></div><div style="height:18px"></div></div>
-      <div class="card"><b style="font-size:15px">Industry scoreboard</b><div id="indRows" class="hint" style="line-height:2.1;margin-top:8px"></div></div>
-    </div>
-  </div>
+  </nav>
 
-  <div class="card" id="view-past" style="display:none">
-    <div class="row">
-      <b style="font-size:15px">Past Calls</b>
+  <div id="maincol">
+    <div id="topbar">
+      <button id="hamb" class="iconbtn" onclick="document.getElementById('side').classList.toggle('open')">&#9776;</button>
+      <div style="min-width:0"><h1 id="pageTitle">Dashboard</h1><div class="sub" id="pageSub"></div></div>
       <div style="flex:1"></div>
-      <input id="histSearch" placeholder="Search name, phone, note..." oninput="debHist()" style="min-width:200px">
-      <button class="btn-ghost btn-sm" onclick="loadHistory()">Refresh</button>
+      <span id="twReady" title="Inbound calls ring here">&#128222; dialer ready</span>
+      <div id="phChip"><b id="phTime">60:00</b>power hour</div>
+      <div id="ringWrap" title="Daily goal: 25 dials">
+        <svg width="52" height="52"><circle cx="26" cy="26" r="21" fill="none" stroke="var(--chip)" stroke-width="6"/><circle id="ringArc" cx="26" cy="26" r="21" fill="none" stroke="#fec814" stroke-width="6" stroke-linecap="round" stroke-dasharray="131.9" stroke-dashoffset="131.9" style="transition:stroke-dashoffset .5s"/></svg>
+        <div id="ringTxt">0</div>
+      </div>
+      <div class="statchip"><b id="st-meet">0</b>wins today</div>
+      <div class="statchip hidem"><b id="st-earned">$0</b>unpaid</div>
     </div>
-    <div id="dueWrap" style="margin-top:12px"></div>
-    <div style="overflow-x:auto;margin-top:8px">
-      <table>
-        <thead><tr><th>When</th><th>Business</th><th>Phone</th><th class="hidem">Market</th><th>Outcome</th><th class="hidem">Note</th></tr></thead>
-        <tbody id="histRows"></tbody>
-      </table>
+
+    <div id="content">
+
+      <div class="view on" id="v-dash">
+        <div class="hero">
+          <h2 id="heroHi">Welcome back</h2>
+          <div class="sub" id="planLine"></div>
+          <div class="row" style="margin-top:14px">
+            <button class="btn-go" onclick="gotoView('dialer');setTimeout(hunt,50)">&#9889; Build Today's 25 &amp; Dial</button>
+            <button class="btn-ghost" style="background:rgba(255,255,255,.12);color:#fff" onclick="gotoView('play')">&#128218; Open the Playbook</button>
+          </div>
+          <div class="quote" id="quoteTxt"></div>
+        </div>
+        <div id="dueTodayBanner"></div>
+        <div class="g4">
+          <div class="kpi"><b id="k-dials">0</b><span>dials today</span></div>
+          <div class="kpi"><b id="k-connect">0%</b><span>connect rate</span></div>
+          <div class="kpi"><b id="k-meet">0</b><span>wins today</span></div>
+          <div class="kpi"><b id="k-alltime">0</b><span>all-time dials</span></div>
+        </div>
+        <div class="card" style="margin-top:16px">
+          <b style="font-size:15px">Last 14 Days</b>
+          <div class="bars" id="chart"></div>
+          <div style="height:18px"></div>
+        </div>
+        <div class="g2">
+          <div class="card"><b style="font-size:15px">When they pick up</b><div class="hint">Connect rate by hour, all your calls.</div><div class="bars" id="hourChart"></div><div style="height:18px"></div></div>
+          <div class="card"><b style="font-size:15px">Industry scoreboard</b><div id="indRows" class="hint" style="line-height:2.1;margin-top:8px"></div></div>
+        </div>
+      </div>
+
+      <div class="view" id="v-dialer">
+        <div class="card">
+          <div class="row" style="align-items:flex-end">
+            <div><label>Market</label><select id="market"></select></div>
+            <div><label>Industry</label><select id="industry"></select></div>
+            <div style="flex:1;min-width:110px"><label>Or any town (FL)</label><input id="customCity" placeholder="e.g. Punta Gorda"></div>
+            <button class="btn-go" id="goBtn" onclick="hunt()">Build Today's 25 &rarr;</button>
+            <button class="btn-ghost" onclick="reattack()" title="Rebuild from no-answers older than 30 days">&#9851; Re-attack</button>
+          </div>
+          <div class="hint" id="suggestHint"></div>
+        </div>
+        <div class="card">
+          <div class="row">
+            <b style="font-size:15px" id="listTitle">Call List</b>
+            <div style="flex:1"></div>
+            <div style="height:12px;background:var(--chip);border-radius:99px;overflow:hidden;flex:1;min-width:120px;max-width:260px"><div id="barfill" style="height:100%;width:0;background:linear-gradient(90deg,var(--blue),var(--teal));border-radius:99px;transition:width .4s"></div></div>
+            <span style="font-size:13px;font-weight:700;color:var(--muted)" id="barTxt">0 / 0</span>
+            <button class="btn-green" id="startBtn" style="display:none" onclick="startCalling()">&#9654; Start Calling</button>
+            <button class="btn-ghost btn-sm" onclick="sortHot()">&#128293; Hot first</button>
+            <button class="btn-ghost btn-sm" onclick="exportCsv()">CSV</button>
+            <button class="btn-ghost btn-sm" onclick="clearList()">Clear</button>
+          </div>
+          <div style="overflow-x:auto;margin-top:8px">
+            <table>
+              <thead><tr><th style="width:26px">#</th><th>Business</th><th>Phone</th><th class="hidem">Google</th><th class="hidem">Website</th><th>Status</th></tr></thead>
+              <tbody id="rows"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="view" id="v-pipe">
+        <div class="card">
+          <div class="row"><b style="font-size:15px">Pipeline</b><div style="flex:1"></div><span class="hint" id="pipeTotals"></span></div>
+          <div id="board" style="margin-top:12px"></div>
+        </div>
+      </div>
+
+      <div class="view" id="v-meet">
+        <div class="card">
+          <b style="font-size:15px">Meetings Pipeline</b>
+          <p class="hint">Every booked meeting lands here. No-shows get chased automatically the morning after, and Closed Won hands you straight to the deal form.</p>
+          <div style="overflow-x:auto;margin-top:10px">
+            <table>
+              <thead><tr><th>Business</th><th>Phone</th><th>Date</th><th>Status</th><th></th></tr></thead>
+              <tbody id="meetRows"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="view" id="v-seq">
+        <div class="card">
+          <b style="font-size:15px">Email Sequences</b>
+          <p class="hint">Fired from the call screen after a voicemail or no-answer. Three emails over about ten days, each with the free scan link. Replies land in your inbox. Sequences stop on a win or do-not-call.</p>
+          <div style="overflow-x:auto;margin-top:10px">
+            <table>
+              <thead><tr><th>Business</th><th>Email</th><th>Step</th><th>Status</th><th>Next send</th><th></th></tr></thead>
+              <tbody id="seqRows"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="view" id="v-past">
+        <div class="card">
+          <div class="row">
+            <b style="font-size:15px">Past Calls</b>
+            <div style="flex:1"></div>
+            <input id="histSearch" placeholder="Search name, phone, note..." oninput="debHist()" style="min-width:200px">
+            <button class="btn-ghost btn-sm" onclick="loadHistory()">Refresh</button>
+          </div>
+          <div id="dueWrap" style="margin-top:12px"></div>
+          <div style="overflow-x:auto;margin-top:8px">
+            <table>
+              <thead><tr><th>When</th><th>Business</th><th>Phone</th><th class="hidem">Market</th><th>Outcome</th><th class="hidem">Note</th></tr></thead>
+              <tbody id="histRows"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="view" id="v-comm">
+        <div class="card">
+          <div class="row"><b style="font-size:15px">This Month's KPI</b></div>
+          <div class="kpiwrap" style="margin-top:12px">
+            <div class="kpidots" id="kpiDots"></div>
+            <div class="hint" id="kpiTxt" style="font-size:13.5px"></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="row"><b style="font-size:15px">Submit a Closed Deal</b><span class="hint" style="margin:0">(signed and approved = closed)</span></div>
+          <div class="row" style="margin-top:10px;align-items:flex-end">
+            <div style="flex:1;min-width:160px"><label>Business</label><input id="d-biz" placeholder="Sunshine Pools LLC" style="width:100%"></div>
+            <div><label>Product</label><select id="d-prod" onchange="prodHint()"></select></div>
+            <div id="d-amtWrap" style="display:none"><label>Amount $</label><input id="d-amt" type="number" style="width:110px"></div>
+            <button class="btn-blue" onclick="submitDeal()">Submit for approval</button>
+          </div>
+          <div class="hint" id="d-hint"></div>
+          <input id="d-note" placeholder="Note for Ty (optional)" style="width:100%;margin-top:10px">
+        </div>
+        <div class="g3">
+          <div class="kpi"><b id="c-pending">0</b><span>deals pending review</span></div>
+          <div class="kpi"><b id="c-earned">$0</b><span>earned, unpaid</span></div>
+          <div class="kpi"><b id="c-paid">$0</b><span>paid out</span></div>
+        </div>
+        <div class="card" style="margin-top:16px">
+          <b style="font-size:15px">My Deals</b>
+          <div style="overflow-x:auto;margin-top:8px">
+            <table><thead><tr><th>Business</th><th>Product</th><th>Value</th><th>Status</th><th>Submitted</th></tr></thead><tbody id="dealRows"></tbody></table>
+          </div>
+        </div>
+        <div class="card">
+          <b style="font-size:15px">Bonus Ledger</b>
+          <div style="overflow-x:auto;margin-top:8px">
+            <table><thead><tr><th>Item</th><th>Type</th><th>Amount</th><th>Status</th><th>Date</th></tr></thead><tbody id="ledgerRows"></tbody></table>
+          </div>
+        </div>
+      </div>
+
+      <div class="view" id="v-play">
+        <div id="playWrap"></div>
+      </div>
+
+      <div class="view" id="v-owner">
+        <div class="g3" style="margin-bottom:16px">
+          <div class="kpi"><b id="o-mrr">$0</b><span>client MRR on the books</span></div>
+          <div class="kpi"><b id="o-onetime">$0</b><span>one-time revenue closed</span></div>
+          <div class="kpi"><b id="o-annual">$0</b><span>annualized run rate</span></div>
+        </div>
+        <div class="card">
+          <div class="row"><b style="font-size:15px">Team Seats</b></div>
+          <div class="row" style="margin-top:10px;align-items:flex-end">
+            <div style="flex:1;min-width:150px"><label>Name</label><input id="iv-name" placeholder="New rep's name" style="width:100%"></div>
+            <div style="flex:1;min-width:180px"><label>Email</label><input id="iv-email" placeholder="them@email.com" style="width:100%"></div>
+            <button class="btn-go" onclick="sendInvite()">&#9993;&#65039; Send Invite</button>
+          </div>
+          <p class="hint">They get a branded email with a one-time link, create their own password, and land on their dashboard ready to dial. No env vars, no deploys.</p>
+          <div id="teamList" style="margin-top:10px"></div>
+        </div>
+        <div class="card">
+          <div class="row"><b style="font-size:15px">Deal Approvals</b></div>
+          <div id="apprList" style="margin-top:8px"></div>
+        </div>
+        <div class="card">
+          <div class="row">
+            <b style="font-size:15px">Payouts</b>
+            <div style="flex:1"></div>
+            <button class="btn-green btn-sm" onclick="payAll()">Mark all earned as paid</button>
+          </div>
+          <div style="overflow-x:auto;margin-top:8px">
+            <table><thead><tr><th>Rep</th><th>Item</th><th>Amount</th><th>Status</th><th>Date</th></tr></thead><tbody id="ownLedger"></tbody></table>
+          </div>
+        </div>
+        <div class="card">
+          <b style="font-size:15px">Objections heard, last 30 days</b>
+          <div id="objRows" class="hint" style="line-height:2;margin-top:6px"></div>
+        </div>
+        <div class="card">
+          <b style="font-size:15px">Team Activity</b>
+          <div style="overflow-x:auto;margin-top:8px">
+            <table><thead><tr><th>Rep</th><th>Today</th><th>7 days</th><th>All time</th></tr></thead><tbody id="teamRows"></tbody></table>
+          </div>
+          <p class="hint" id="teamExtra"></p>
+        </div>
+        <div class="card">
+          <b style="font-size:15px">All Sequences</b>
+          <div style="overflow-x:auto;margin-top:8px">
+            <table><thead><tr><th>Business</th><th>Rep</th><th>Step</th><th>Status</th></tr></thead><tbody id="ownSeqs"></tbody></table>
+          </div>
+        </div>
+      </div>
+
     </div>
   </div>
-
-  <div class="card" id="view-pipe" style="display:none">
-    <div class="row"><b style="font-size:15px">Pipeline</b><div style="flex:1"></div><span class="hint" id="pipeTotals"></span></div>
-    <div id="board" style="margin-top:12px"></div>
-  </div>
-
-  <div class="card" id="view-meet" style="display:none">
-    <b style="font-size:15px">Meetings Pipeline</b>
-    <p class="hint">Every booked meeting lands here. Keep statuses honest: no-shows get chased automatically by email the morning after, and Closed Won hands you straight to the deal form.</p>
-    <div style="overflow-x:auto;margin-top:10px">
-      <table>
-        <thead><tr><th>Business</th><th>Phone</th><th>Date</th><th>Status</th><th></th></tr></thead>
-        <tbody id="meetRows"></tbody>
-      </table>
-    </div>
-  </div>
-
-  <div class="card" id="view-seq" style="display:none">
-    <b style="font-size:15px">Email Sequences</b>
-    <p class="hint">Started from the call screen after a voicemail or no-answer. Three emails over about ten days, each with the free scan link. Replies go straight to your inbox. Sequences stop automatically when a meeting is booked or a number goes do-not-call.</p>
-    <div style="overflow-x:auto;margin-top:10px">
-      <table>
-        <thead><tr><th>Business</th><th>Email</th><th>Step</th><th>Status</th><th>Next send</th><th></th></tr></thead>
-        <tbody id="seqRows"></tbody>
-      </table>
-    </div>
-  </div>
-
-  <div id="view-comm" style="display:none">
-    <div class="card">
-      <div class="row"><b style="font-size:15px">This Month's KPI</b></div>
-      <div class="kpiwrap" style="margin-top:12px">
-        <div class="kpidots" id="kpiDots"></div>
-        <div class="hint" id="kpiTxt" style="font-size:13.5px"></div>
-      </div>
-    </div>
-    <div class="card">
-      <div class="row"><b style="font-size:15px">Submit a Closed Deal</b><span class="hint" style="margin:0">(closed = met with Ty and signed)</span></div>
-      <div class="row" style="margin-top:10px;align-items:flex-end">
-        <div style="flex:1;min-width:160px"><label>Business</label><input id="d-biz" placeholder="Joe's Plumbing" style="width:100%"></div>
-        <div><label>Product</label><select id="d-prod" onchange="prodHint()"></select></div>
-        <div id="d-amtWrap" style="display:none"><label>Amount $</label><input id="d-amt" type="number" style="width:110px"></div>
-        <button class="btn-blue" onclick="submitDeal()">Submit for approval</button>
-      </div>
-      <div class="hint" id="d-hint"></div>
-      <input id="d-note" placeholder="Note for Ty (optional)" style="width:100%;margin-top:10px">
-    </div>
-    <div class="g3">
-      <div class="kpi"><b id="c-pending">0</b><span>deals pending review</span></div>
-      <div class="kpi"><b id="c-earned">$0</b><span>earned, unpaid</span></div>
-      <div class="kpi"><b id="c-paid">$0</b><span>paid out</span></div>
-    </div>
-    <div class="card" style="margin-top:16px">
-      <b style="font-size:15px">My Deals</b>
-      <div style="overflow-x:auto;margin-top:8px">
-        <table><thead><tr><th>Business</th><th>Product</th><th>Commission</th><th>Status</th><th>Submitted</th></tr></thead><tbody id="dealRows"></tbody></table>
-      </div>
-    </div>
-    <div class="card">
-      <b style="font-size:15px">Commission Ledger</b>
-      <div style="overflow-x:auto;margin-top:8px">
-        <table><thead><tr><th>Item</th><th>Type</th><th>Amount</th><th>Status</th><th>Date</th></tr></thead><tbody id="ledgerRows"></tbody></table>
-      </div>
-    </div>
-  </div>
-
-  <div id="view-owner" style="display:none">
-    <div class="g3" style="margin-bottom:16px">
-      <div class="kpi"><b id="o-mrr">$0</b><span>client MRR on the books</span></div>
-      <div class="kpi"><b id="o-onetime">$0</b><span>one-time revenue closed</span></div>
-      <div class="kpi"><b id="o-annual">$0</b><span>annualized run rate</span></div>
-    </div>
-    <div class="card">
-      <b style="font-size:15px">Objections heard, last 30 days</b>
-      <div id="objRows" class="hint" style="line-height:2;margin-top:6px"></div>
-    </div>
-    <div class="card">
-      <b style="font-size:15px">Team Today &amp; This Week</b>
-      <div style="overflow-x:auto;margin-top:8px">
-        <table><thead><tr><th>Rep</th><th>Today</th><th>7 days</th><th>All time</th></tr></thead><tbody id="teamRows"></tbody></table>
-      </div>
-      <p class="hint" id="teamExtra"></p>
-    </div>
-    <div class="card">
-      <div class="row"><b style="font-size:15px">Deal Approvals</b></div>
-      <div id="apprList" style="margin-top:8px"></div>
-    </div>
-    <div class="card">
-      <div class="row">
-        <b style="font-size:15px">Payouts</b>
-        <div style="flex:1"></div>
-        <button class="btn-green btn-sm" onclick="payAll()">Mark all earned as paid</button>
-      </div>
-      <div style="overflow-x:auto;margin-top:8px">
-        <table><thead><tr><th>Rep</th><th>Item</th><th>Amount</th><th>Status</th><th>Date</th></tr></thead><tbody id="ownLedger"></tbody></table>
-      </div>
-    </div>
-    <div class="card">
-      <b style="font-size:15px">All Sequences</b>
-      <div style="overflow-x:auto;margin-top:8px">
-        <table><thead><tr><th>Business</th><th>Rep</th><th>Step</th><th>Status</th></tr></thead><tbody id="ownSeqs"></tbody></table>
-      </div>
-    </div>
-  </div>
-
 </div>
 </div>
 
-<!-- ============ CALL MODAL ============ -->
 <div id="overlay"></div>
 <div id="callmodal">
   <div id="cm">
@@ -435,8 +528,22 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--m
       <div class="besttime" id="p-besttime" style="display:none"></div>
       <div id="p-prevcalls"></div>
 
+      <div class="closebox" id="closePanel">
+        <b style="font-size:14px">&#127942; CLOSE THEM ON THIS CALL</b>
+        <div class="hint" style="margin-top:4px">They said yes? Lock it while you are still on the phone: agreement and secure checkout hit their inbox in seconds. If they want to go deeper first, book the 15 with Ty instead.</div>
+        <div class="row" style="margin-top:10px;align-items:flex-end">
+          <input id="cl-email" placeholder="their email address" style="flex:1;min-width:160px">
+          <div><label>Product</label><select id="cl-prod" style="max-width:230px"></select></div>
+        </div>
+        <div class="row" style="margin-top:8px">
+          <button class="btn-go btn-sm" onclick="closeNow(true)">&#9997;&#65039;+&#128179; Send contract + checkout</button>
+          <button class="btn-ghost btn-sm" onclick="closeNow(false)">&#9997;&#65039; Contract only</button>
+        </div>
+        <div class="hint" id="cl-status"></div>
+      </div>
+
       <div class="seqbox" id="seqPanel">
-        <b style="font-size:13px">&#9993; No answer? Hit them by email.</b>
+        <b style="font-size:13px">&#9993;&#65039; No answer? Hit them by email.</b>
         <div class="hint" id="seqStatus" style="margin-top:4px"></div>
         <div class="row" style="margin-top:8px">
           <input id="seq-email" placeholder="their email address" style="flex:1;min-width:170px">
@@ -447,7 +554,14 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--m
         <div id="scrapeOut"></div>
       </div>
 
-      <h3 class="sec">The Script <button class="btn-ghost btn-sm" onclick="copyTxt($('p-script').textContent,'Script copied.')" style="margin-left:auto">Copy</button></h3>
+      <div class="seqbox" id="oneoffWrap" style="border-style:solid;display:none">
+        <b style="font-size:13px">&#9993;&#65039; One-off custom email</b>
+        <input id="oo-subj" placeholder="Subject" style="width:100%;margin-top:8px">
+        <textarea id="oo-body" rows="3" placeholder="Short personal message. Your signature is added automatically." style="width:100%;margin-top:8px"></textarea>
+        <div class="row" style="margin-top:8px;justify-content:flex-end"><button class="btn-blue btn-sm" onclick="sendOneoff()">Send</button></div>
+      </div>
+
+      <h3 class="sec">Your Script <button class="btn-ghost btn-sm" onclick="copyTxt($('p-script').textContent,'Script copied.')" style="margin-left:auto">Copy</button></h3>
       <div class="script" id="p-script"></div>
 
       <h3 class="sec">Voicemail version</h3>
@@ -455,13 +569,6 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--m
 
       <h3 class="sec">When they push back (tap to open)</h3>
       <div id="p-objs"></div>
-
-      <div class="seqbox" id="oneoffWrap" style="border-style:solid;display:none">
-        <b style="font-size:13px">&#9993; One-off custom email</b>
-        <input id="oo-subj" placeholder="Subject" style="width:100%;margin-top:8px">
-        <textarea id="oo-body" rows="3" placeholder="Short personal message. Your signature is added automatically." style="width:100%;margin-top:8px"></textarea>
-        <div class="row" style="margin-top:8px;justify-content:flex-end"><button class="btn-blue btn-sm" onclick="sendOneoff()">Send</button></div>
-      </div>
 
       <h3 class="sec">Log this call</h3>
       <input id="p-note" placeholder="Call note (who answered, what they said, next step)" style="width:100%">
@@ -490,7 +597,8 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--m
         <button class="o-no" onclick="logOutcome('not_interested')">Not interested<kbd>4</kbd></button>
         <button class="o-na" onclick="logOutcome('gatekeeper')">Gatekeeper<kbd>5</kbd></button>
         <button class="o-dnc" onclick="logOutcome('dnc')">Do not call<kbd>6</kbd></button>
-        <button class="o-meet" onclick="logOutcome('meeting')">&#128197; Meeting set<kbd>M</kbd></button>
+        <button class="o-meet" style="grid-column:1/span 3" onclick="logOutcome('meeting')">&#128197; Booked the 15 with Ty<kbd>M</kbd></button>
+        <button class="o-close" onclick="logOutcome('closed')">&#127942; CLOSED ON THE CALL<kbd>C</kbd></button>
       </div>
     </div>
     <div class="foot">
@@ -503,7 +611,6 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--m
   </div>
 </div>
 
-<!-- company drawer -->
 <div class="modal2" id="compmodal">
   <div class="inner" style="width:640px">
     <div class="row"><h2 style="font-size:18px" id="cp-name">Company</h2><div style="flex:1"></div>
@@ -526,7 +633,6 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--m
   </div>
 </div>
 
-<!-- proposal modal -->
 <div class="modal2" id="propmodal">
   <div class="inner">
     <h2 style="font-size:18px">Send Proposal</h2>
@@ -543,11 +649,10 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--m
   </div>
 </div>
 
-<!-- contract modal -->
 <div class="modal2" id="contmodal">
   <div class="inner">
     <h2 style="font-size:18px">Send Contract for Signature</h2>
-    <div class="hint">Fills your DocuSeal template and emails it. You both get notified the second they sign, and the deal lands for approval automatically.</div>
+    <div class="hint">Fills the right contract and emails it. Everyone gets notified the second they sign, and the deal lands for approval automatically.</div>
     <div class="g2" style="margin-top:12px">
       <div><label>Client name</label><input id="ct-name" style="width:100%"></div>
       <div><label>Client email</label><input id="ct-email" style="width:100%"></div>
@@ -563,7 +668,6 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--m
   </div>
 </div>
 
-<!-- checkout modal -->
 <div class="modal2" id="ckmodal">
   <div class="inner" style="width:440px">
     <h2 style="font-size:18px">Send Wave Checkout</h2>
@@ -584,6 +688,22 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--m
     <div class="row" style="margin-top:16px;justify-content:center">
       <button class="btn-blue" onclick="$('recapmodal').classList.remove('show')">Done</button>
     </div>
+  </div>
+</div>
+
+<div class="modal2" id="welcomemodal">
+  <div class="inner" style="text-align:center;width:480px">
+    <img src="https://www.burketwebdesign.com/assets/logo.png" style="height:56px" onerror="this.style.display='none'">
+    <h2 style="font-size:20px;margin-top:10px" id="wm-title">Welcome to your hub</h2>
+    <div class="hint" style="font-size:13.5px;line-height:1.9;text-align:left;margin-top:12px">
+      Here is your whole job in four moves:<br>
+      <b>1.</b> Hit <b>Build Today's 25</b>. The system finds qualified businesses losing on Google and hands you the list, best targets first.<br>
+      <b>2.</b> <b>Start Calling.</b> Every call screen has your script with their name and numbers already in it, plus every comeback you will need.<br>
+      <b>3.</b> <b>Close on the call</b> with the gold button (contract + checkout in seconds), or book them 15 minutes with Ty.<br>
+      <b>4.</b> No answer? <b>Fire the email sequence.</b> It follows up for you for ten days.<br><br>
+      Your KPI, your bonuses, and your wins all live in Commissions. The Playbook tab has every script. Go get them.
+    </div>
+    <button class="btn-go" style="width:100%;margin-top:16px" onclick="$('welcomemodal').classList.remove('show')">Let's work &rarr;</button>
   </div>
 </div>
 
@@ -626,30 +746,42 @@ var INDUSTRIES = [
 ];
 var TARGET = 25;
 var QUOTES = [
-  'Fifty dials. One industry. No mercy.',
+  'Twenty-five qualified dials. One industry. No mercy.',
   'The phone weighs a thousand pounds until you pick it up.',
   'Every no gets you closer to the yes that pays you monthly.',
   'Amateurs wait for motivation. Closers dial.',
-  'Meetings booked today become commission next month.',
+  'A close on the phone beats a meeting next week.',
   'The best time to call was 8 AM. The second best time is now.',
-  'Talk less, book more. The meeting is the close.',
+  'Ask for the business. They are waiting for you to ask.',
   'A full call list is a full pipeline is a full paycheck.',
   'They cannot say yes if you never call.',
   'Your competitors hit snooze. You hit dial.',
   'Voicemail is not a dead end. It is an email waiting to happen.',
-  'One meeting a day pays better than any hourly job you have had.'
+  'One close a day changes your whole month.'
 ];
+var TITLES = {
+  dash:['Dashboard','Your day at a glance'],
+  dialer:['Dialer','Qualified targets, one call at a time'],
+  pipe:['Pipeline','Every prospect, every stage'],
+  meet:['Meetings','Booked, showed, closed'],
+  seq:['Sequences','Email follow-up on autopilot'],
+  past:['Past Calls','Everything you have worked'],
+  comm:['Commissions','Your KPI and your money'],
+  play:['Playbook','Scripts, comebacks, and the plan'],
+  owner:['Command Center','Approvals, payouts, team']
+};
 
 /* ================= STATE ================= */
 function load(k,d){ try{ var v=localStorage.getItem(k); return v?JSON.parse(v):d; }catch(e){ return d; } }
 function save(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
 var TOKEN = load('sdr_token','');
-var BOOT = null;           // server bootstrap payload
+var BOOT = null;
 var LIST = load('sdr_list', []);
 var LISTMETA = load('sdr_listmeta', {});
 var CUR = null, CURFUP = null;
 var CALLSTART = 0, CALLTICK = null, LASTLOG = null;
 var PH = load('sdr_ph', null);
+var INVITE_TOKEN = '';
 
 /* ================= HELPERS ================= */
 function $(id){ return document.getElementById(id); }
@@ -716,6 +848,23 @@ function doLogin(){
     .catch(function(e){ $('l-err').textContent=e.message||'Login failed.'; })
     .finally(function(){ $('l-btn').disabled=false; });
 }
+function acceptInvite(){
+  $('l-err').textContent='';
+  if ($('inv-pass').value !== $('inv-pass2').value) return $('l-err').textContent='Passwords do not match.';
+  $('inv-btn').disabled=true;
+  fetch('/api/hub',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({a:'auth.invite.accept',inviteToken:INVITE_TOKEN,name:$('inv-name').value.trim(),pass:$('inv-pass').value})})
+    .then(function(r){return r.json();})
+    .then(function(j){
+      if(!j.ok) throw new Error(j.error);
+      TOKEN=j.data.token; save('sdr_token',TOKEN);
+      save('sdr_welcome_due', true);
+      try{ history.replaceState(null,'',location.pathname); }catch(e){}
+      boot();
+    })
+    .catch(function(e){ $('l-err').textContent=e.message||'Could not create the account.'; })
+    .finally(function(){ $('inv-btn').disabled=false; });
+}
 function logout(){
   TOKEN=''; save('sdr_token','');
   $('app').style.display='none'; $('login').style.display='flex';
@@ -728,9 +877,15 @@ function boot(){
     BOOT=d;
     $('login').style.display='none'; $('app').style.display='block';
     initControls();
-    if (BOOT.user.role==='owner') $('tab-owner').style.display='inline-block';
+    if (BOOT.user.role==='owner'){ $('ownerNav').style.display='block'; }
     renderAll();
     twInit();
+    if (load('sdr_welcome_due', false)){
+      save('sdr_welcome_due', false);
+      $('wm-title').textContent='Welcome to your hub, '+BOOT.user.name.split(' ')[0];
+      $('welcomemodal').classList.add('show');
+      confetti();
+    }
   }).catch(function(e){
     $('login').style.display='flex'; $('app').style.display='none';
     if (e.message!=='Signed out.') $('l-err').textContent=e.message;
@@ -744,12 +899,34 @@ function initControls(){
   if (MARKETS.indexOf(lastMarket)>-1) $('market').value=lastMarket;
   var sug = INDUSTRIES[dayOfYear()%INDUSTRIES.length];
   $('industry').value = String(INDUSTRIES.indexOf(sug));
-  $('planLine').textContent = new Date().toLocaleDateString(undefined,{weekday:'long',month:'short',day:'numeric'}) + ' - ' + BOOT.user.name.split(' ')[0] + ' - today: ' + sug.label;
-  $('suggestHint').textContent = 'Best window for '+sug.label.toLowerCase()+': '+sug.best+' (their local time). Florida push: work the I-4 corridor and Gulf coast in order, numbers already called are skipped automatically.';
+  var hr = new Date().getHours();
+  var greet = hr<12 ? 'Good morning' : hr<17 ? 'Good afternoon' : 'Good evening';
+  $('heroHi').textContent = greet+', '+BOOT.user.name.split(' ')[0]+'.';
+  $('planLine').textContent = new Date().toLocaleDateString(undefined,{weekday:'long',month:'short',day:'numeric'}) + ' · today’s play: ' + sug.label + ' in ' + $('market').value + ' · best window ' + sug.best;
+  $('suggestHint').textContent = 'Best window for '+sug.label.toLowerCase()+': '+sug.best+' (their local time). Industry rotates daily, already-worked numbers are skipped automatically.';
   $('quoteTxt').textContent = '"'+QUOTES[dayOfYear()%QUOTES.length]+'"';
   $('d-prod').innerHTML = BOOT.products.map(function(p){return '<option value="'+p.id+'">'+esc(p.label)+'</option>';}).join('');
+  $('meName').textContent = BOOT.user.name;
+  $('meRole').textContent = BOOT.user.role==='owner' ? 'Owner' : 'Sales Representative';
+  $('meAv').textContent = (BOOT.user.name||'?').split(' ').map(function(x){return x[0]||'';}).join('').slice(0,2).toUpperCase();
   prodHint();
+  renderPlaybook();
 }
+
+/* ================= NAV ================= */
+function gotoView(v){
+  document.querySelectorAll('.nv').forEach(function(b){ b.classList.toggle('on', b.getAttribute('data-view')===v); });
+  document.querySelectorAll('.view').forEach(function(x){ x.classList.remove('on'); });
+  var el=$('v-'+v); if(el) el.classList.add('on');
+  $('pageTitle').textContent = (TITLES[v]||['',''])[0];
+  $('pageSub').textContent = (TITLES[v]||['',''])[1];
+  $('side').classList.remove('open');
+  if (v==='past') loadHistory();
+  if (v==='pipe') loadPipeline();
+  if (v==='owner'){ refresh(); loadTeam(); }
+  if (v==='dash'||v==='comm'||v==='seq'||v==='meet') refresh();
+}
+document.querySelectorAll('.nv').forEach(function(b){ b.addEventListener('click', function(){ gotoView(b.getAttribute('data-view')); }); });
 
 /* ================= HUNT ================= */
 function hunt(){
@@ -772,8 +949,7 @@ function hunt(){
     renderList();
     beep(880,.1,.05);
     if (LIST.length){
-      var msg = LIST.length+' qualified targets loaded, fastest wins first. '+d.skipped+' already-worked skipped.';
-      toast(msg);
+      toast(LIST.length+' qualified targets loaded, fastest wins first. '+d.skipped+' already-worked skipped.');
     } else if (d.notes&&d.notes.length){
       toast('Search problem: '+d.notes.join(' / '));
       $('rows').innerHTML='<tr><td colspan="6"><div class="empty">'+esc(d.notes.join(' / '))+'</div></td></tr>';
@@ -783,12 +959,22 @@ function hunt(){
   }).catch(function(e){
     $('rows').innerHTML='<tr><td colspan="6"><div class="empty">'+esc(e.message)+'</div></td></tr>';
     toast(e.message);
-  }).finally(function(){ btn.disabled=false; btn.textContent="Build Today's 25 \u2192"; });
+  }).finally(function(){ btn.disabled=false; btn.textContent="Build Today's 25 →"; });
 }
-
+function reattack(){
+  api('reattack').then(function(d){
+    if (!d.list.length) return toast('Nothing to re-attack yet. No-answers become fair game after 30 days.');
+    LIST=d.list.map(function(b){b.status='';b.note='';return b;});
+    LISTMETA={city:'Re-attack',industry:'Old no-answers',noun:'business',best:'',date:todayKey()};
+    save('sdr_list',LIST); save('sdr_listmeta',LISTMETA);
+    renderList(); beep(880,.1,.05);
+    toast(d.list.length+' old no-answers loaded. They forgot you called. Perfect.');
+  }).catch(function(e){toast(e.message);});
+}
 
 /* ================= RENDER ================= */
 function statusTag(s){
+  if (s==='closed') return '<span class="tag t-gold">CLOSED</span>';
   if (s==='meeting') return '<span class="tag t-meet">meeting set</span>';
   if (s==='callback') return '<span class="tag t-cb">callback</span>';
   if (s==='not_interested') return '<span class="tag t-no">not interested</span>';
@@ -804,52 +990,6 @@ function gCell(b){
   return '<span style="font-size:12.5px">'+esc('#'+b.pos+' · '+(b.reviews>0?(b.rating+'★ ('+b.reviews+')'):'no reviews'))+'</span>';
 }
 function renderAll(){ renderList(); renderStats(); renderHistoryBoot(); renderSeqs(); renderMeetings(); renderComm(); if(BOOT&&BOOT.user.role==='owner')renderOwner(); loadBreakdown(); }
-var MEET_ST={set:'<span class="tag t-cb">set</span>',showed:'<span class="tag t-meet">showed</span>',no_show:'<span class="tag t-no">no-show</span>',proposal:'<span class="tag t-gold">proposal</span>',closed_won:'<span class="tag t-meet">CLOSED WON</span>',closed_lost:'<span class="tag t-na">closed lost</span>'};
-function renderMeetings(){
-  var rows=(BOOT&&BOOT.meetings)||[];
-  $('meetRows').innerHTML = rows.length ? rows.map(function(m){
-    var sel='<select onchange="setMeet('+m.id+',this.value)" style="max-width:130px">'+
-      ['set','showed','no_show','proposal','closed_won','closed_lost'].map(function(s){
-        return '<option value="'+s+'"'+(m.status===s?' selected':'')+'>'+s.replace(/_/g,' ')+'</option>';
-      }).join('')+'</select>';
-    return '<tr><td><b>'+esc(m.business||'-')+'</b></td><td class="phone">'+esc(fmtPhone(m.phone))+'</td>'+
-      '<td><input type="date" value="'+(m.meet_date?String(m.meet_date).slice(0,10):'')+'" onchange="setMeetDate('+m.id+',this.value)" style="max-width:140px"></td>'+
-      '<td>'+(MEET_ST[m.status]||esc(m.status))+'</td>'+
-      '<td class="row">'+sel+'</td></tr>';
-  }).join('') : '<tr><td colspan="5"><div class="empty">Book the first one. It lands here automatically.</div></td></tr>';
-}
-function setMeet(id,status){
-  api('meeting.set',{id:id,status:status}).then(function(){
-    if (status==='closed_won'){
-      var m=(BOOT.meetings||[]).find(function(x){return x.id===id;});
-      showTab('comm');
-      if (m) $('d-biz').value=m.business||'';
-      chime(); confetti();
-      toast('Closed won. Pick the product and submit the deal.');
-    } else if (status==='no_show'){
-      toast('Logged. Call them today, same-week reschedules still close.');
-    } else toast('Updated.');
-    refresh();
-  }).catch(function(e){toast(e.message);});
-}
-function setMeetDate(id,date){
-  api('meeting.date',{id:id,date:date}).then(function(){ toast('Meeting date saved.'); refresh(); }).catch(function(e){toast(e.message);});
-}
-function loadBreakdown(){
-  if (loadBreakdown._done) return; loadBreakdown._done=true;
-  api('stats.breakdown').then(function(d){
-    var hours=d.byHour||[];
-    var max=Math.max(3,Math.max.apply(null,hours.map(function(r){return r.dials;}).concat([0])));
-    $('hourChart').innerHTML = hours.length ? hours.map(function(r){
-      var rate=r.dials?Math.round(r.convos/r.dials*100):0;
-      return '<div class="b" style="height:'+Math.round(r.dials/max*100)+'%" title="'+r.dials+' dials, '+rate+'% connect"><i>'+rate+'%</i><u>'+r.h+'</u></div>';
-    }).join('') : '<div class="empty" style="width:100%">Dial data builds this chart.</div>';
-    $('indRows').innerHTML = (d.byInd||[]).map(function(r){
-      var rate=r.dials?Math.round(r.convos/r.dials*100):0;
-      return '<b style="color:var(--text)">'+esc(r.industry)+'</b>: '+r.dials+' dials · '+rate+'% connect · '+r.meetings+' meetings<br>';
-    }).join('')||'No industry data yet.';
-  }).catch(function(){});
-}
 function renderList(){
   $('listTitle').textContent = LISTMETA.city ? (LISTMETA.industry+' - '+LISTMETA.city) : 'Call List';
   if (!LIST.length) {
@@ -869,23 +1009,25 @@ function renderList(){
   $('barfill').style.width = (LIST.length?Math.round(called/LIST.length*100):0)+'%';
   $('barTxt').textContent = called+' / '+LIST.length;
   $('startBtn').style.display = (LIST.length && called<LIST.length) ? 'inline-block' : 'none';
+  var left = LIST.length - called;
+  $('navDialPill').style.display = left>0 ? 'inline-block' : 'none';
+  $('navDialPill').textContent = left;
 }
 function renderStats(){
   if (!BOOT) return;
   var today = BOOT.today || [];
   var dials = today.length;
   $('ringTxt').textContent = dials;
-  $('ringArc').style.strokeDashoffset = String(150.8*(1-Math.min(1,dials/TARGET)));
-  var meets = today.filter(function(h){return h.outcome==='meeting';}).length;
-  $('st-meet').textContent = meets;
+  $('ringArc').style.strokeDashoffset = String(131.9*(1-Math.min(1,dials/TARGET)));
+  var wins = today.filter(function(h){return h.outcome==='meeting'||h.outcome==='closed';}).length;
+  $('st-meet').textContent = wins;
   var earned = (BOOT.ledger||[]).filter(function(l){return l.status==='earned';}).reduce(function(s,l){return s+Number(l.amount);},0);
   $('st-earned').textContent = money(earned);
-  var convos = today.filter(function(h){return ['callback','not_interested','meeting','gatekeeper'].indexOf(h.outcome)>-1;}).length;
+  var convos = today.filter(function(h){return ['callback','not_interested','meeting','closed','gatekeeper'].indexOf(h.outcome)>-1;}).length;
   $('k-dials').textContent=dials;
   $('k-connect').textContent = dials?Math.round(convos/dials*100)+'%':'0%';
-  $('k-meet').textContent=meets;
+  $('k-meet').textContent=wins;
   $('k-alltime').textContent=BOOT.totals.dials;
-  $('moneyMath').textContent = meets ? (meets+' meeting'+(meets===1?'':'s')+' today, keep swinging') : 'first meeting of the day is out there';
   var byDay={}, labels=[];
   for (var i=13;i>=0;i--){ var dd=new Date(); dd.setDate(dd.getDate()-i); labels.push(dd.toISOString().slice(0,10)); byDay[labels[labels.length-1]]=0; }
   (BOOT.fourteen||[]).forEach(function(r){ var k=String(r.d).slice(0,10); if(byDay[k]!=null)byDay[k]=r.n; });
@@ -897,16 +1039,36 @@ function renderStats(){
   }).join('');
   var due=BOOT.fups||[];
   $('dueBadge').style.display=due.length?'inline-block':'none';
-  $('dueBadge').textContent=due.length+' due';
-  $('dueTodayBanner').innerHTML = due.length ? '<div class="histline due" style="margin-top:12px;cursor:pointer" onclick="showTab(\'past\')"><b>'+due.length+' follow-up'+(due.length===1?'':'s')+' due.</b> Promises kept book meetings. Knock these out first.</div>' : '';
+  $('dueBadge').textContent=due.length;
+  $('dueTodayBanner').innerHTML = due.length ? '<div class="histline due" style="margin-bottom:14px;cursor:pointer" onclick="gotoView(\'past\')"><b>'+due.length+' follow-up'+(due.length===1?'':'s')+' due.</b> Promises kept close deals. Knock these out first.</div>' : '';
 }
+function loadBreakdown(){
+  if (loadBreakdown._done) return; loadBreakdown._done=true;
+  api('stats.breakdown').then(function(d){
+    var hours=d.byHour||[];
+    var max=Math.max(3,Math.max.apply(null,hours.map(function(r){return r.dials;}).concat([0])));
+    $('hourChart').innerHTML = hours.length ? hours.map(function(r){
+      var rate=r.dials?Math.round(r.convos/r.dials*100):0;
+      return '<div class="b" style="height:'+Math.round(r.dials/max*100)+'%" title="'+r.dials+' dials, '+rate+'% connect"><i>'+rate+'%</i><u>'+r.h+'</u></div>';
+    }).join('') : '<div class="empty" style="width:100%">Dial data builds this chart.</div>';
+    $('indRows').innerHTML = (d.byInd||[]).map(function(r){
+      var rate=r.dials?Math.round(r.convos/r.dials*100):0;
+      return '<b style="color:var(--text)">'+esc(r.industry)+'</b>: '+r.dials+' dials · '+rate+'% connect · '+r.meetings+' meetings<br>';
+    }).join('')||'No industry data yet.';
+  }).catch(function(){});
+}
+
+/* ================= HISTORY / FOLLOW-UPS ================= */
 function renderHistoryBoot(){
   var due=(BOOT&&BOOT.fups)||[];
   $('dueWrap').innerHTML = due.length ? ('<div class="hint" style="margin-bottom:6px"><b>Follow-ups due:</b></div>'+due.map(function(h,i){
-    return '<div class="histline due" style="display:flex;gap:8px;align-items:center"><span style="flex:1;cursor:pointer" onclick="openFup('+i+')"><b>'+esc(h.name||fmtPhone(h.phone))+'</b> \u00b7 '+esc(fmtPhone(h.phone))+' \u00b7 promised '+esc(fdate(h.fup))+(h.note?' \u00b7 "'+esc(h.note)+'"':'')+'</span><button class="btn-ghost btn-sm" onclick="snoozeFup(\''+h.phone+'\',1)">+1d</button><button class="btn-ghost btn-sm" onclick="snoozeFup(\''+h.phone+'\',7)">+1w</button></div>';
+    return '<div class="histline due" style="display:flex;gap:8px;align-items:center"><span style="flex:1;cursor:pointer" onclick="openFup('+i+')"><b>'+esc(h.name||fmtPhone(h.phone))+'</b> · '+esc(fmtPhone(h.phone))+' · promised '+esc(fdate(h.fup))+(h.note?' · "'+esc(h.note)+'"':'')+'</span><button class="btn-ghost btn-sm" onclick="snoozeFup(\''+h.phone+'\',1)">+1d</button><button class="btn-ghost btn-sm" onclick="snoozeFup(\''+h.phone+'\',7)">+1w</button></div>';
   }).join('')) : '';
 }
-var histTimer=null;
+function snoozeFup(phone,days){
+  api('fup.snooze',{phone:phone,days:days}).then(function(){ toast('Snoozed.'); refresh(); }).catch(function(e){toast(e.message);});
+}
+var histTimer=null, HIST_CACHE=[];
 function debHist(){ clearTimeout(histTimer); histTimer=setTimeout(loadHistory,350); }
 function loadHistory(){
   api('history',{q:$('histSearch').value.trim()}).then(function(rows){
@@ -933,6 +1095,39 @@ function renderSeqs(){
 }
 function stopSeq(id){ api('seq.stop',{id:id}).then(function(){ toast('Sequence stopped.'); refresh(); }).catch(function(e){toast(e.message);}); }
 
+/* ================= MEETINGS ================= */
+var MEET_ST={set:'<span class="tag t-cb">set</span>',showed:'<span class="tag t-meet">showed</span>',no_show:'<span class="tag t-no">no-show</span>',proposal:'<span class="tag t-gold">proposal</span>',closed_won:'<span class="tag t-meet">CLOSED WON</span>',closed_lost:'<span class="tag t-na">closed lost</span>'};
+function renderMeetings(){
+  var rows=(BOOT&&BOOT.meetings)||[];
+  $('meetRows').innerHTML = rows.length ? rows.map(function(m){
+    var sel='<select onchange="setMeet('+m.id+',this.value)" style="max-width:130px">'+
+      ['set','showed','no_show','proposal','closed_won','closed_lost'].map(function(s){
+        return '<option value="'+s+'"'+(m.status===s?' selected':'')+'>'+s.replace(/_/g,' ')+'</option>';
+      }).join('')+'</select>';
+    return '<tr><td><b>'+esc(m.business||'-')+'</b></td><td class="phone">'+esc(fmtPhone(m.phone))+'</td>'+
+      '<td><input type="date" value="'+(m.meet_date?String(m.meet_date).slice(0,10):'')+'" onchange="setMeetDate('+m.id+',this.value)" style="max-width:140px"></td>'+
+      '<td>'+(MEET_ST[m.status]||esc(m.status))+'</td>'+
+      '<td class="row">'+sel+'</td></tr>';
+  }).join('') : '<tr><td colspan="5"><div class="empty">Book the first one. It lands here automatically.</div></td></tr>';
+}
+function setMeet(id,status){
+  api('meeting.set',{id:id,status:status}).then(function(){
+    if (status==='closed_won'){
+      var m=(BOOT.meetings||[]).find(function(x){return x.id===id;});
+      gotoView('comm');
+      if (m) $('d-biz').value=m.business||'';
+      chime(); confetti();
+      toast('Closed won. Pick the product and submit the deal.');
+    } else if (status==='no_show'){
+      toast('Logged. Call them today, same-week reschedules still close.');
+    } else toast('Updated.');
+    refresh();
+  }).catch(function(e){toast(e.message);});
+}
+function setMeetDate(id,date){
+  api('meeting.date',{id:id,date:date}).then(function(){ toast('Meeting date saved.'); refresh(); }).catch(function(e){toast(e.message);});
+}
+
 /* ================= COMMISSIONS ================= */
 function prodHint(){
   if (!BOOT) return;
@@ -948,7 +1143,7 @@ function submitDeal(){
   var biz = $('d-biz').value.trim();
   if (!biz) return toast('Who is the client? Business name first.');
   var amt = Number($('d-amt').value)||0;
-  api('deal.submit',{business:biz,product:p.id,amount:p.kind==='one_time'?(amt||p.amount):0,monthly:p.kind==='recurring'?(amt||p.monthly):0,note:$('d-note').value.trim()})
+  api('deal.submit',{business:biz,product:p.id,amount:amt,note:$('d-note').value.trim()})
     .then(function(){ chime(); toast('Deal sent to Ty for approval.'); $('d-biz').value='';$('d-note').value='';$('d-amt').value=''; refresh(); })
     .catch(function(e){ toast(e.message); });
 }
@@ -959,7 +1154,7 @@ function renderComm(){
   var shown=Math.max(k.target, k.closedMonth);
   for (var i=1;i<=shown;i++){
     var cls = i<=k.closedMonth ? (i<=k.target?'hit':'bonus') : '';
-    dots+='<div class="kpidot '+cls+'">'+(i<=k.closedMonth?(i<=k.target?'\u2713':'$'):i)+'</div>';
+    dots+='<div class="kpidot '+cls+'">'+(i<=k.closedMonth?(i<=k.target?'✓':'$'):i)+'</div>';
   }
   $('kpiDots').innerHTML=dots;
   var bonusDeals=Math.max(0,k.closedMonth-k.target);
@@ -969,7 +1164,7 @@ function renderComm(){
   var deals=BOOT.deals||[], ledger=BOOT.ledger||[];
   var earned = ledger.filter(function(l){return l.status==='earned';}).reduce(function(s,l){return s+Number(l.amount);},0);
   var paid = ledger.filter(function(l){return l.status==='paid';}).reduce(function(s,l){return s+Number(l.amount);},0);
-  $('c-pending').textContent=deals.filter(function(d){return d.status==='pending';}).length+' deals';
+  $('c-pending').textContent=deals.filter(function(d){return d.status==='pending';}).length;
   $('c-earned').textContent=money(earned);
   $('c-paid').textContent=money(paid);
   $('dealRows').innerHTML = deals.length ? deals.map(function(d){
@@ -990,7 +1185,7 @@ function renderOwner(){
   $('o-annual').textContent=money(Number(t.mrr||0)*12+Number(t.onetime||0));
   $('objRows').innerHTML=(t.objections||[]).map(function(o){
     return '<b style="color:var(--text)">'+esc(o.obj)+'</b>: heard '+o.n+' time'+(o.n===1?'':'s')+'<br>';
-  }).join('')||'No objections tagged yet. The SDR tags them with one tap on the call screen.';
+  }).join('')||'No objections tagged yet.';
   var pend=t.pending||[];
   $('apprBadge').style.display=pend.length?'inline-block':'none';
   $('apprBadge').textContent=pend.length;
@@ -1002,7 +1197,7 @@ function renderOwner(){
   $('apprList').innerHTML = pend.length ? pend.map(function(d){
     return '<div class="histline" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><div style="flex:1"><b>'+esc(d.business)+'</b> · '+esc(d.product)+
       (Number(d.monthly)?' · '+money(d.monthly)+'/mo':' · '+money(d.amount))+
-      '<br><span style="font-size:12px">by '+esc(d.rep)+(d.note?' · "'+esc(d.note)+'"':'')+' · commission '+money(d.first_comm)+(Number(d.rec_comm)?' + '+money(d.rec_comm)+'/mo':'')+'</span></div>'+
+      '<br><span style="font-size:12px">by '+esc(d.rep)+(d.note?' · "'+esc(d.note)+'"':'')+'</span></div>'+
       '<button class="btn-green btn-sm" onclick="reviewDeal('+d.id+',true)">Approve</button>'+
       '<button class="btn-red btn-sm" onclick="reviewDeal('+d.id+',false)">Deny</button></div>';
   }).join('') : '<div class="empty">Nothing waiting on you.</div>';
@@ -1016,8 +1211,8 @@ function renderOwner(){
 }
 function reviewDeal(id, approve){
   var reason='';
-  if (!approve){ reason=prompt('Why? (goes to the SDR by email, optional)')||''; }
-  api('deal.review',{id:id,approve:approve,reason:reason}).then(function(){ toast(approve?'Approved. Commission moved to earned.':'Denied.'); refresh(); }).catch(function(e){toast(e.message);});
+  if (!approve){ reason=prompt('Why? (goes to the rep by email, optional)')||''; }
+  api('deal.review',{id:id,approve:approve,reason:reason}).then(function(){ toast(approve?'Approved.':'Denied.'); refresh(); }).catch(function(e){toast(e.message);});
 }
 function payAll(){
   var sdr = (BOOT.team.reps||[]).find(function(r){ return r.email!==BOOT.user.email; });
@@ -1026,30 +1221,141 @@ function payAll(){
   if (!confirm('Mark every earned commission for '+rep+' as paid?')) return;
   api('ledger.payAll',{rep:rep}).then(function(){ toast('Marked paid.'); refresh(); }).catch(function(e){toast(e.message);});
 }
+function loadTeam(){
+  api('user.list').then(function(d){
+    var h = (d.users||[]).map(function(u){
+      return '<div class="histline" style="display:flex;align-items:center;gap:10px"><span style="flex:1"><b>'+esc(u.name||u.email)+'</b> · '+esc(u.email)+' · '+esc(u.role)+'</span>'+
+        (Number(u.active)?'<span class="tag t-meet">active</span>':'<span class="tag t-na">deactivated</span>')+
+        (u.role!=='owner'?'<button class="btn-ghost btn-sm" onclick="toggleUser(\''+esc(u.email)+'\')">'+(Number(u.active)?'Deactivate':'Reactivate')+'</button>':'')+'</div>';
+    }).join('');
+    h += (d.pending||[]).map(function(p){
+      return '<div class="histline"><b>'+esc(p.name||p.email)+'</b> · '+esc(p.email)+' · <span class="tag t-cb">invite sent '+esc(fdate(p.ts))+'</span></div>';
+    }).join('');
+    $('teamList').innerHTML = h || '<div class="empty">Just you so far. Send the first invite.</div>';
+  }).catch(function(e){toast(e.message);});
+}
+function sendInvite(){
+  var em=$('iv-email').value.trim();
+  if(!em)return toast('Their email first.');
+  api('user.invite',{email:em,name:$('iv-name').value.trim()}).then(function(){
+    chime(); toast('Invite sent to '+em+'. The seat activates when they create their account.');
+    $('iv-email').value='';$('iv-name').value='';
+    loadTeam();
+  }).catch(function(e){toast(e.message);});
+}
+function toggleUser(em){
+  api('user.toggle',{email:em}).then(function(){ toast('Updated.'); loadTeam(); }).catch(function(e){toast(e.message);});
+}
 
-/* ================= TABS ================= */
-function showTab(t){
-  ['today','past','seq','pipe','meet','comm','owner'].forEach(function(x){
-    var b=$('tab-'+x); if(b) b.className = t===x?'on':'';
-    var v=$('view-'+x); if(v) v.style.display = t===x?'block':'none';
-  });
-  if (t==='past') loadHistory();
-  if (t==='pipe') loadPipeline();
-  if (t==='owner'||t==='comm'||t==='seq') refresh();
+/* ================= PIPELINE / CRM ================= */
+var STAGES=['new','contacted','engaged','meeting','proposal','contract','won','lost'];
+var STAGE_LBL={new:'New',contacted:'Contacted',engaged:'Engaged',meeting:'Meeting',proposal:'Proposal Sent',contract:'Contract Out',won:'Won',lost:'Lost'};
+var PIPE=[], CURCOMP=null;
+function loadPipeline(){
+  api('pipeline.list').then(function(rows){
+    PIPE=rows;
+    var by={}; STAGES.forEach(function(s){by[s]=[];});
+    rows.forEach(function(cm){ (by[cm.stage]||by.new).push(cm); });
+    $('board').innerHTML = STAGES.map(function(s){
+      return '<div class="col"><h4>'+STAGE_LBL[s]+'<span>'+by[s].length+'</span></h4>'+
+        by[s].slice(0,40).map(function(cm){
+          return '<div class="pcard stage-'+s+'" onclick="openCompany(\''+cm.phone+'\')"><b>'+esc(cm.name||fmtPhone(cm.phone))+'</b>'+
+            '<div class="sub2">'+esc((cm.city||'')+(cm.industry?' · '+cm.industry:''))+'</div></div>';
+        }).join('')+'</div>';
+    }).join('');
+    var won=by.won.length, act=rows.length-won-by.lost.length;
+    $('pipeTotals').textContent = act+' active · '+won+' won · '+by.lost.length+' lost';
+  }).catch(function(e){toast(e.message);});
+}
+function openCompany(phone){
+  api('company.get',{phone:phone}).then(function(d){
+    CURCOMP=d.company;
+    $('cp-name').textContent=d.company.name||fmtPhone(d.company.phone);
+    $('cp-meta').textContent=[(d.company.industry||''),(d.company.city||''),(d.company.pos?'#'+d.company.pos+' on Google':''),(d.company.reviews>-1?d.company.reviews+' reviews':''),(d.company.website?'':'no website')].filter(Boolean).join(' · ');
+    $('cp-stage').innerHTML=STAGES.map(function(s){return '<option value="'+s+'"'+(d.company.stage===s?' selected':'')+'>'+STAGE_LBL[s]+'</option>';}).join('');
+    $('cp-contact').value=d.company.contact||'';
+    $('cp-email').value=d.company.email||'';
+    $('cp-phone').textContent=fmtPhone(d.company.phone);
+    $('cp-callLink').href='tel:+1'+d.company.phone;
+    $('cp-contractBtn').style.display=BOOT.docuseal?'inline-block':'none';
+    var icons={call:'📞',email:'✉️',meeting:'🤝',proposal:'📄',contract:'✍️'};
+    $('cp-timeline').innerHTML=d.timeline.length?d.timeline.map(function(t){
+      return '<div class="histline"><b>'+(icons[t.kind]||'•')+' '+esc(fdate(t.ts))+'</b> · '+esc(String(t.label||t.kind).replace(/_/g,' '))+(t.note?' · "'+esc(t.note)+'"':'')+' <span style="color:var(--muted2)">('+esc(String(t.rep||'').split('@')[0])+')</span></div>';
+    }).join(''):'<div class="empty">No activity yet.</div>';
+    $('compmodal').classList.add('show');
+  }).catch(function(e){toast(e.message);});
+}
+function cpStage(){
+  var st=$('cp-stage').value;
+  var reason='';
+  if (st==='lost'){ reason=prompt('Why did we lose them? (one line, it feeds the report)')||''; }
+  api('company.stage',{phone:CURCOMP.phone,stage:st,reason:reason}).then(function(){ toast('Moved to '+STAGE_LBL[st]+'.'); loadPipeline(); }).catch(function(e){toast(e.message);});
+}
+function cpSave(){
+  api('company.save',{phone:CURCOMP.phone,contact:$('cp-contact').value.trim(),email:$('cp-email').value.trim()})
+    .then(function(){ toast('Saved.'); }).catch(function(e){toast(e.message);});
+}
+function openProposal(){
+  $('pr-for').textContent='To '+(CURCOMP.name||fmtPhone(CURCOMP.phone));
+  $('pr-email').value=CURCOMP.email||'';
+  $('pr-items').innerHTML=BOOT.products.map(function(p){
+    return '<label style="display:flex;align-items:center;gap:8px;text-transform:none;font-size:13.5px;cursor:pointer"><input type="checkbox" class="pr-ck" value="'+p.id+'" style="width:auto">'+esc(p.label)+'</label>';
+  }).join('');
+  $('propmodal').classList.add('show');
+}
+function sendProposal(){
+  var items=Array.prototype.slice.call(document.querySelectorAll('.pr-ck:checked')).map(function(x){return x.value;});
+  $('pr-send').disabled=true;
+  api('proposal.send',{phone:CURCOMP.phone,business:CURCOMP.name,toEmail:$('pr-email').value.trim(),items:items,note:$('pr-note').value.trim()})
+    .then(function(){ chime(); toast('Proposal sent. It is on the timeline.'); $('propmodal').classList.remove('show'); loadPipeline(); })
+    .catch(function(e){toast(e.message);})
+    .finally(function(){ $('pr-send').disabled=false; });
+}
+function openContract(){
+  $('ct-name').value=CURCOMP.contact||'';
+  $('ct-email').value=CURCOMP.email||'';
+  $('ct-prod').innerHTML=BOOT.products.map(function(p){return '<option value="'+p.id+'">'+esc(p.label)+'</option>';}).join('');
+  ctAmt();
+  $('ct-prod').onchange=ctAmt;
+  $('contmodal').classList.add('show');
+}
+function ctAmt(){
+  var p=BOOT.products.find(function(x){return x.id===$('ct-prod').value;});
+  if(p) $('ct-amt').value=p.amount||p.monthly||'';
+}
+function sendContract(){
+  $('ct-send').disabled=true;
+  api('contract.send',{phone:CURCOMP.phone,business:CURCOMP.name,clientName:$('ct-name').value.trim(),toEmail:$('ct-email').value.trim(),product:$('ct-prod').value,amount:Number($('ct-amt').value)||0})
+    .then(function(){ chime(); confetti(); toast('Contract is in their inbox. Everyone gets an email the second they sign.'); $('contmodal').classList.remove('show'); loadPipeline(); })
+    .catch(function(e){toast(e.message);})
+    .finally(function(){ $('ct-send').disabled=false; });
+}
+function openCheckout(){
+  $('ck-email').value=CURCOMP.email||'';
+  var avail=BOOT.products.filter(function(p){return BOOT.waveReady&&BOOT.waveReady[p.id];});
+  if(!avail.length) return toast('No Wave checkout links set yet.');
+  $('ck-prod').innerHTML=avail.map(function(p){return '<option value="'+p.id+'">'+esc(p.label)+'</option>';}).join('');
+  $('ckmodal').classList.add('show');
+}
+function sendCheckout(){
+  $('ck-send').disabled=true;
+  api('checkout.send',{phone:CURCOMP.phone,business:CURCOMP.name,toEmail:$('ck-email').value.trim(),product:$('ck-prod').value})
+    .then(function(){ chime(); toast('Checkout sent. Money incoming.'); $('ckmodal').classList.remove('show'); })
+    .catch(function(e){toast(e.message);})
+    .finally(function(){ $('ck-send').disabled=false; });
 }
 
 /* ================= SCRIPT ================= */
 function hook(b){
   var noun=LISTMETA.noun||'business', town=b.town||LISTMETA.city||'town';
-  if (b.why==='no website on the profile') return 'there\u2019s no website on your Google profile, so your listing is doing all the work alone, and it\u2019s sitting unmanaged';
-  if (b.why&&b.why.indexOf('only ')===0) return 'you\u2019ve got '+b.reviews+' Google reviews while the three businesses above you on the map have the rest of the market\u2019s';
-  if (b.why&&b.why.indexOf('rating ')===0) return 'you\u2019re sitting at '+b.rating+' stars with reviews going unanswered, and that\u2019s the first thing customers compare';
-  if (b.why&&b.why.indexOf('ranked #')===0) return 'you\u2019re at position '+b.pos+' on the map for '+noun+' around '+town+', and the three spots above you get basically all the calls, which is a fixable gap, not a talent gap';
+  if (b.why==='no website on the profile') return 'there’s no website on your Google profile, so your listing is doing all the work alone, and it’s sitting unmanaged';
+  if (b.why&&b.why.indexOf('only ')===0) return 'you’ve got '+b.reviews+' Google reviews while the three businesses above you on the map have the rest of the market’s';
+  if (b.why&&b.why.indexOf('rating ')===0) return 'you’re sitting at '+b.rating+' stars with reviews going unanswered, and that’s the first thing customers compare';
+  if (b.why&&b.why.indexOf('ranked #')===0) return 'you’re at position '+b.pos+' on the map for '+noun+' around '+town+', and the three spots above you get basically all the calls, which is a fixable gap, not a talent gap';
   if (!b.website) return 'you don’t have a website, so your Google listing is carrying your entire reputation online, and it’s sitting unmanaged';
   if (b.reviews===0) return 'you have zero Google reviews, which tells customers nothing, while your competitors’ reviews do their selling for them';
   if (b.reviews>0&&b.reviews<15) return 'you’ve got '+b.reviews+' Google reviews while the businesses winning the map have 50 or more';
   if ((b.pos||0)>3) return 'when somebody searches for a '+noun+' around '+town+', you’re sitting at number '+b.pos+', and the top three spots get basically all the calls';
-  if (b.rating>0&&b.rating<4.3) return 'you’re at '+b.rating+' stars with reviews going unanswered, and that’s the first thing customers see';
   return 'your Google listing has clearly been sitting unmanaged, and that’s quietly costing you calls';
 }
 function buildScript(b){
@@ -1058,23 +1364,41 @@ function buildScript(b){
     'I’ll be straight with you: this is a cold call. You can hang up right now, or you can give me one minute and I’ll tell you exactly why I called you and nobody else. ...\n\n'+
     '(They almost always laugh or say go ahead.)\n\n'+
     'Appreciate it. I’m '+me+', a sales representative with Burket Web Design. We help Florida service businesses win the Google map. Before I dialed, I pulled up '+b.name+' on Google, and honestly, '+hook(b)+'.\n\n'+
-    'When somebody in '+city+' searches for a '+noun+', the top three spots on the map get basically all the calls. We make sure businesses like yours own one of those spots. Our Local Presence program starts at 500 a month, flat, and it covers everything: your Google profile, reviews on autopilot, citations, content, even how you show up in AI search.\n\n'+
-    'I’m not asking you to buy anything today. I’d like to set up 15 minutes with Ty Burket, the owner, so he can show you on your actual listing what’s leaking. If it’s nothing, you got a free audit.\n\n'+
-    'Does tomorrow morning or afternoon treat you better?"';
+    'When somebody in '+city+' searches for a '+noun+', the top three spots on the map get basically all the calls. We make sure businesses like yours own one of those spots. Our Local Presence program is 500 a month, flat, and it covers everything: your Google profile, reviews on autopilot, citations, content, even how you show up in AI search.\n\n'+
+    'THE CLOSE: "Most owners just say yes right here on the call. I email you the agreement and the secure checkout while we’re talking, you tap twice, and we start on '+b.name+' this week. Want me to send it over right now?"\n\n'+
+    'IF THEY HESITATE: "Totally fair. Then let’s do this: 15 minutes with Ty Burket, the owner, and he’ll pull up your listing live and show you exactly what’s leaking. Does tomorrow morning or afternoon treat you better?"';
 }
 function buildVM(b){
   var first=BOOT.user.name.split(' ')[0];
   return '"Hey, this is '+first+' with Burket Web Design. I was on '+b.name+'’s Google listing right before this call and found something that’s probably costing you customers. Takes two minutes to show you. I’ll shoot over the free scan by email too. Call me back, again it’s '+first+', and I’ll say my number slow, twice. Thanks."';
 }
 function OBJECTIONS(){
+  var first=BOOT.user.name.split(' ')[0];
   return [
-    { l:'"I’m busy."', r:'"Totally fair, that’s why I asked for one minute. One-liner: your Google listing is losing you calls and Ty can prove it in 15 minutes this week. Early morning, lunch, or end of day, what’s least painful?"' },
+    { l:'"How much is it?"', r:'"Websites are one-time, 650 for a one-pager, 850 for a full site. The Local Presence program is 500 a month flat, or 750 with website SEO and full maintenance folded in. And I can have the agreement and checkout in your inbox before we hang up, want me to send it?"' },
+    { l:'"I’m busy."', r:'"Totally fair, that’s why this takes two minutes, not ten. Your Google listing is losing you calls. I can send the agreement right now and we handle everything from here, or I’ll grab you 15 minutes with Ty this week. Which is easier?"' },
     { l:'"Not interested."', r:'"No problem, I’ll let you go. One thing: I’m going to email you the free scan of how you show up on Google. If it looks fine, toss it. If it doesn’t, my number is on it. What’s the best email?"' },
     { l:'"All word of mouth."', r:'"That’s the best kind, and here’s the catch: when somebody gets your name from a friend, the first thing they do is Google you. If a competitor with 60 reviews shows up above you, that referral you already earned just leaked away. We make sure it lands."' },
     { l:'"We have a website / a guy."', r:'"Keep them, this isn’t that. Quick question: is anyone posting to your Google Business Profile every week and answering your reviews? That’s the piece everybody skips, and it’s the piece that decides who wins the map."' },
-    { l:'"How much is it?"', r:'"Websites are one-time, 650 for a one-pager, 850 for a full site. The Local Presence program is 500 a month flat, or 750 with website SEO and full maintenance folded in. But the 15 minutes with Ty is free, and you’ll see real numbers on your real listing before you spend a dime."' },
-    { l:'Gatekeeper answers.', r:'"Hey, it’s '+BOOT.user.name.split(' ')[0]+', is the owner around? ... It’s about their Google listing." Short and calm. If pressed: "There’s an issue with how the business shows up when customers search, takes two minutes." Get the owner’s name and best time back.' }
+    { l:'"I need to think about it."', r:'"Of course. Tell you what, I’ll email you the agreement right now so it’s in front of you, no obligation, and Ty will give you 15 minutes this week to answer anything. If it’s not right, you delete an email. Morning or afternoon for Ty?"' },
+    { l:'Gatekeeper answers.', r:'"Hey, it’s '+first+', is the owner around? ... It’s about their Google listing." Short and calm. If pressed: "There’s an issue with how the business shows up when customers search, takes two minutes." Get the owner’s name and best time back.' }
   ];
+}
+
+/* ================= PLAYBOOK ================= */
+function renderPlaybook(){
+  var first = BOOT ? BOOT.user.name.split(' ')[0] : 'you';
+  var objs = OBJECTIONS().map(function(o){
+    return '<div class="obj" onclick="this.classList.toggle(\'open\')"><b>'+esc(o.l)+'</b><div class="r">'+esc(o.r)+'</div></div>';
+  }).join('');
+  $('playWrap').innerHTML =
+    '<div class="playcard"><h3>&#127919; The Job, in one paragraph</h3><div style="font-size:13.5px;line-height:1.8;color:var(--muted)">Every day the hub hands you 25 qualified businesses that are losing on Google but close enough to fix. You call them, show them the exact gap, and <b style="color:var(--text)">close them on the phone</b>: agreement and checkout sent while you are still talking. If they need more, you book them 15 minutes with Ty and he closes. Four closed deals a month is the job. Every one past four puts $50 in your pocket.</div></div>'+
+    '<div class="playcard"><h3>&#128222; The Opener (permission pattern)</h3><div class="script">"Hey, is this the owner? ... I’ll be straight with you: this is a cold call. You can hang up right now, or give me one minute and I’ll tell you exactly why I called you and nobody else. ... Appreciate it. I’m '+esc(first)+', a sales representative with Burket Web Design. Before I dialed, I pulled up your business on Google, and honestly, [THE FACT: their position, their review count, their missing website]."</div><div class="hint">The call screen fills the fact in for you automatically, for every single business.</div></div>'+
+    '<div class="playcard"><h3>&#127942; The Close (ask for it)</h3><div class="script">"Most owners just say yes right here on the call. I email you the agreement and the secure checkout while we’re talking, you tap twice, and we start this week. Want me to send it over right now?"\n\nIf they hesitate: "Then let’s do 15 minutes with Ty Burket, the owner. He pulls up your listing live and shows you exactly what’s leaking. Morning or afternoon?"</div><div class="hint">Close first, meeting second. The gold button on the call screen sends contract + checkout in seconds.</div></div>'+
+    '<div class="playcard"><h3>&#128172; Voicemail (under 20 seconds)</h3><div class="script vm">"Hey, this is '+esc(first)+' with Burket Web Design. I was on your Google listing right before this call and found something that’s probably costing you customers. Takes two minutes to show you. I’ll shoot the free scan over by email too. Call me back, again it’s '+esc(first)+'." (Say your number twice, slow. Then fire the email sequence.)</div></div>'+
+    '<div class="playcard"><h3>&#128737;&#65039; Every comeback you will need</h3>'+objs+'</div>'+
+    '<div class="playcard"><h3>&#128181; The Menu</h3><div style="font-size:13.5px;line-height:2;color:var(--muted)"><b style="color:var(--text)">Local Presence</b> · $500/mo · the flagship: GBP managed, reviews on autopilot, citations, content, AI search<br><b style="color:var(--text)">Local Presence + Website SEO &amp; Maintenance</b> · $750/mo<br><b style="color:var(--text)">One Page Website</b> · $650 one time<br><b style="color:var(--text)">Full Site</b> · $850 one time</div></div>'+
+    '<div class="playcard"><h3>&#9889; Hotkeys on the call screen</h3><div style="font-size:13.5px;line-height:2;color:var(--muted)"><b style="color:var(--text)">1</b> no answer · <b style="color:var(--text)">2</b> voicemail · <b style="color:var(--text)">3</b> callback · <b style="color:var(--text)">4</b> not interested · <b style="color:var(--text)">5</b> gatekeeper · <b style="color:var(--text)">6</b> do not call · <b style="color:var(--text)">M</b> booked Ty · <b style="color:var(--text)">C</b> closed · <b style="color:var(--text)">N/P</b> next and previous</div></div>';
 }
 
 /* ================= CALL MODAL ================= */
@@ -1094,12 +1418,12 @@ function fillModal(b, progressTxt){
     gs.push('<div class="gstat'+(b.reviews>-1&&b.reviews<15?' alert':'')+'"><b>'+(b.reviews>-1?b.reviews:'?')+'</b>reviews</div>');
   }
   gs.push('<div class="gstat'+(b.website?'':' alert')+'"><b>'+(b.website?'yes':'NO')+'</b>website</div>');
-  if (isHot(b)) gs.push('<div class="gstat"><b>&#128293;</b>prime target</div>');
   if (b.why) gs.push('<div class="gstat" style="border-color:rgba(254,200,20,.5)"><b>&#127919;</b>'+esc(b.why)+'</div>');
+  else if (isHot(b)) gs.push('<div class="gstat"><b>&#128293;</b>prime target</div>');
   $('p-gstats').innerHTML=gs.join('');
   $('bignum').textContent=fmtPhone(b.phone);
   $('bignum').href='tel:+1'+b.phone;
-  $('twCallBtn').style.display=twEnabled()?'inline-block':'none';
+  $('twCallBtn').style.display=(BOOT.twilio&&BOOT.twilio.enabled)?'inline-block':'none';
   var links=[];
   if (b.website) links.push('<a href="'+esc(b.website)+'" target="_blank" rel="noopener">their website</a>');
   if (b.maps) links.push('<a href="'+esc(b.maps)+'" target="_blank" rel="noopener">their Google listing</a>');
@@ -1115,8 +1439,10 @@ function fillModal(b, progressTxt){
       return '<div class="histline"><b>'+esc(fdate(h.ts))+'</b> · '+esc(String(h.outcome).replace(/_/g,' '))+(h.secs?' · '+fsec(h.secs):'')+(h.note?' · "'+esc(h.note)+'"':'')+'</div>';
     }).join('');
   }).catch(function(){});
-  // sequence panel
   $('seq-email').value=b.email||'';
+  $('cl-email').value=b.email||'';
+  $('cl-prod').innerHTML=BOOT.products.filter(function(p){return p.amount||p.monthly;}).map(function(p){return '<option value="'+p.id+'">'+esc(p.label)+'</option>';}).join('');
+  $('cl-status').textContent='';
   $('scrapeOut').innerHTML='';
   $('scrapeBtn').style.display=b.website?'inline-block':'none';
   $('seqStatus').textContent=b.website?'Scrape their site for an email, or paste one, then fire the 3-step sequence with the free scan link.':'No website on file. Paste their email if you can find one (Facebook page is usually the spot).';
@@ -1144,7 +1470,6 @@ function openFup(i){
   CUR=null; CURFUP=h;
   fillModal(normHist(h),'Follow-up · promised '+fdate(h.fup));
 }
-var HIST_CACHE=[];
 function openPastIdx(i){
   var h=HIST_CACHE[i]; if(!h)return;
   CUR=null; CURFUP=h;
@@ -1179,6 +1504,34 @@ function closeCall(){
 }
 function quickFup(days){ var d=new Date(); d.setDate(d.getDate()+days); $('p-fup').value=d.toISOString().slice(0,10); }
 function curBiz(){ return CUR!=null?LIST[CUR]:(CURFUP?normHist(CURFUP):null); }
+var OBJ_PICK='';
+function setObj(btn,v){
+  OBJ_PICK=v;
+  Array.prototype.forEach.call(document.querySelectorAll('#objChips button'),function(x){x.style.background='';x.style.color='';});
+  btn.style.background='var(--navy)'; btn.style.color='#fff';
+}
+function closeNow(withCheckout){
+  var b=curBiz(); if(!b)return;
+  var to=$('cl-email').value.trim();
+  if (!to) return toast('Grab their email first, it goes in the box above the button.');
+  var prod=$('cl-prod').value;
+  var p=BOOT.products.find(function(x){return x.id===prod;});
+  $('cl-status').textContent='Sending the agreement...';
+  api('contract.send',{phone:b.phone,business:b.name,clientName:'',toEmail:to,product:prod,amount:(p&&(p.amount||p.monthly))||0})
+    .then(function(){
+      if (withCheckout && BOOT.waveReady && BOOT.waveReady[prod]){
+        $('cl-status').textContent='Agreement sent. Sending the checkout...';
+        return api('checkout.send',{phone:b.phone,business:b.name,toEmail:to,product:prod});
+      }
+    })
+    .then(function(){
+      chime(); confetti();
+      $('cl-status').innerHTML='<b style="color:var(--green)">Done. Agreement'+(withCheckout?' and checkout are':' is')+' in their inbox. Stay on the line and walk them through signing.</b>';
+      $('seq-email').value=to;
+      toast('Paperwork sent while they’re still on the phone. That’s how it’s done.');
+    })
+    .catch(function(e){ $('cl-status').textContent=e.message; toast(e.message); });
+}
 function logOutcome(out){
   var b=curBiz(); if(!b)return;
   if (out==='callback'&&!$('p-fup').value) quickFup(1);
@@ -1186,13 +1539,14 @@ function logOutcome(out){
   var payload={ phone:b.phone, name:b.name, outcome:out, note:$('p-note').value.trim(), secs:secs,
     obj:(out==='not_interested'||out==='callback')?(OBJ_PICK||''):'', flag:$('p-flag').checked,
     fup:(out==='dnc'?'':($('p-fup').value||null)), city:b.town||LISTMETA.city||'', industry:LISTMETA.industry||b.industry||'',
-    website:b.website||'', email:$('seq-email').value.trim()||b.email||'', rating:b.rating||0,
+    website:b.website||'', email:$('cl-email').value.trim()||$('seq-email').value.trim()||b.email||'', rating:b.rating||0,
     reviews:b.reviews==null?-1:b.reviews, pos:b.pos||0, addr:b.addr||'', maps:b.maps||'', src:b.src||'' };
   var wasCur=CUR;
   api('call.log',payload).then(function(r){
     LASTLOG={id:r.id,listIndex:wasCur};
     if (PH&&Date.now()<PH.end){ PH.dials++; save('sdr_ph',PH); }
-    if (out==='meeting'){ chime(); confetti(); toast('🎉 Meeting set with '+(b.name||'them')+'. Ty just got the email.',true); }
+    if (out==='closed'){ chime(); confetti(); toast('🏆 CLOSED. Ty just got the good news.',true); }
+    else if (out==='meeting'){ chime(); confetti(); toast('🎉 Meeting with Ty booked for '+(b.name||'them')+'.',true); }
     else { tick(); toast(out.replace(/_/g,' ')+' logged.',true); }
     refresh();
   }).catch(function(e){ toast(e.message); });
@@ -1200,7 +1554,6 @@ function logOutcome(out){
     LIST[wasCur].status=out; LIST[wasCur].note=$('p-note').value.trim();
     save('sdr_list',LIST);
     if (out==='voicemail'||out==='no_answer'){
-      // keep the modal open so they can fire the email sequence
       renderList();
       $('seqStatus').innerHTML='<b>Logged.</b> Now hit them by email while the dial is fresh, then move on.';
       return;
@@ -1225,14 +1578,16 @@ function undoLast(){
   }).catch(function(e){toast(e.message);});
 }
 function showRecap(){
+  var cl=LIST.filter(function(x){return x.status==='closed';}).length;
   var m=LIST.filter(function(x){return x.status==='meeting';}).length;
   var cb=LIST.filter(function(x){return x.status==='callback';}).length;
   var em=LIST.filter(function(x){return x.seqStarted;}).length;
   $('recapBody').innerHTML='<b>'+LIST.length+'</b> dials on this list<br>'+
-    '<b style="color:var(--green)">'+m+' meetings booked</b> · '+cb+' callbacks · '+em+' email sequences fired<br>'+
-    'Build tomorrow’s 50 before you close the laptop.';
+    '<b style="color:var(--gold2)">'+cl+' closed on the phone</b> · <b style="color:var(--green)">'+m+' meetings with Ty</b><br>'+
+    cb+' callbacks · '+em+' email sequences fired<br>'+
+    'Build tomorrow’s 25 before you close the laptop.';
   $('recapmodal').classList.add('show');
-  if (m) confetti();
+  if (cl||m) confetti();
 }
 
 /* ================= SCRAPE + SEQUENCE ================= */
@@ -1242,7 +1597,7 @@ function scrapeNow(){
   api('scrape',{url:b.website}).then(function(d){
     if (!d.emails.length){ $('scrapeOut').innerHTML='<div class="hint">No email found on the site. Check their Facebook page, or skip it.</div>'; return; }
     $('scrapeOut').innerHTML='<div class="hint" style="margin-top:6px">Tap one:</div>'+d.emails.map(function(e){
-      return '<span class="emailchip" onclick="$(\'seq-email\').value=\''+esc(e)+'\';toast(\'Email set.\')">'+esc(e)+'</span>';
+      return '<span class="emailchip" onclick="$(\'seq-email\').value=\''+esc(e)+'\';$(\'cl-email\').value=\''+esc(e)+'\';toast(\'Email set.\')">'+esc(e)+'</span>';
     }).join('');
   }).catch(function(e){ $('scrapeOut').innerHTML='<div class="hint">'+esc(e.message)+'</div>'; })
     .finally(function(){ $('scrapeBtn').disabled=false; $('scrapeBtn').textContent='🔍 Find email on their site'; });
@@ -1267,109 +1622,16 @@ function startSeq(){
     .catch(function(e){ toast(e.message); })
     .finally(function(){ $('seqBtn').disabled=false; });
 }
-
-/* ================= CRM: PIPELINE + COMPANY ================= */
-var STAGES=['new','contacted','engaged','meeting','proposal','contract','won','lost'];
-var STAGE_LBL={new:'New',contacted:'Contacted',engaged:'Engaged',meeting:'Meeting',proposal:'Proposal Sent',contract:'Contract Out',won:'Won',lost:'Lost'};
-var PIPE=[], CURCOMP=null;
-function loadPipeline(){
-  api('pipeline.list').then(function(rows){
-    PIPE=rows;
-    var by={}; STAGES.forEach(function(s){by[s]=[];});
-    rows.forEach(function(cm){ (by[cm.stage]||by.new).push(cm); });
-    $('board').innerHTML = STAGES.map(function(s){
-      return '<div class="col"><h4>'+STAGE_LBL[s]+'<span>'+by[s].length+'</span></h4>'+
-        by[s].slice(0,40).map(function(cm){
-          return '<div class="pcard stage-'+s+'" onclick="openCompany(\''+cm.phone+'\')"><b>'+esc(cm.name||fmtPhone(cm.phone))+'</b>'+
-            '<div class="sub2">'+esc((cm.city||'')+(cm.industry?' \u00b7 '+cm.industry:''))+'</div></div>';
-        }).join('')+'</div>';
-    }).join('');
-    var won=by.won.length, act=rows.length-won-by.lost.length;
-    $('pipeTotals').textContent = act+' active \u00b7 '+won+' won \u00b7 '+by.lost.length+' lost';
-  }).catch(function(e){toast(e.message);});
-}
-function openCompany(phone){
-  api('company.get',{phone:phone}).then(function(d){
-    CURCOMP=d.company;
-    $('cp-name').textContent=d.company.name||fmtPhone(d.company.phone);
-    $('cp-meta').textContent=[(d.company.industry||''),(d.company.city||''),(d.company.pos?'#'+d.company.pos+' on Google':''),(d.company.reviews>-1?d.company.reviews+' reviews':''),(d.company.website?'':'no website')].filter(Boolean).join(' \u00b7 ');
-    $('cp-stage').innerHTML=STAGES.map(function(s){return '<option value="'+s+'"'+(d.company.stage===s?' selected':'')+'>'+STAGE_LBL[s]+'</option>';}).join('');
-    $('cp-contact').value=d.company.contact||'';
-    $('cp-email').value=d.company.email||'';
-    $('cp-phone').textContent=fmtPhone(d.company.phone);
-    $('cp-callLink').href='tel:+1'+d.company.phone;
-    $('cp-contractBtn').style.display=BOOT.docuseal?'inline-block':'none';
-    var icons={call:'\uD83D\uDCDE',email:'\u2709\uFE0F',meeting:'\uD83E\uDD1D',proposal:'\uD83D\uDCC4',contract:'\u270D\uFE0F'};
-    $('cp-timeline').innerHTML=d.timeline.length?d.timeline.map(function(t){
-      return '<div class="histline"><b>'+(icons[t.kind]||'\u2022')+' '+esc(fdate(t.ts))+'</b> \u00b7 '+esc(String(t.label||t.kind).replace(/_/g,' '))+(t.note?' \u00b7 "'+esc(t.note)+'"':'')+' <span style="color:var(--muted2)">('+esc(String(t.rep||'').split('@')[0])+')</span></div>';
-    }).join(''):'<div class="empty">No activity yet.</div>';
-    $('compmodal').classList.add('show');
-  }).catch(function(e){toast(e.message);});
-}
-function cpStage(){
-  var st=$('cp-stage').value;
-  var reason='';
-  if (st==='lost'){ reason=prompt('Why did we lose them? (one line, it feeds the report)')||''; }
-  api('company.stage',{phone:CURCOMP.phone,stage:st,reason:reason}).then(function(){ toast('Moved to '+STAGE_LBL[st]+'.'); loadPipeline(); }).catch(function(e){toast(e.message);});
-}
-function cpSave(){
-  api('company.save',{phone:CURCOMP.phone,contact:$('cp-contact').value.trim(),email:$('cp-email').value.trim()})
-    .then(function(){ toast('Saved.'); }).catch(function(e){toast(e.message);});
-}
-/* ---- proposal ---- */
-function openProposal(){
-  $('pr-for').textContent='To '+(CURCOMP.name||fmtPhone(CURCOMP.phone));
-  $('pr-email').value=CURCOMP.email||'';
-  $('pr-items').innerHTML=BOOT.products.map(function(p){
-    return '<label style="display:flex;align-items:center;gap:8px;text-transform:none;font-size:13.5px;cursor:pointer"><input type="checkbox" class="pr-ck" value="'+p.id+'" style="width:auto">'+esc(p.label)+'</label>';
-  }).join('');
-  $('propmodal').classList.add('show');
-}
-function sendProposal(){
-  var items=Array.prototype.slice.call(document.querySelectorAll('.pr-ck:checked')).map(function(x){return x.value;});
-  $('pr-send').disabled=true;
-  api('proposal.send',{phone:CURCOMP.phone,business:CURCOMP.name,toEmail:$('pr-email').value.trim(),items:items,note:$('pr-note').value.trim()})
-    .then(function(){ chime(); toast('Proposal sent. It is on the timeline.'); $('propmodal').classList.remove('show'); loadPipeline(); })
-    .catch(function(e){toast(e.message);})
-    .finally(function(){ $('pr-send').disabled=false; });
-}
-/* ---- contract ---- */
-function openContract(){
-  $('ct-name').value=CURCOMP.contact||'';
-  $('ct-email').value=CURCOMP.email||'';
-  $('ct-prod').innerHTML=BOOT.products.map(function(p){return '<option value="'+p.id+'">'+esc(p.label)+'</option>';}).join('');
-  ctAmt();
-  $('ct-prod').onchange=ctAmt;
-  $('contmodal').classList.add('show');
-}
-function ctAmt(){
-  var p=BOOT.products.find(function(x){return x.id===$('ct-prod').value;});
-  if(p) $('ct-amt').value=p.amount||p.monthly||'';
-}
-function sendContract(){
-  $('ct-send').disabled=true;
-  api('contract.send',{phone:CURCOMP.phone,business:CURCOMP.name,clientName:$('ct-name').value.trim(),toEmail:$('ct-email').value.trim(),product:$('ct-prod').value,amount:Number($('ct-amt').value)||0})
-    .then(function(){ chime(); confetti(); toast('Contract is in their inbox. You will both get an email the second they sign.'); $('contmodal').classList.remove('show'); loadPipeline(); })
-    .catch(function(e){toast(e.message);})
-    .finally(function(){ $('ct-send').disabled=false; });
-}
-/* ---- checkout ---- */
-function openCheckout(){
-  $('ck-email').value=CURCOMP.email||'';
-  var avail=BOOT.products.filter(function(p){return BOOT.waveReady&&BOOT.waveReady[p.id];});
-  if(!avail.length) return toast('No Wave checkout links set yet. Ty adds them as WAVE_LINK env vars.');
-  $('ck-prod').innerHTML=avail.map(function(p){return '<option value="'+p.id+'">'+esc(p.label)+'</option>';}).join('');
-  $('ckmodal').classList.add('show');
-}
-function sendCheckout(){
-  $('ck-send').disabled=true;
-  api('checkout.send',{phone:CURCOMP.phone,business:CURCOMP.name,toEmail:$('ck-email').value.trim(),product:$('ck-prod').value})
-    .then(function(){ chime(); toast('Checkout sent. Money incoming.'); $('ckmodal').classList.remove('show'); })
-    .catch(function(e){toast(e.message);})
-    .finally(function(){ $('ck-send').disabled=false; });
+function sendOneoff(){
+  var b=curBiz(); if(!b)return;
+  var to=$('seq-email').value.trim()||$('cl-email').value.trim();
+  if (!to) return toast('Put their email in one of the boxes first.');
+  api('email.oneoff',{toEmail:to,subject:$('oo-subj').value,body:$('oo-body').value,phone:b.phone})
+    .then(function(){ chime(); toast('Sent. Reply lands in your inbox.'); $('oneoffWrap').style.display='none'; })
+    .catch(function(e){toast(e.message);});
 }
 
-/* ================= TWILIO BROWSER DIALER ================= */
+/* ================= TWILIO DIALER ================= */
 var TW={device:null,conn:null,inc:null,inited:false,sdk:false,timer:null,startAt:0,to:''};
 function twEnabled(){ return BOOT&&BOOT.twilio&&BOOT.twilio.enabled; }
 function twSdk(){
@@ -1447,7 +1709,7 @@ function twIncoming(inc){
   $('cb-inc').style.display='flex';$('cb-actions').style.display='none';
   $('callbar').classList.add('show');
   inc.on('cancel',twIncEnd);inc.on('reject',twIncEnd);inc.on('disconnect',twEnded);
-  toast('\uD83D\uDCDE Incoming call from '+(fmtPhone(inc.parameters.From||'')||'unknown'));
+  toast('📞 Incoming call from '+(fmtPhone(inc.parameters.From||'')||'unknown'));
 }
 function twIncEnd(){
   TW.inc=null;
@@ -1477,35 +1739,7 @@ function twMute(){
   if(!TW.conn)return;
   var m=!TW.conn.isMuted();
   TW.conn.mute(m);
-  $('cb-mute').textContent=m?'\uD83D\uDD07 Muted':'\uD83C\uDFA4 Mute';
-}
-
-var OBJ_PICK='';
-function setObj(btn,v){
-  OBJ_PICK=v;
-  Array.prototype.forEach.call(document.querySelectorAll('#objChips button'),function(x){x.style.background='';x.style.color='';});
-  btn.style.background='var(--navy)'; btn.style.color='#fff';
-}
-function sendOneoff(){
-  var b=curBiz(); if(!b)return;
-  var to=$('seq-email').value.trim();
-  if (!to) return toast('Put their email in the box above first.');
-  api('email.oneoff',{toEmail:to,subject:$('oo-subj').value,body:$('oo-body').value,phone:b.phone})
-    .then(function(){ chime(); toast('Sent. Reply lands in your inbox.'); $('oneoffWrap').style.display='none'; })
-    .catch(function(e){toast(e.message);});
-}
-function reattack(){
-  api('reattack').then(function(d){
-    if (!d.list.length) return toast('Nothing to re-attack yet. No-answers become fair game after 30 days.');
-    LIST=d.list.map(function(b){b.status='';b.note='';return b;});
-    LISTMETA={city:'Re-attack',industry:'Old no-answers',noun:'business',best:'',date:todayKey()};
-    save('sdr_list',LIST); save('sdr_listmeta',LISTMETA);
-    renderList(); beep(880,.1,.05);
-    toast(d.list.length+' old no-answers loaded. They forgot you called. Perfect.');
-  }).catch(function(e){toast(e.message);});
-}
-function snoozeFup(phone,days){
-  api('fup.snooze',{phone:phone,days:days}).then(function(){ toast('Snoozed.'); refresh(); }).catch(function(e){toast(e.message);});
+  $('cb-mute').textContent=m?'🔇 Muted':'🎤 Mute';
 }
 
 /* ================= POWER HOUR / EXTRAS ================= */
@@ -1525,7 +1759,7 @@ setInterval(function(){
   var hr=new Date().getHours();
   if (hr>=8&&hr<18&&LIST.length&&LIST.some(function(b){return !b.status;})&&Date.now()-LAST_ACTION>20*60000){
     LAST_ACTION=Date.now();
-    toast('\u23F0 20 minutes since your last move. The list is not going to call itself.');
+    toast('⏰ 20 minutes since your last move. The list is not going to call itself.');
     beep(440,.2,.05);
   }
 },60000);
@@ -1549,6 +1783,7 @@ document.addEventListener('keydown',function(e){
   else if (k==='5') logOutcome('gatekeeper');
   else if (k==='6') logOutcome('dnc');
   else if (k==='m') logOutcome('meeting');
+  else if (k==='c') logOutcome('closed');
   else if (k==='n') navCall(1);
   else if (k==='p') navCall(-1);
   else if (k==='escape') closeCall();
@@ -1567,8 +1802,8 @@ function exportCsv(){
     rows=[['Business','Phone','Metro','Map position','Reviews','Rating','Website','Address','Why call them','Called','Outcome']];
     LIST.forEach(function(b){ rows.push([b.name,fmtPhone(b.phone),b.town||'',b.pos||'',(b.reviews>-1?b.reviews:''),b.rating||'',b.website||'',b.addr||'',b.why||'',b.status?'yes':'',b.status||'']); });
   } else {
-  rows=[['Name','Phone','Town','Google Position','Rating','Reviews','Website','Status','Note']];
-  LIST.forEach(function(b){ rows.push([b.name,fmtPhone(b.phone),b.town||'',b.pos||'',b.rating||'',(b.reviews>-1?b.reviews:''),b.website||'',b.status||'to call',b.note||'']); });
+    rows=[['Name','Phone','Town','Google Position','Rating','Reviews','Website','Status','Note']];
+    LIST.forEach(function(b){ rows.push([b.name,fmtPhone(b.phone),b.town||'',b.pos||'',b.rating||'',(b.reviews>-1?b.reviews:''),b.website||'',b.status||'to call',b.note||'']); });
   }
   var csv=rows.map(function(r){return r.map(function(c){return '"'+String(c).replace(/"/g,'""')+'"';}).join(',');}).join('\n');
   var a=document.createElement('a');
@@ -1595,7 +1830,25 @@ if (LISTMETA.date&&LISTMETA.date!==todayKey()&&LIST.length&&LIST.every(function(
   save('sdr_list',LIST); save('sdr_listmeta',LISTMETA);
 }
 if (PH&&Date.now()>=PH.end){ PH=null; save('sdr_ph',PH); }
-if (TOKEN) boot(); else { $('login').style.display='flex'; }
+(function(){
+  var m = location.search.match(/[?&]invite=([a-f0-9]+)/i);
+  if (m){
+    INVITE_TOKEN = m[1];
+    $('loginForm').style.display='none';
+    $('inviteForm').style.display='block';
+    fetch('/api/hub',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({a:'auth.invite.check',inviteToken:INVITE_TOKEN})})
+      .then(function(r){return r.json();})
+      .then(function(j){
+        if(!j.ok) throw new Error(j.error);
+        $('inv-sub').textContent='Setting up the seat for '+j.data.email+'. Pick your password and you are in.';
+        if (j.data.name) $('inv-name').value=j.data.name;
+      })
+      .catch(function(e){ $('l-err').textContent=e.message; $('inv-btn').disabled=true; });
+    $('login').style.display='flex';
+    return;
+  }
+  if (TOKEN) boot(); else $('login').style.display='flex';
+})();
 </script>
 </body>
 </html>

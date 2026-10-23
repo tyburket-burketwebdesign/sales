@@ -18,6 +18,27 @@ module.exports = async function handler(req, res) {
       return ok(r);
     }
 
+    if (a === 'auth.invite.check') {
+      const inv = (await sql`SELECT email, name FROM invites WHERE token=${String(P.inviteToken || '')} AND used=0 AND ts > now() - interval '14 days'`)[0];
+      if (!inv) return err('That invite link is no longer valid. Ask Ty to send a fresh one.');
+      return ok({ email: inv.email, name: inv.name });
+    }
+    if (a === 'auth.invite.accept') {
+      const inv = (await sql`SELECT * FROM invites WHERE token=${String(P.inviteToken || '')} AND used=0 AND ts > now() - interval '14 days'`)[0];
+      if (!inv) return err('That invite link is no longer valid. Ask Ty to send a fresh one.');
+      const name = String(P.name || inv.name || '').trim();
+      if (name.length < 2) return err('What is your name?');
+      if (String(P.pass || '').length < 8) return err('Password needs at least 8 characters.');
+      await sql`INSERT INTO users (email, name, role, pass, active) VALUES (${inv.email}, ${name}, 'sdr', ${C.hashPass(P.pass)}, 1)
+                ON CONFLICT (email) DO UPDATE SET name=${name}, pass=${C.hashPass(P.pass)}, active=1`;
+      await sql`UPDATE invites SET used=1 WHERE token=${inv.token}`;
+      const r = await C.login(inv.email, P.pass);
+      const mailTo = process.env.MAIL_TO || process.env.OWNER_EMAIL;
+      if (mailTo) C.sendMail(mailTo, name + ' just activated their seat',
+        '<p><b>' + name + '</b> (' + inv.email + ') accepted the invite and is in the hub.</p>').catch(() => {});
+      return ok(r);
+    }
+
     const user = await C.userFromToken(P.token);
     if (!user) return err('AUTH');
     const OWNER = user.role === 'owner';
@@ -167,7 +188,7 @@ module.exports = async function handler(req, res) {
                 ${P.fup || null}, ${P.city || ''}, ${P.industry || ''}, ${P.website || ''}, ${P.email || ''},
                 ${Number(P.rating) || 0}, ${P.reviews == null ? -1 : Number(P.reviews)}, ${Number(P.pos) || 0},
                 ${P.addr || ''}, ${P.maps || ''}, ${P.src || ''}, ${P.obj || ''}) RETURNING id`;
-      const stageMap = { meeting: 'meeting', callback: 'engaged' };
+      const stageMap = { meeting: 'meeting', callback: 'engaged', closed: 'contract' };
       await C.upsertCompany({ phone: phone, name: P.name, website: P.website, email: P.email, addr: P.addr,
         city: P.city, industry: P.industry, rating: P.rating, reviews: P.reviews, pos: P.pos, maps: P.maps, rep: user.email },
         stageMap[outcome] || 'contacted');
@@ -179,6 +200,13 @@ module.exports = async function handler(req, res) {
       if (outcome === 'dnc') {
         await sql`INSERT INTO dnc (phone) VALUES (${phone}) ON CONFLICT DO NOTHING`;
         await sql`UPDATE seqs SET status='stopped' WHERE phone=${phone} AND status='active'`;
+      }
+      if (outcome === 'closed') {
+        await sql`UPDATE seqs SET status='done' WHERE phone=${phone} AND status='active'`;
+        const mailTo2 = process.env.MAIL_TO || process.env.OWNER_EMAIL;
+        if (mailTo2 && !OWNER) C.sendMail(mailTo2, '\uD83C\uDFC6 ' + user.name + ' CLOSED on the phone: ' + (P.name || phone),
+          '<p><b>' + user.name + '</b> closed <b>' + (P.name || phone) + '</b> on the call. Contract and checkout are on the way to the client.</p>' +
+          (P.note ? '<p>Note: ' + P.note + '</p>' : ''), user.email).catch(() => {});
       }
       if (outcome === 'meeting') {
         await sql`UPDATE seqs SET status='done' WHERE phone=${phone} AND status='active'`;
@@ -499,6 +527,42 @@ module.exports = async function handler(req, res) {
         '<p>' + user.name + '<br>Burket Web Design, Altoona PA</p></div>';
       await C.sendMail(to, 'Checkout for ' + biz + ' - Burket Web Design', html, user.email);
       await sql`INSERT INTO emails_log (seq_id, phone, to_email, rep, step, subject) VALUES (0, ${phone}, ${to}, ${user.email}, 0, ${'Checkout: ' + prod.label})`;
+      return ok(true);
+    }
+
+    /* ---------------- TEAM (owner) ---------------- */
+    if (a === 'user.invite') {
+      if (!OWNER) return err('Owner only.');
+      const em = String(P.email || '').toLowerCase().trim();
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)) return err('That email does not look right.');
+      const existing = (await sql`SELECT email FROM users WHERE email=${em} AND COALESCE(active,1)=1`)[0];
+      if (existing) return err('They already have an active seat.');
+      const token = C.uid();
+      await sql`UPDATE invites SET used=1 WHERE email=${em} AND used=0`;
+      await sql`INSERT INTO invites (token, email, name, invited_by) VALUES (${token}, ${em}, ${String(P.name || '').trim()}, ${user.email})`;
+      const base = 'https://' + (req.headers['x-forwarded-host'] || req.headers.host || 'sales-eta-livid.vercel.app');
+      const link = base + '/?invite=' + token;
+      await C.sendMail(em, 'Your seat on the Burket Web Design sales team',
+        '<div style="font-family:Arial,sans-serif;max-width:540px">' +
+        '<img src="https://www.burketwebdesign.com/assets/logo.png" style="height:46px" alt="Burket Web Design">' +
+        '<h2 style="color:#0e2235">Welcome aboard' + (P.name ? ', ' + String(P.name).split(' ')[0] : '') + '</h2>' +
+        '<p>Ty set you up with a seat on the BWD Sales Hub: your dialer, scripts, pipeline, contracts, and commissions, all in one place.</p>' +
+        '<p><a href="' + link + '" style="background:#fec814;color:#0e2235;padding:12px 22px;border-radius:9px;text-decoration:none;font-weight:bold">Create your account</a></p>' +
+        '<p style="color:#8b9ab0;font-size:12px">This link is for you only and expires in 14 days.</p></div>');
+      return ok(true);
+    }
+    if (a === 'user.list') {
+      if (!OWNER) return err('Owner only.');
+      const users = await sql`SELECT email, name, role, COALESCE(active,1) AS active, created FROM users ORDER BY created`;
+      const pending = await sql`SELECT email, name, ts FROM invites WHERE used=0 AND ts > now() - interval '14 days' ORDER BY ts DESC`;
+      return ok({ users, pending });
+    }
+    if (a === 'user.toggle') {
+      if (!OWNER) return err('Owner only.');
+      const em = String(P.email || '').toLowerCase().trim();
+      if (em === user.email) return err('You cannot deactivate yourself.');
+      await sql`UPDATE users SET active = CASE WHEN COALESCE(active,1)=1 THEN 0 ELSE 1 END WHERE email=${em}`;
+      await sql`DELETE FROM sessions WHERE email=${em}`;
       return ok(true);
     }
 

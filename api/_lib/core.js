@@ -30,6 +30,11 @@ async function ensureSchema() {
   await sql`CREATE TABLE IF NOT EXISTS sessions (
     token TEXT PRIMARY KEY, email TEXT, expires TIMESTAMPTZ
   )`;
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS active INT DEFAULT 1`;
+  await sql`CREATE TABLE IF NOT EXISTS invites (
+    token TEXT PRIMARY KEY, email TEXT, name TEXT DEFAULT '', invited_by TEXT,
+    used INT DEFAULT 0, ts TIMESTAMPTZ DEFAULT now()
+  )`;
   await sql`CREATE TABLE IF NOT EXISTS calls (
     id SERIAL PRIMARY KEY, phone TEXT, name TEXT DEFAULT '', rep TEXT, outcome TEXT, note TEXT DEFAULT '',
     secs INT DEFAULT 0, fup DATE, fup_done BOOLEAN DEFAULT false, city TEXT DEFAULT '', industry TEXT DEFAULT '',
@@ -96,13 +101,13 @@ async function ensureSchema() {
 async function userFromToken(token) {
   if (!token) return null;
   const rows = await sql`SELECT u.email, u.name, u.role FROM sessions s JOIN users u ON u.email = s.email
-                         WHERE s.token = ${token} AND s.expires > now()`;
+                         WHERE s.token = ${token} AND s.expires > now() AND COALESCE(u.active,1) = 1`;
   return rows[0] || null;
 }
 
 async function login(email, pass) {
   const em = String(email || '').toLowerCase().trim();
-  const rows = await sql`SELECT email, name, role FROM users WHERE email = ${em} AND pass = ${hashPass(pass)}`;
+  const rows = await sql`SELECT email, name, role FROM users WHERE email = ${em} AND pass = ${hashPass(pass)} AND COALESCE(active,1) = 1`;
   if (!rows[0]) return null;
   const token = uid();
   await sql`DELETE FROM sessions WHERE expires < now()`;
@@ -444,5 +449,5 @@ function seqTemplates(s, repName) {
   ];
 }
 
-module.exports = { docusealTemplate, LP_FEATURES, LP750_EXTRA, sql, ensureSchema, userFromToken, login, sendMail, placesSearch, scrapeEmails, isChain, geocodeCity, placesBiased, inStormZone, twE164, twilioReady, twilioNumbers, twilioToken, upsertCompany, STAGE_RANK, docusealSend, waveLink, kpiTarget, kpiBonus,
+module.exports = { hashPass, docusealTemplate, LP_FEATURES, LP750_EXTRA, sql, ensureSchema, userFromToken, login, sendMail, placesSearch, scrapeEmails, isChain, geocodeCity, placesBiased, inStormZone, twE164, twilioReady, twilioNumbers, twilioToken, upsertCompany, STAGE_RANK, docusealSend, waveLink, kpiTarget, kpiBonus,
                    PRODUCTS, seqTemplates, auditUrl, normPhone, uid };
