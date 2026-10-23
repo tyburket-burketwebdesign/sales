@@ -295,6 +295,9 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--m
     </div>
 
     <div id="content">
+      <div id="demoBanner" style="display:none;background:linear-gradient(135deg,#7c3aed,#5b21b6);color:#fff;border-radius:14px;padding:12px 16px;margin-bottom:16px;font-size:13.5px;box-shadow:0 8px 24px rgba(124,58,237,.35)">
+        <div class="row"><b>&#127891; DEMO MODE</b><span style="opacity:.85">Practice list, fake numbers, every email goes to ty@burketwebdesign.com. Call outcomes are simulated and never touch your real stats or KPI.</span><div style="flex:1"></div><button class="btn-ghost btn-sm" style="background:rgba(255,255,255,.18);color:#fff" onclick="exitDemo()">Exit demo</button></div>
+      </div>
 
       <div class="view on" id="v-dash">
         <div class="hero">
@@ -303,6 +306,7 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--m
           <div class="row" style="margin-top:14px">
             <button class="btn-go" onclick="gotoView('dialer');setTimeout(hunt,50)">&#9889; Build Today's 25 &amp; Dial</button>
             <button class="btn-ghost" style="background:rgba(255,255,255,.12);color:#fff" onclick="gotoView('play')">&#128218; Open the Playbook</button>
+            <button class="btn-ghost" style="background:rgba(124,58,237,.35);color:#fff" onclick="enterDemo()">&#127891; Demo / Training</button>
           </div>
           <div class="quote" id="quoteTxt"></div>
         </div>
@@ -332,6 +336,7 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--m
             <div style="flex:1;min-width:110px"><label>Or any town (FL)</label><input id="customCity" placeholder="e.g. Punta Gorda"></div>
             <button class="btn-go" id="goBtn" onclick="hunt()">Build Today's 25 &rarr;</button>
             <button class="btn-ghost" onclick="reattack()" title="Rebuild from no-answers older than 30 days">&#9851; Re-attack</button>
+            <button class="btn-ghost" onclick="enterDemo()" title="Practice the whole flow safely">&#127891; Demo</button>
           </div>
           <div class="hint" id="suggestHint"></div>
         </div>
@@ -1455,7 +1460,7 @@ function fillModal(b, progressTxt){
   OBJ_PICK=''; $('p-flag').checked=false;
   Array.prototype.forEach.call(document.querySelectorAll('#objChips button'),function(x){x.style.background='';x.style.color='';});
   $('oneoffWrap').style.display='none'; $('oo-subj').value=''; $('oo-body').value='';
-  $('p-progress').textContent=progressTxt||'';
+  $('p-progress').textContent=(LISTMETA.demo?'DEMO \u00b7 ':'')+(progressTxt||'');
   $('overlay').classList.add('show');
   $('callmodal').classList.add('show');
   startCallTimer();
@@ -1542,6 +1547,24 @@ function logOutcome(out){
     website:b.website||'', email:$('cl-email').value.trim()||$('seq-email').value.trim()||b.email||'', rating:b.rating||0,
     reviews:b.reviews==null?-1:b.reviews, pos:b.pos||0, addr:b.addr||'', maps:b.maps||'', src:b.src||'' };
   var wasCur=CUR;
+  if (LISTMETA.demo){
+    if (out==='closed'){ chime(); confetti(); toast('\uD83C\uDFC6 DEMO CLOSE. In live mode Ty gets an instant email here.'); }
+    else if (out==='meeting'){ chime(); confetti(); toast('\uD83C\uDF89 Demo meeting booked. In live mode this lands in Meetings and emails Ty.'); }
+    else { tick(); toast('Demo: '+out.replace(/_/g,' ')+' logged (simulated, not saved).'); }
+    if (wasCur!=null){
+      LIST[wasCur].status=out; LIST[wasCur].note=$('p-note').value.trim();
+      if (out==='voicemail'||out==='no_answer'){
+        renderList();
+        $('seqStatus').innerHTML='<b>Logged (demo).</b> Try the email sequence button, the email really sends, to you.';
+        return;
+      }
+      var nx=-1;
+      for (var di=0;di<LIST.length;di++){ if(!LIST[di].status){nx=di;break;} }
+      renderList();
+      if (nx>-1) openCall(nx); else { closeCall(); showRecap(); }
+    } else closeCall();
+    return;
+  }
   api('call.log',payload).then(function(r){
     LASTLOG={id:r.id,listIndex:wasCur};
     if (PH&&Date.now()<PH.end){ PH.dials++; save('sdr_ph',PH); }
@@ -1629,6 +1652,44 @@ function sendOneoff(){
   api('email.oneoff',{toEmail:to,subject:$('oo-subj').value,body:$('oo-body').value,phone:b.phone})
     .then(function(){ chime(); toast('Sent. Reply lands in your inbox.'); $('oneoffWrap').style.display='none'; })
     .catch(function(e){toast(e.message);});
+}
+
+/* ================= DEMO / TRAINING MODE ================= */
+var DEMO_SAVED = null;
+var DEMO_EMAIL = 'ty@burketwebdesign.com';
+function demoList(){
+  var mk = function(name, phone, pos, rating, reviews, website, why, town){
+    return { name:name, phone:phone, pos:pos, rating:rating, reviews:reviews, website:website, maps:'',
+             addr:town+', FL', town:town, src:'google', why:why, email:DEMO_EMAIL, status:'', note:'', demo:true };
+  };
+  return [
+    mk('Sunshine Pool Pros','5550100001',4,4.1,6,'','only 6 reviews','Fort Myers'),
+    mk('Gulf Coast Resurfacing','5550100002',6,0,0,'https://example.com','only 0 reviews','Cape Coral'),
+    mk('Palm Breeze Pool Care','5550100003',5,4.7,11,'','only 11 reviews','Naples'),
+    mk('Everglade Pools LLC','5550100004',8,3.9,22,'https://example.com','rating 3.9','Fort Myers'),
+    mk('Blue Lagoon Pool Service','5550100005',9,4.8,48,'https://example.com','ranked #9, close enough to catch the top three','Bonita Springs'),
+    mk('Coastal Shine Pressure Washing','5550100006',7,4.5,9,'','only 9 reviews','Cape Coral'),
+    mk('Island Time Lawn & Landscape','5550100007',11,4.6,37,'https://example.com','ranked #11, close enough to catch the top three','Naples'),
+    mk('Sandy Toes Pool & Spa','5550100008',12,4.2,15,'','rating 4.2','Estero')
+  ];
+}
+function enterDemo(){
+  if (!LISTMETA.demo){ DEMO_SAVED = { list: LIST, meta: LISTMETA }; }
+  LIST = demoList();
+  LISTMETA = { city:'Demo Coast', industry:'Pool Service & Repair', noun:'pool company', best:'any time, nobody real answers', date:todayKey(), pro:true, demo:true };
+  $('demoBanner').style.display='block';
+  gotoView('dialer');
+  renderList();
+  chime();
+  toast('\uD83C\uDF93 Demo mode on. 8 practice businesses loaded. Dial through them like it\u2019s real, every email comes to you.');
+}
+function exitDemo(){
+  if (DEMO_SAVED){ LIST = DEMO_SAVED.list; LISTMETA = DEMO_SAVED.meta; DEMO_SAVED = null; }
+  else { LIST = load('sdr_list', []); LISTMETA = load('sdr_listmeta', {}); }
+  $('demoBanner').style.display='none';
+  closeCall();
+  renderList();
+  toast('Back to the real world. Your live list is untouched.');
 }
 
 /* ================= TWILIO DIALER ================= */
