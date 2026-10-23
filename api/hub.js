@@ -63,9 +63,16 @@ module.exports = async function handler(req, res) {
         team.onetime = (await sql`SELECT COALESCE(sum(amount),0)::numeric AS m FROM deals WHERE status='approved' AND kind='one_time'`)[0].m;
         team.objections = await sql`SELECT obj, count(*)::int AS n FROM calls WHERE obj <> '' AND ts > now() - interval '30 days' GROUP BY obj ORDER BY n DESC`;
       }
+      const closedMonth = (await sql`SELECT count(*)::int AS n FROM deals WHERE rep=${user.email} AND status='approved' AND reviewed_ts >= date_trunc('month', now())`)[0].n;
+      const pipeline = await sql`SELECT stage, count(*)::int AS n FROM companies GROUP BY stage`;
+      const waveReady = {};
+      C.PRODUCTS.forEach(p => { if (C.waveLink(p.id)) waveReady[p.id] = true; });
       return ok({ user, products: C.PRODUCTS, today, fups, fourteen, totals: totals[0],
                   deals: myDeals, ledger: myLedger, seqs: mySeqs, meetings: myMeetings, team, auditUrl: C.auditUrl(),
-                  twilio: { enabled: C.twilioReady(), numbers: C.twilioNumbers() } });
+                  twilio: { enabled: C.twilioReady(), numbers: C.twilioNumbers() },
+                  kpi: { target: C.kpiTarget(), bonus: C.kpiBonus(), closedMonth: closedMonth },
+                  pipeline: pipeline, waveReady: waveReady,
+                  docuseal: !!process.env.DOCUSEAL_API_KEY });
     }
 
     /* ---------------- PROSPECTING ---------------- */
@@ -160,6 +167,10 @@ module.exports = async function handler(req, res) {
                 ${P.fup || null}, ${P.city || ''}, ${P.industry || ''}, ${P.website || ''}, ${P.email || ''},
                 ${Number(P.rating) || 0}, ${P.reviews == null ? -1 : Number(P.reviews)}, ${Number(P.pos) || 0},
                 ${P.addr || ''}, ${P.maps || ''}, ${P.src || ''}, ${P.obj || ''}) RETURNING id`;
+      const stageMap = { meeting: 'meeting', callback: 'engaged' };
+      await C.upsertCompany({ phone: phone, name: P.name, website: P.website, email: P.email, addr: P.addr,
+        city: P.city, industry: P.industry, rating: P.rating, reviews: P.reviews, pos: P.pos, maps: P.maps, rep: user.email },
+        stageMap[outcome] || 'contacted');
       if (P.flag && P.note) {
         const mailTo = process.env.MAIL_TO || process.env.OWNER_EMAIL;
         if (mailTo && !OWNER) C.sendMail(mailTo, '\uD83D\uDEA9 ' + user.name + ' flagged a note: ' + (P.name || phone),
@@ -221,6 +232,7 @@ module.exports = async function handler(req, res) {
         VALUES (${phone}, ${P.business || ''}, ${to}, ${user.email}, ${P.industry || ''}, ${P.city || ''}, ${P.website || ''}, 0, 'active', now())
         RETURNING *`;
       const s = ins[0];
+      await C.upsertCompany({ phone: phone, name: P.business, email: to, website: P.website, city: P.city, industry: P.industry, rep: user.email }, 'contacted');
       const t = C.seqTemplates(s, user.name)[0];
       await C.sendMail(to, t.subject, t.html, user.email);
       await sql`UPDATE seqs SET step=1, next_at = now() + interval '3 days' WHERE id=${s.id}`;
@@ -236,19 +248,15 @@ module.exports = async function handler(req, res) {
     if (a === 'deal.submit') {
       const prod = C.PRODUCTS.find(x => x.id === P.product);
       if (!prod) return err('Pick a product.');
-      const amount = Number(P.amount) || prod.amount || 0;
-      const monthly = Number(P.monthly) || prod.monthly || 0;
-      let first = 0, rec = 0;
-      if (prod.kind === 'one_time') first = Math.round(amount * (prod.pct / 100) * 100) / 100;
-      else { first = Math.round(monthly * (prod.firstPct / 100) * 100) / 100; rec = Math.round(monthly * (prod.recPct / 100) * 100) / 100; }
+      const amount = Number(P.amount) || prod.amount || prod.monthly || 0;
       await sql`INSERT INTO deals (rep, business, product, kind, amount, monthly, first_comm, rec_comm, note)
-        VALUES (${user.email}, ${P.business || ''}, ${prod.label}, ${prod.kind}, ${amount}, ${monthly}, ${first}, ${rec}, ${P.note || ''})`;
+        VALUES (${user.email}, ${P.business || ''}, ${prod.label}, ${prod.kind}, ${amount}, ${prod.kind === 'recurring' ? amount : 0}, 0, 0, ${P.note || ''})`;
+      if (P.phone) await C.upsertCompany({ phone: P.phone, name: P.business, rep: user.email }, 'contract');
       const mailTo = process.env.MAIL_TO || process.env.OWNER_EMAIL;
       if (mailTo && !OWNER) {
-        C.sendMail(mailTo, '💰 Deal submitted: ' + (P.business || '') + ' - ' + prod.label,
-          '<p><b>' + user.name + '</b> submitted a closed deal for approval.</p>' +
-          '<p>' + (P.business || '') + ' · ' + prod.label + (prod.kind === 'one_time' ? ' · $' + amount : ' · $' + monthly + '/mo') + '</p>' +
-          '<p>Commission if approved: $' + first + (rec ? ' now + $' + rec + '/mo' : '') + '</p>', user.email).catch(() => {});
+        C.sendMail(mailTo, '\uD83D\uDCB0 Closed deal submitted: ' + (P.business || '') + ' - ' + prod.label,
+          '<p><b>' + user.name + '</b> marked a deal closed and needs your approval.</p>' +
+          '<p>' + (P.business || '') + ' \u00b7 ' + prod.label + ' \u00b7 $' + amount + (prod.kind === 'recurring' ? '/mo' : '') + '</p>', user.email).catch(() => {});
       }
       return ok(true);
     }
@@ -258,15 +266,25 @@ module.exports = async function handler(req, res) {
       if (!d || d.status !== 'pending') return err('Deal not found or already reviewed.');
       const st = P.approve ? 'approved' : 'denied';
       await sql`UPDATE deals SET status=${st}, reviewed_ts=now(), note=${P.reason ? (d.note + ' | denied: ' + P.reason) : d.note} WHERE id=${d.id}`;
+      if (P.approve) {
+        // KPI comp plan: 4 closed deals a month hit target, every deal past 4 pays the bonus
+        const n = (await sql`SELECT count(*)::int AS n FROM deals WHERE rep=${d.rep} AND status='approved' AND reviewed_ts >= date_trunc('month', now())`)[0].n;
+        const target = C.kpiTarget();
+        if (n > target) {
+          await sql`INSERT INTO ledger (deal_id, rep, label, amount, type)
+                    VALUES (${d.id}, ${d.rep}, ${d.business + ' - deal #' + n + ' this month (past the ' + target + ' KPI)'}, ${C.kpiBonus()}, 'bonus')`;
+          C.sendMail(d.rep, '\uD83D\uDCB5 Bonus earned: ' + d.business,
+            '<p>Deal approved. That is <b>#' + n + '</b> this month, past your KPI of ' + target + ', so <b>$' + C.kpiBonus() + '</b> just hit your ledger.</p>').catch(() => {});
+        } else {
+          C.sendMail(d.rep, 'Deal approved: ' + d.business,
+            '<p>Deal approved. That is <b>#' + n + ' of ' + target + '</b> toward this month\u2019s KPI.' + (n === target ? ' KPI hit. Every deal from here pays $' + C.kpiBonus() + '.' : '') + '</p>').catch(() => {});
+        }
+        const comp = await sql`SELECT phone FROM companies WHERE lower(name)=lower(${d.business}) LIMIT 1`;
+        if (comp[0]) await sql`UPDATE companies SET stage='won', updated=now() WHERE phone=${comp[0].phone}`;
+      }
       if (!P.approve) {
         C.sendMail(d.rep, 'Deal update: ' + d.business,
-          '<p>Your deal for <b>' + d.business + '</b> (' + d.product + ') was not approved.</p>' +
-          (P.reason ? '<p>Reason: ' + P.reason + '</p>' : '') + '<p>Talk to Ty if you have questions.</p>').catch(() => {});
-      }
-      if (P.approve) {
-        const label = d.business + ' - ' + (d.kind === 'one_time' ? 'one-time' : 'first month');
-        await sql`INSERT INTO ledger (deal_id, rep, label, amount, type) VALUES (${d.id}, ${d.rep}, ${label}, ${d.first_comm}, ${d.kind === 'one_time' ? 'one_time' : 'first'})`;
-        if (d.kind === 'recurring') await sql`UPDATE deals SET months_done=1 WHERE id=${d.id}`;
+          '<p>Your deal for <b>' + d.business + '</b> was not approved.</p>' + (P.reason ? '<p>Reason: ' + P.reason + '</p>' : '')).catch(() => {});
       }
       return ok(true);
     }
@@ -361,6 +379,126 @@ module.exports = async function handler(req, res) {
       const mk = 'twMin_' + new Date().toISOString().slice(0, 7);
       await sql`INSERT INTO kv (k, v) VALUES (${mk}, ${String(mins)})
                 ON CONFLICT (k) DO UPDATE SET v = (kv.v::int + ${mins})::text`;
+      return ok(true);
+    }
+
+    /* ---------------- CRM: PIPELINE & COMPANY TIMELINE ---------------- */
+    if (a === 'pipeline.list') {
+      const rows = await sql`SELECT * FROM companies WHERE stage NOT IN ('new') OR rep <> '' ORDER BY updated DESC LIMIT 400`;
+      return ok(rows);
+    }
+    if (a === 'company.get') {
+      const phone = C.normPhone(P.phone);
+      const comp = (await sql`SELECT * FROM companies WHERE phone=${phone}`)[0];
+      if (!comp) return err('No company on file for that number.');
+      const callsT = await sql`SELECT 'call' AS kind, outcome AS label, note, rep, ts FROM calls WHERE phone=${phone} ORDER BY ts DESC LIMIT 30`;
+      const emailsT = await sql`SELECT 'email' AS kind, subject AS label, '' AS note, rep, ts FROM emails_log WHERE phone=${phone} ORDER BY ts DESC LIMIT 30`;
+      const meetT = await sql`SELECT 'meeting' AS kind, status AS label, note, rep, ts FROM meetings WHERE phone=${phone} ORDER BY ts DESC LIMIT 10`;
+      const propT = await sql`SELECT 'proposal' AS kind, products AS label, note, rep, ts FROM proposals WHERE phone=${phone} ORDER BY ts DESC LIMIT 10`;
+      const contT = await sql`SELECT 'contract' AS kind, (product || ' - ' || status) AS label, '' AS note, rep, ts FROM contracts WHERE phone=${phone} ORDER BY ts DESC LIMIT 10`;
+      const timeline = [].concat(callsT, emailsT, meetT, propT, contT)
+        .sort((x, y) => new Date(y.ts) - new Date(x.ts)).slice(0, 60);
+      return ok({ company: comp, timeline: timeline });
+    }
+    if (a === 'company.stage') {
+      const phone = C.normPhone(P.phone);
+      const allowed = ['new', 'contacted', 'engaged', 'meeting', 'proposal', 'contract', 'won', 'lost'];
+      if (allowed.indexOf(P.stage) === -1) return err('Bad stage.');
+      await sql`UPDATE companies SET stage=${P.stage}, lost_reason=${P.stage === 'lost' ? (P.reason || '') : ''}, updated=now() WHERE phone=${phone}`;
+      return ok(true);
+    }
+    if (a === 'company.save') {
+      const phone = C.normPhone(P.phone);
+      await sql`UPDATE companies SET contact=${P.contact || ''}, email=${(P.email || '').toLowerCase().trim()}, updated=now() WHERE phone=${phone}`;
+      return ok(true);
+    }
+
+    /* ---------------- PROPOSALS ---------------- */
+    if (a === 'proposal.send') {
+      const phone = C.normPhone(P.phone);
+      const to = String(P.toEmail || '').trim().toLowerCase();
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(to)) return err('Need the client\u2019s email.');
+      const picked = (Array.isArray(P.items) ? P.items : []).map(id => C.PRODUCTS.find(x => x.id === id)).filter(Boolean);
+      if (!picked.length) return err('Pick at least one product.');
+      const biz = P.business || 'your business';
+      let total = 0;
+      const lines = picked.map(p => {
+        const amt = p.amount || p.monthly || 0;
+        total += amt;
+        return '<tr><td style="padding:8px 14px;border-bottom:1px solid #e3e9f0">' + p.label.split(' - ')[0] + '</td>' +
+               '<td style="padding:8px 14px;border-bottom:1px solid #e3e9f0;text-align:right"><b>$' + amt + (p.kind === 'recurring' ? '/mo' : '') + '</b></td></tr>';
+      }).join('');
+      const checkout = picked.length === 1 ? C.waveLink(picked[0].id) : '';
+      let featureHtml = '';
+      const hasLP = picked.some(p => p.id === 'lp500' || p.id === 'lp750');
+      if (hasLP) {
+        featureHtml = '<h3 style="color:#1f5d8c;margin-top:22px">Everything your Local Presence plan includes</h3>' +
+          C.LP_FEATURES.map(g => '<p style="margin:10px 0 4px"><b>' + g[0] + '</b></p><ul style="margin:0;padding-left:20px;color:#333">' +
+            g[1].map(f => '<li style="margin:3px 0">' + f + '</li>').join('') + '</ul>').join('');
+        if (picked.some(p => p.id === 'lp750')) {
+          featureHtml += '<p style="margin:10px 0 4px"><b>Plus, on your plan</b></p><ul style="margin:0;padding-left:20px;color:#333">' +
+            C.LP750_EXTRA.map(f => '<li style="margin:3px 0">' + f + '</li>').join('') + '</ul>';
+        }
+      }
+      const html = '<div style="font-family:Arial,sans-serif;max-width:560px">' +
+        '<img src="https://www.burketwebdesign.com/assets/logo.png" style="height:46px" alt="Burket Web Design">' +
+        '<h2 style="color:#0e2235">Proposal for ' + biz + '</h2>' +
+        (P.note ? '<p>' + String(P.note).replace(/</g, '&lt;').replace(/\n/g, '<br>') + '</p>' : '') +
+        '<table style="border-collapse:collapse;width:100%;background:#f7f9fc;border-radius:10px">' + lines + '</table>' +
+        '<p style="font-size:18px"><b>Total: $' + total + '</b></p>' +
+        featureHtml +
+        (checkout ? '<p><a href="' + checkout + '" style="background:#fec814;color:#0e2235;padding:12px 22px;border-radius:9px;text-decoration:none;font-weight:bold">Pay securely online</a></p>' : '') +
+        '<p>Questions? Just reply to this email or call us. We only start work once you are completely comfortable.</p>' +
+        '<p>' + user.name + '<br>Burket Web Design, Altoona PA<br><a href="https://www.burketwebdesign.com">burketwebdesign.com</a></p></div>';
+      await C.sendMail(to, 'Your proposal from Burket Web Design', html, user.email);
+      await sql`INSERT INTO proposals (phone, rep, to_email, products, total, note, checkout)
+                VALUES (${phone}, ${user.email}, ${to}, ${picked.map(p => p.label).join(' + ')}, ${total}, ${P.note || ''}, ${checkout})`;
+      await C.upsertCompany({ phone: phone, name: P.business, email: to, rep: user.email }, 'proposal');
+      return ok(true);
+    }
+
+    /* ---------------- CONTRACTS (DocuSeal) ---------------- */
+    if (a === 'contract.send') {
+      if (!process.env.DOCUSEAL_API_KEY) return err('DocuSeal is not configured yet (DOCUSEAL_API_KEY).');
+      const phone = C.normPhone(P.phone);
+      const to = String(P.toEmail || '').trim().toLowerCase();
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(to)) return err('Need the client\u2019s email.');
+      const prod = C.PRODUCTS.find(x => x.id === P.product);
+      if (!prod) return err('Pick the product.');
+      const amount = Number(P.amount) || prod.amount || prod.monthly || 0;
+      const tpl = C.docusealTemplate(P.product);
+      if (!tpl) return err('No DocuSeal template is set for that product yet (DOCUSEAL_TEMPLATE_* env vars).');
+      const sub = await C.docusealSend(tpl, to, P.clientName || P.business || '', {
+        business: P.business || '', service: prod.label.split(' - ')[0],
+        price: '$' + amount + (prod.kind === 'recurring' ? ' per month' : ''), date: new Date().toLocaleDateString('en-US')
+      });
+      await sql`INSERT INTO contracts (phone, rep, to_email, client_name, product, amount, docuseal_id)
+                VALUES (${phone}, ${user.email}, ${to}, ${P.clientName || ''}, ${prod.label}, ${amount}, ${sub.id})`;
+      await C.upsertCompany({ phone: phone, name: P.business, email: to, rep: user.email }, 'contract');
+      const mailTo = process.env.MAIL_TO || process.env.OWNER_EMAIL;
+      if (mailTo && !OWNER) C.sendMail(mailTo, '\uD83D\uDCDD Contract sent: ' + (P.business || to),
+        '<p>' + user.name + ' sent the ' + prod.label + ' contract ($' + amount + ') to ' + to + '.</p>').catch(() => {});
+      return ok(true);
+    }
+
+    /* ---------------- CHECKOUT (Wave) ---------------- */
+    if (a === 'checkout.send') {
+      const phone = C.normPhone(P.phone);
+      const to = String(P.toEmail || '').trim().toLowerCase();
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(to)) return err('Need the client\u2019s email.');
+      const prod = C.PRODUCTS.find(x => x.id === P.product);
+      const link = prod ? C.waveLink(prod.id) : '';
+      if (!link) return err('No Wave checkout link is set for that product yet (ask Ty to add the WAVE_LINK env var).');
+      const biz = P.business || 'your business';
+      const html = '<div style="font-family:Arial,sans-serif;max-width:560px">' +
+        '<img src="https://www.burketwebdesign.com/assets/logo.png" style="height:46px" alt="Burket Web Design">' +
+        '<h2 style="color:#0e2235">Ready when you are</h2>' +
+        '<p>Here is the secure checkout for <b>' + prod.label.split(' - ')[0] + '</b> for ' + biz + '. It takes about a minute.</p>' +
+        '<p><a href="' + link + '" style="background:#fec814;color:#0e2235;padding:12px 22px;border-radius:9px;text-decoration:none;font-weight:bold">Complete checkout</a></p>' +
+        '<p>Once it goes through, we get to work. Reply to this email with any questions.</p>' +
+        '<p>' + user.name + '<br>Burket Web Design, Altoona PA</p></div>';
+      await C.sendMail(to, 'Checkout for ' + biz + ' - Burket Web Design', html, user.email);
+      await sql`INSERT INTO emails_log (seq_id, phone, to_email, rep, step, subject) VALUES (0, ${phone}, ${to}, ${user.email}, 0, ${'Checkout: ' + prod.label})`;
       return ok(true);
     }
 

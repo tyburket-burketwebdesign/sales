@@ -41,6 +41,23 @@ async function ensureSchema() {
   await sql`ALTER TABLE calls ADD COLUMN IF NOT EXISTS obj TEXT DEFAULT ''`;
   await sql`CREATE TABLE IF NOT EXISTS dnc ( phone TEXT PRIMARY KEY, ts TIMESTAMPTZ DEFAULT now() )`;
   await sql`CREATE TABLE IF NOT EXISTS kv ( k TEXT PRIMARY KEY, v TEXT )`;
+  await sql`CREATE TABLE IF NOT EXISTS companies (
+    id SERIAL PRIMARY KEY, phone TEXT UNIQUE, name TEXT DEFAULT '', website TEXT DEFAULT '', email TEXT DEFAULT '',
+    contact TEXT DEFAULT '', addr TEXT DEFAULT '', city TEXT DEFAULT '', industry TEXT DEFAULT '',
+    rating REAL DEFAULT 0, reviews INT DEFAULT -1, pos INT DEFAULT 0, maps TEXT DEFAULT '',
+    stage TEXT DEFAULT 'new', lost_reason TEXT DEFAULT '', rep TEXT DEFAULT '',
+    created TIMESTAMPTZ DEFAULT now(), updated TIMESTAMPTZ DEFAULT now()
+  )`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_companies_stage ON companies (stage)`;
+  await sql`CREATE TABLE IF NOT EXISTS proposals (
+    id SERIAL PRIMARY KEY, phone TEXT, rep TEXT, to_email TEXT, products TEXT, total NUMERIC DEFAULT 0,
+    note TEXT DEFAULT '', checkout TEXT DEFAULT '', ts TIMESTAMPTZ DEFAULT now()
+  )`;
+  await sql`CREATE TABLE IF NOT EXISTS contracts (
+    id SERIAL PRIMARY KEY, phone TEXT, rep TEXT, to_email TEXT, client_name TEXT DEFAULT '',
+    product TEXT DEFAULT '', amount NUMERIC DEFAULT 0, docuseal_id TEXT DEFAULT '',
+    status TEXT DEFAULT 'sent', pdf_url TEXT DEFAULT '', ts TIMESTAMPTZ DEFAULT now(), signed_ts TIMESTAMPTZ
+  )`;
   await sql`CREATE TABLE IF NOT EXISTS meetings (
     id SERIAL PRIMARY KEY, phone TEXT, business TEXT, rep TEXT, meet_date DATE, status TEXT DEFAULT 'set',
     note TEXT DEFAULT '', alerted BOOLEAN DEFAULT false, ts TIMESTAMPTZ DEFAULT now()
@@ -277,20 +294,121 @@ function twilioToken(identityEmail) {
   return header + '.' + payload + '.' + sig;
 }
 
+/* ---- CRM company upsert: every touch keeps the record current ---- */
+const STAGE_RANK = { new: 0, contacted: 1, engaged: 2, meeting: 3, proposal: 4, contract: 5, won: 6, lost: 6 };
+async function upsertCompany(d, minStage) {
+  const phone = normPhone(d.phone);
+  if (!phone) return null;
+  await sql`INSERT INTO companies (phone, name, website, email, addr, city, industry, rating, reviews, pos, maps, rep)
+    VALUES (${phone}, ${d.name || ''}, ${d.website || ''}, ${d.email || ''}, ${d.addr || ''}, ${d.city || ''},
+            ${d.industry || ''}, ${Number(d.rating) || 0}, ${d.reviews == null ? -1 : Number(d.reviews)},
+            ${Number(d.pos) || 0}, ${d.maps || ''}, ${d.rep || ''})
+    ON CONFLICT (phone) DO UPDATE SET
+      name = CASE WHEN EXCLUDED.name <> '' THEN EXCLUDED.name ELSE companies.name END,
+      website = CASE WHEN EXCLUDED.website <> '' THEN EXCLUDED.website ELSE companies.website END,
+      email = CASE WHEN EXCLUDED.email <> '' THEN EXCLUDED.email ELSE companies.email END,
+      city = CASE WHEN EXCLUDED.city <> '' THEN EXCLUDED.city ELSE companies.city END,
+      industry = CASE WHEN EXCLUDED.industry <> '' THEN EXCLUDED.industry ELSE companies.industry END,
+      rep = CASE WHEN companies.rep = '' THEN EXCLUDED.rep ELSE companies.rep END,
+      updated = now()`;
+  if (minStage) {
+    const cur = await sql`SELECT stage FROM companies WHERE phone=${phone}`;
+    const curStage = cur[0] ? cur[0].stage : 'new';
+    if ((STAGE_RANK[minStage] || 0) > (STAGE_RANK[curStage] || 0) && curStage !== 'won' && curStage !== 'lost') {
+      await sql`UPDATE companies SET stage=${minStage}, updated=now() WHERE phone=${phone}`;
+    }
+  }
+  return phone;
+}
+
+/* ---- DocuSeal ---- */
+async function docusealSend(templateId, clientEmail, clientName, values) {
+  const key = process.env.DOCUSEAL_API_KEY;
+  if (!key) throw new Error('DOCUSEAL_API_KEY is not set.');
+  const body = {
+    template_id: Number(templateId),
+    send_email: true,
+    submitters: [{ role: 'Client', email: clientEmail, name: clientName || '', values: values || {} }]
+  };
+  const r = await fetch('https://api.docuseal.com/submissions', {
+    method: 'POST',
+    headers: { 'X-Auth-Token': key, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error('DocuSeal error ' + r.status + ': ' + (JSON.stringify(j).slice(0, 180)));
+  const sub = Array.isArray(j) ? j[0] : j;
+  return { id: String((sub && (sub.submission_id || sub.id)) || '') };
+}
+
+/* ---- DocuSeal template per product, with a general fallback ---- */
+function docusealTemplate(productId) {
+  const map = { lp500: 'DOCUSEAL_TEMPLATE_LP500', lp750: 'DOCUSEAL_TEMPLATE_LP750',
+                onepage: 'DOCUSEAL_TEMPLATE_ONEPAGE', fullsite: 'DOCUSEAL_TEMPLATE_FULLSITE' };
+  return process.env[map[productId]] || process.env.DOCUSEAL_TEMPLATE_ID || '';
+}
+
+/* ---- Wave checkout links (created once in Wave, mapped by env) ---- */
+function waveLink(productId) {
+  const map = { onepage: 'WAVE_LINK_ONEPAGE', fullsite: 'WAVE_LINK_FULLSITE', customsite: 'WAVE_LINK_CUSTOM',
+                lp500: 'WAVE_LINK_LP500', lp750: 'WAVE_LINK_LP750', otherrec: 'WAVE_LINK_CUSTOM', other: 'WAVE_LINK_CUSTOM' };
+  return process.env[map[productId]] || '';
+}
+
+/* ---- KPI comp plan: 4 closed deals a month, $50 for each one past 4 ---- */
+function kpiTarget() { return Number(process.env.KPI_TARGET) || 4; }
+function kpiBonus() { return Number(process.env.KPI_BONUS) || 50; }
+
 /* ---- chain / franchise filter ---- */
 const CHAIN_RX = /mcdonald|subway\b|domino|pizza hut|papa john|burger king|wendy|taco bell|kfc\b|dunkin|starbucks|walmart|autozone|advance auto|napa auto|midas\b|jiffy lube|valvoline|pep boys|firestone|monro\b|meineke|great clips|supercuts|sport clips|holiday hair|planet fitness|anytime fitness|crunch fitness|aspen dental|banfield|maaco|sherwin|h&r block|jackson hewitt|re\/max|remax|century 21|coldwell|keller williams|berkshire hathaway|petco\b|petsmart/i;
 function isChain(name) { return CHAIN_RX.test(String(name || '')); }
 
 /* ---- products & commission plan ---- */
 const PRODUCTS = [
-  { id: 'onepage',    label: 'One Page Website - $650 one time',            kind: 'one_time',  amount: 650, pct: 20 },
-  { id: 'fullsite',   label: 'Full Site - $850 one time',                   kind: 'one_time',  amount: 850, pct: 20 },
-  { id: 'customsite', label: 'Custom Website (enter amount)',               kind: 'one_time',  amount: 0,   pct: 20 },
-  { id: 'lp299',      label: 'Local Presence Essentials - $299/mo',         kind: 'recurring', monthly: 299, firstPct: 50, recPct: 10 },
-  { id: 'lp500',      label: 'Local Presence Complete - $500/mo',           kind: 'recurring', monthly: 500, firstPct: 50, recPct: 10 },
-  { id: 'otherrec',   label: 'Other Monthly (enter amount)',                kind: 'recurring', monthly: 0,  firstPct: 50, recPct: 10 },
-  { id: 'other',      label: 'Other One-Time (enter amount)',               kind: 'one_time',  amount: 0,   pct: 20 }
+  { id: 'onepage',    label: 'One Page Website - $650 one time',                    kind: 'one_time',  amount: 650 },
+  { id: 'fullsite',   label: 'Full Site - $850 one time',                           kind: 'one_time',  amount: 850 },
+  { id: 'customsite', label: 'Custom Website (enter amount)',                       kind: 'one_time',  amount: 0 },
+  { id: 'lp500',      label: 'Local Presence - $500/mo',                            kind: 'recurring', monthly: 500 },
+  { id: 'lp750',      label: 'Local Presence + Website SEO & Maintenance - $750/mo', kind: 'recurring', monthly: 750 },
+  { id: 'otherrec',   label: 'Other Monthly (enter amount)',                        kind: 'recurring', monthly: 0 },
+  { id: 'other',      label: 'Other One-Time (enter amount)',                       kind: 'one_time',  amount: 0 }
 ];
+
+/* Feature stack for the Local Presence proposals, grouped to sell */
+const LP_FEATURES = [
+  ['Google Business Profile, Fully Managed', [
+    'Complete GBP listing optimization and advanced profile tuning',
+    'Weekly GBP posts with category optimization',
+    'GBP offer creation to turn searchers into callers',
+    'Geo-tagged job photos with our image upload tool'
+  ]],
+  ['Reviews on Autopilot', [
+    'Automated review management campaigns',
+    'Auto-reply to customer reviews',
+    'Bad reviews flagged instantly before they spread',
+    'Full backup of your Google reviews'
+  ]],
+  ['Local Rankings Engine', [
+    'In-depth keyword research, analysis, and consultation',
+    'Set keywords and meta tags',
+    'Competitive analysis of who is beating you and why',
+    'Location-based citations with quality link building',
+    'Geo-grid reporting that shows your map rankings block by block'
+  ]],
+  ['Content That Ranks', [
+    'Optimized copywriting by real writers',
+    'Ongoing SEO-based content updates'
+  ]],
+  ['The AI Search Advantage', [
+    'AI SEO implementation for Gemini and ChatGPT',
+    'AI rank reports across Gemini, ChatGPT, Perplexity, Grok, Llama, and Claude'
+  ]],
+  ['You Always Know Where You Stand', [
+    'Monthly progress reporting in plain English'
+  ]]
+];
+const LP750_EXTRA = ['Website SEO', 'Full website maintenance'];
+
 
 /* ---- email sequence templates ---- */
 function auditUrl() { return process.env.AUDIT_URL || 'https://www.burketwebdesign.com/scan/'; }
@@ -326,5 +444,5 @@ function seqTemplates(s, repName) {
   ];
 }
 
-module.exports = { sql, ensureSchema, userFromToken, login, sendMail, placesSearch, scrapeEmails, isChain, geocodeCity, placesBiased, inStormZone, twE164, twilioReady, twilioNumbers, twilioToken,
+module.exports = { docusealTemplate, LP_FEATURES, LP750_EXTRA, sql, ensureSchema, userFromToken, login, sendMail, placesSearch, scrapeEmails, isChain, geocodeCity, placesBiased, inStormZone, twE164, twilioReady, twilioNumbers, twilioToken, upsertCompany, STAGE_RANK, docusealSend, waveLink, kpiTarget, kpiBonus,
                    PRODUCTS, seqTemplates, auditUrl, normPhone, uid };

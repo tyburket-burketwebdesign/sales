@@ -39,6 +39,30 @@ Tables create themselves on first request. The cron in `vercel.json` runs daily 
 | `TWILIO_CAP_MIN` | no | Monthly calling minutes cap, default 1100 (about $20/mo) |
 | `TWILIO_WEBHOOK_KEY` | for dialer | Any random string; must match the ?k= in the webhook URL below |
 | `TWILIO_FALLBACK` | no | A real cell in +1 format. If nobody has the hub open, inbound calls ring this phone before going to the missed-call message |
+| `DOCUSEAL_API_KEY` | for contracts | docuseal.com -> Settings -> API |
+| `DOCUSEAL_TEMPLATE_LP500` | for contracts | Template id of the Local Presence $500 contract |
+| `DOCUSEAL_TEMPLATE_LP750` | for contracts | Template id of the Local Presence + Website SEO $750 contract |
+| `DOCUSEAL_TEMPLATE_ONEPAGE` | for contracts | Template id of the One Page Website $650 contract |
+| `DOCUSEAL_TEMPLATE_FULLSITE` | for contracts | Template id of the Full Site $850 contract |
+| `DOCUSEAL_TEMPLATE_ID` | no | Fallback template used for any product without its own template id |
+| `WAVE_LINK_ONEPAGE` | no | Wave checkout URL for the $650 one-page site |
+| `WAVE_LINK_FULLSITE` | no | Wave checkout URL for the $850 full site |
+| `WAVE_LINK_LP500` | no | Wave checkout URL for Local Presence $500/mo |
+| `WAVE_LINK_LP750` | no | Wave checkout URL for Local Presence + Website SEO & Maintenance $750/mo |
+| `WAVE_LINK_CUSTOM` | no | Wave checkout URL used for custom amounts |
+| `KPI_TARGET` | no | Closed deals per month expected, default 4 |
+| `KPI_BONUS` | no | Dollars per closed deal past the target, default 50 |
+
+## DocuSeal setup (contracts)
+
+1. docuseal.com -> create your contract template. Add text fields named exactly: business, service, price, date. Add the signature field for the Client role.
+2. Settings -> API -> copy the key into DOCUSEAL_API_KEY. Put the template's numeric id in DOCUSEAL_TEMPLATE_ID.
+3. Settings -> Webhooks -> add `https://YOUR-APP.vercel.app/api/docuseal?k=YOUR_TWILIO_WEBHOOK_KEY` and enable form.completed (and form.viewed if offered).
+4. Redeploy. The Send Contract button appears on every company. Signing marks the company Won, creates the deal for approval, and emails both seats.
+
+## The comp plan (built in)
+
+Closed deal = met with Ty, deal approved in the hub. KPI is KPI_TARGET per month (default 4). Every approved deal past the target automatically adds a KPI_BONUS ($50) ledger entry and emails the SDR. The Commissions tab shows the month as a row of dots: checks for KPI deals, gold dollar dots for bonus deals.
 
 ## Browser dialer setup
 

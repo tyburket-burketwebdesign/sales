@@ -29,21 +29,7 @@ module.exports = async function handler(req, res) {
       } catch (e) { out.errors.push('seq ' + s.id + ': ' + e.message); }
     }
 
-    /* ---- 2. recurring commission accrual (30-day cycles) ---- */
-    const recs = await sql`SELECT * FROM deals WHERE status='approved' AND kind='recurring' AND cancelled_ts IS NULL`;
-    for (const d of recs) {
-      try {
-        const monthsOwed = 1 + Math.floor((Date.now() - new Date(d.reviewed_ts).getTime()) / (30 * 86400000));
-        if (monthsOwed > d.months_done) {
-          for (let m = d.months_done + 1; m <= monthsOwed; m++) {
-            await sql`INSERT INTO ledger (deal_id, rep, label, amount, type)
-                      VALUES (${d.id}, ${d.rep}, ${d.business + ' - month ' + m}, ${d.rec_comm}, 'recurring')`;
-            out.recurring++;
-          }
-          await sql`UPDATE deals SET months_done=${monthsOwed} WHERE id=${d.id}`;
-        }
-      } catch (e) { out.errors.push('deal ' + d.id + ': ' + e.message); }
-    }
+    /* ---- 2. (retired) recurring accrual replaced by the KPI bonus plan ---- */
 
     /* ---- 3. no-show chasing: meeting date passed, still marked 'set' ---- */
     const stale = await sql`SELECT * FROM meetings WHERE status='set' AND meet_date IS NOT NULL AND meet_date < CURRENT_DATE AND alerted=false LIMIT 25`;
