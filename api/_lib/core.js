@@ -370,11 +370,11 @@ function isChain(name) { return CHAIN_RX.test(String(name || '')); }
 
 /* ---- products & commission plan ---- */
 const PRODUCTS = [
+  { id: 'lp500',      label: 'Local Presence - $500/mo',                            kind: 'recurring', monthly: 500 },
+  { id: 'lp750',      label: 'Local Presence + Website SEO & Maintenance - $750/mo', kind: 'recurring', monthly: 750 },
   { id: 'onepage',    label: 'One Page Website - $650 one time',                    kind: 'one_time',  amount: 650 },
   { id: 'fullsite',   label: 'Full Site - $850 one time',                           kind: 'one_time',  amount: 850 },
   { id: 'customsite', label: 'Custom Website (enter amount)',                       kind: 'one_time',  amount: 0 },
-  { id: 'lp500',      label: 'Local Presence - $500/mo',                            kind: 'recurring', monthly: 500 },
-  { id: 'lp750',      label: 'Local Presence + Website SEO & Maintenance - $750/mo', kind: 'recurring', monthly: 750 },
   { id: 'otherrec',   label: 'Other Monthly (enter amount)',                        kind: 'recurring', monthly: 0 },
   { id: 'other',      label: 'Other One-Time (enter amount)',                       kind: 'one_time',  amount: 0 }
 ];

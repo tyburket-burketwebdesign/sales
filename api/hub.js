@@ -530,6 +530,29 @@ module.exports = async function handler(req, res) {
       return ok(true);
     }
 
+    if (a === 'company.delete') {
+      const phone = C.normPhone(P.phone);
+      if (!phone) return err('Bad phone.');
+      await sql`DELETE FROM companies WHERE phone=${phone}`;
+      return ok(true);
+    }
+    if (a === 'admin.reset') {
+      if (!OWNER) return err('Owner only.');
+      if (P.confirm !== 'RESET') return err('Type RESET to confirm.');
+      await sql`DELETE FROM calls`;
+      await sql`DELETE FROM companies`;
+      await sql`DELETE FROM meetings`;
+      await sql`DELETE FROM deals`;
+      await sql`DELETE FROM ledger`;
+      await sql`DELETE FROM seqs`;
+      await sql`DELETE FROM emails_log`;
+      await sql`DELETE FROM dnc`;
+      await sql`DELETE FROM proposals`;
+      await sql`DELETE FROM contracts`;
+      await sql`DELETE FROM kv`;
+      return ok(true);
+    }
+
     /* ---------------- TEAM (owner) ---------------- */
     if (a === 'user.invite') {
       if (!OWNER) return err('Owner only.');

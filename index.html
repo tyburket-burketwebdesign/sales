@@ -139,7 +139,21 @@ tr.done{opacity:.45}
 .gstat{background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.15);border-radius:11px;padding:7px 13px;font-size:11px;color:#cfdce8;text-align:center}
 .gstat b{color:var(--gold);font-size:15px;display:block}
 .gstat.alert b{color:#ff9d9d}
-#cm .body{padding:18px 22px}
+#cm .body{padding:14px 22px;max-height:58vh;overflow-y:auto}
+.ctabs{display:flex;gap:6px;margin:12px 0 4px;flex-wrap:wrap;position:sticky;top:-14px;background:var(--card);padding:6px 0;z-index:5}
+.ctabs button{background:var(--chip);color:var(--muted);padding:8px 14px;border-radius:10px;font-size:13px}
+.ctabs button.on{background:var(--navy);color:#fff}
+[data-dark] .ctabs button.on{background:var(--blue)}
+.ctabs button.gold{border:1.5px solid var(--gold)}
+.ctabs button.gold.on{background:linear-gradient(135deg,var(--gold),var(--gold2));color:#0e2235}
+.ctab{display:none}
+.ctab.on{display:block}
+.scriptpick{display:flex;gap:6px;margin:4px 0 6px;flex-wrap:wrap}
+.scriptpick button{font-size:12px;padding:6px 12px;background:var(--chip);color:var(--muted);font-weight:600}
+.scriptpick button.on{background:var(--blue);color:#fff}
+.outstrip{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding:10px 22px;border-top:1px solid var(--line);background:var(--card)}
+.outstrip button{padding:9px 4px;font-size:12px;position:relative}
+.outstrip button kbd{position:absolute;top:2px;right:5px;font-size:8.5px;opacity:.5;font-family:inherit}
 #bignum{font-size:34px;font-weight:800;color:var(--blue);text-decoration:none;display:inline-block}
 [data-dark] #bignum{color:var(--teal)}
 .weblinks{margin-top:4px;font-size:13px}
@@ -494,6 +508,11 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--m
           </div>
           <p class="hint" id="teamExtra"></p>
         </div>
+        <div class="card" style="border-color:#f3c0c0">
+          <b style="font-size:15px;color:var(--red)">Danger Zone</b>
+          <p class="hint">Wipes every call, company, meeting, deal, commission, sequence, and the do-not-call list. Seats and invites survive. There is no undo.</p>
+          <button class="btn-red btn-sm" style="margin-top:8px" onclick="resetAll()">Reset all platform data</button>
+        </div>
         <div class="card">
           <b style="font-size:15px">All Sequences</b>
           <div style="overflow-x:auto;margin-top:8px">
@@ -533,6 +552,15 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--m
       <div class="besttime" id="p-besttime" style="display:none"></div>
       <div id="p-prevcalls"></div>
 
+      <div class="ctabs">
+        <button id="ctb-script" class="on" onclick="cmTab('script')">&#128220; Script</button>
+        <button id="ctb-close" class="gold" onclick="cmTab('close')">&#127942; Close</button>
+        <button id="ctb-email" onclick="cmTab('email')">&#9993;&#65039; Email</button>
+        <button id="ctb-obj" onclick="cmTab('obj')">&#128737;&#65039; Comebacks</button>
+        <button id="ctb-log" onclick="cmTab('log')">&#128221; Log</button>
+      </div>
+
+      <div class="ctab" id="ctab-close">
       <div class="closebox" id="closePanel">
         <b style="font-size:14px">&#127942; CLOSE THEM ON THIS CALL</b>
         <div class="hint" style="margin-top:4px">They said yes? Lock it while you are still on the phone: agreement and secure checkout hit their inbox in seconds. If they want to go deeper first, book the 15 with Ty instead.</div>
@@ -547,7 +575,10 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--m
         <div class="hint" id="cl-status"></div>
       </div>
 
-      <div class="seqbox" id="seqPanel">
+      </div>
+
+      <div class="ctab" id="ctab-email">
+      <div class="seqbox" id="seqPanel" style="margin-top:0">
         <b style="font-size:13px">&#9993;&#65039; No answer? Hit them by email.</b>
         <div class="hint" id="seqStatus" style="margin-top:4px"></div>
         <div class="row" style="margin-top:8px">
@@ -566,16 +597,27 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--m
         <div class="row" style="margin-top:8px;justify-content:flex-end"><button class="btn-blue btn-sm" onclick="sendOneoff()">Send</button></div>
       </div>
 
-      <h3 class="sec">Your Script <button class="btn-ghost btn-sm" onclick="copyTxt($('p-script').textContent,'Script copied.')" style="margin-left:auto">Copy</button></h3>
-      <div class="script" id="p-script"></div>
+      </div>
 
+      <div class="ctab on" id="ctab-script">
+      <div class="scriptpick">
+        <span style="font-size:11px;color:var(--muted);font-weight:700;align-self:center">STYLE:</span>
+        <button id="sp-straight" onclick="setScriptMode('straight')">Straight Shooter</button>
+        <button id="sp-expert" onclick="setScriptMode('expert')">Local Expert</button>
+        <button id="sp-gatekeeper" onclick="setScriptMode('gatekeeper')">Gatekeeper Breaker</button>
+        <button class="btn-ghost btn-sm" onclick="copyTxt($('p-script').textContent,'Script copied.')" style="margin-left:auto">Copy</button>
+      </div>
+      <div class="script" id="p-script" style="margin-top:0"></div>
       <h3 class="sec">Voicemail version</h3>
       <div class="script vm" id="p-vm"></div>
+      </div>
 
-      <h3 class="sec">When they push back (tap to open)</h3>
+      <div class="ctab" id="ctab-obj">
       <div id="p-objs"></div>
+      </div>
 
-      <h3 class="sec">Log this call</h3>
+      <div class="ctab" id="ctab-log">
+      <h3 class="sec" style="margin-top:4px">Log this call</h3>
       <input id="p-note" placeholder="Call note (who answered, what they said, next step)" style="width:100%">
       <div class="row" style="margin-top:8px" id="objChips">
         <span style="font-size:11.5px;color:var(--muted);font-weight:700">THE OBJECTION:</span>
@@ -595,16 +637,17 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--m
           <button onclick="quickFup(7)">next week</button>
         </div>
       </div>
-      <div class="outs">
-        <button class="o-na" onclick="logOutcome('no_answer')">No answer<kbd>1</kbd></button>
-        <button class="o-na" onclick="logOutcome('voicemail')">Left voicemail<kbd>2</kbd></button>
-        <button class="o-cb" onclick="logOutcome('callback')">Callback<kbd>3</kbd></button>
-        <button class="o-no" onclick="logOutcome('not_interested')">Not interested<kbd>4</kbd></button>
-        <button class="o-na" onclick="logOutcome('gatekeeper')">Gatekeeper<kbd>5</kbd></button>
-        <button class="o-dnc" onclick="logOutcome('dnc')">Do not call<kbd>6</kbd></button>
-        <button class="o-meet" style="grid-column:1/span 3" onclick="logOutcome('meeting')">&#128197; Booked the 15 with Ty<kbd>M</kbd></button>
-        <button class="o-close" onclick="logOutcome('closed')">&#127942; CLOSED ON THE CALL<kbd>C</kbd></button>
       </div>
+    </div>
+    <div class="outstrip">
+      <button class="o-na" onclick="logOutcome('no_answer')">No answer<kbd>1</kbd></button>
+      <button class="o-na" onclick="logOutcome('voicemail')">Voicemail<kbd>2</kbd></button>
+      <button class="o-cb" onclick="logOutcome('callback')">Callback<kbd>3</kbd></button>
+      <button class="o-no" onclick="logOutcome('not_interested')">Not interested<kbd>4</kbd></button>
+      <button class="o-na" onclick="logOutcome('gatekeeper')">Gatekeeper<kbd>5</kbd></button>
+      <button class="o-dnc" onclick="logOutcome('dnc')">Do not call<kbd>6</kbd></button>
+      <button class="o-meet" onclick="logOutcome('meeting')">&#128197; Booked Ty<kbd>M</kbd></button>
+      <button class="o-close" style="grid-column:auto" onclick="logOutcome('closed')">&#127942; CLOSED<kbd>C</kbd></button>
     </div>
     <div class="foot">
       <button class="btn-ghost btn-sm" onclick="navCall(-1)">&larr; Prev</button>
@@ -632,6 +675,7 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--m
       <button class="btn-green btn-sm" id="cp-contractBtn" onclick="openContract()">&#9997;&#65039; Send contract</button>
       <button class="btn-go btn-sm" onclick="openCheckout()">&#128179; Send checkout</button>
       <a class="btn-ghost btn-sm" id="cp-callLink" href="#" style="text-decoration:none">&#128222; <span id="cp-phone"></span></a>
+      <button class="btn-red btn-sm" onclick="cpDelete()">&#128465;&#65039; Delete</button>
     </div>
     <h3 class="sec">Everything that has happened</h3>
     <div id="cp-timeline" style="max-height:34vh;overflow-y:auto"></div>
@@ -1226,6 +1270,17 @@ function payAll(){
   if (!confirm('Mark every earned commission for '+rep+' as paid?')) return;
   api('ledger.payAll',{rep:rep}).then(function(){ toast('Marked paid.'); refresh(); }).catch(function(e){toast(e.message);});
 }
+function resetAll(){
+  var word = prompt('This wipes ALL calls, companies, deals, commissions, and sequences for a fresh start. Type RESET to confirm.');
+  if (word !== 'RESET') return toast('Not reset. It needs the exact word RESET.');
+  api('admin.reset',{confirm:'RESET'}).then(function(){
+    LIST=[]; LISTMETA={};
+    save('sdr_list',LIST); save('sdr_listmeta',LISTMETA);
+    chime();
+    toast('Clean slate. Everything is zeroed, seats intact.');
+    refresh(); loadPipeline();
+  }).catch(function(e){toast(e.message);});
+}
 function loadTeam(){
   api('user.list').then(function(d){
     var h = (d.users||[]).map(function(u){
@@ -1296,6 +1351,14 @@ function cpStage(){
   if (st==='lost'){ reason=prompt('Why did we lose them? (one line, it feeds the report)')||''; }
   api('company.stage',{phone:CURCOMP.phone,stage:st,reason:reason}).then(function(){ toast('Moved to '+STAGE_LBL[st]+'.'); loadPipeline(); }).catch(function(e){toast(e.message);});
 }
+function cpDelete(){
+  if (!confirm('Delete '+(CURCOMP.name||fmtPhone(CURCOMP.phone))+' from the pipeline? The company card goes, call history stays.')) return;
+  api('company.delete',{phone:CURCOMP.phone}).then(function(){
+    $('compmodal').classList.remove('show');
+    toast('Deleted from the pipeline.');
+    loadPipeline();
+  }).catch(function(e){toast(e.message);});
+}
 function cpSave(){
   api('company.save',{phone:CURCOMP.phone,contact:$('cp-contact').value.trim(),email:$('cp-email').value.trim()})
     .then(function(){ toast('Saved.'); }).catch(function(e){toast(e.message);});
@@ -1364,14 +1427,33 @@ function hook(b){
   return 'your Google listing has clearly been sitting unmanaged, and that’s quietly costing you calls';
 }
 function buildScript(b){
-  var me=BOOT.user.name, noun=LISTMETA.noun||'business', city=b.town||LISTMETA.city||'your area';
-  return '"Hey, is this the owner of '+b.name+'? ...\n\n'+
+  var me=BOOT.user.name, first=me.split(' ')[0];
+  var noun=LISTMETA.noun||b.industryNoun||'business', city=b.town||LISTMETA.city||'your area';
+  var biz=b.name||'your business';
+  var theFact=hook(b);
+  var closeAsk='THE CLOSE: "Most owners just say yes right here on the call. I email you the agreement and the secure checkout while we’re talking, you tap twice, and we start on '+biz+' this week. Want me to send it over right now?"';
+  var tyFallback='IF THEY HESITATE: "Totally fair. Then let’s do this: 15 minutes with Ty Burket, the owner, and he’ll pull up your listing live and show you exactly what’s leaking. Does tomorrow morning or afternoon treat you better?"';
+  if (SCRIPT_MODE==='expert'){
+    return '"Hi, is this the owner of '+biz+'? ... Hey, this is '+me+' with Burket Web Design. Quick question before anything else: when’s the last time you Googled “'+noun+' '+city+'” and looked at where you actually show up? ...\n\n'+
+      '(Let them answer. Most say never, or not lately.)\n\n'+
+      'That’s why I’m calling. I did it right before I dialed, and honestly, '+theFact+'.\n\n'+
+      'Here’s what that means in dollars: the top three spots on that map get basically every call in '+city+'. Every day you’re not up there, those jobs go to the three names above you. And your gap is fixable, we close it every day for Florida businesses like yours.\n\n'+
+      'The program is called Local Presence, 500 a month flat: your Google profile managed weekly, reviews growing on autopilot, citations, content, even how you show up when people ask AI tools who to hire.\n\n'+
+      closeAsk+'\n\n'+tyFallback;
+  }
+  if (SCRIPT_MODE==='gatekeeper'){
+    return 'STEP 1, WHOEVER ANSWERS: "Hey, it’s '+first+'. Is the owner around?" (Calm, familiar, zero pitch. Say nothing else.)\n\n'+
+      'IF THEY ASK WHAT IT’S ABOUT: "It’s about '+biz+'’s Google listing, there’s something on it they’ll want to see. Takes two minutes."\n\n'+
+      'IF THE OWNER IS NOT AVAILABLE: "No problem. Who should I ask for when I call back, and are mornings or afternoons better? ... Perfect. And if it’s easier, what’s the best email for them? I’ll send over the free Google scan so they can see it before we talk." (Log every scrap: name, best time, email. Set the callback. A gatekeeper who gives you the owner’s name is halfway to a warm call.)\n\n'+
+      'STEP 2, OWNER PICKS UP: "Hey, '+first+' with Burket Web Design, I’ll keep this to 30 seconds. I pulled up '+biz+' on Google before calling, and '+theFact+'. The top three map spots in '+city+' get basically all the calls, and we put businesses like yours up there for 500 a month flat."\n\n'+
+      closeAsk+'\n\n'+tyFallback;
+  }
+  return '"Hey, is this the owner of '+biz+'? ...\n\n'+
     'I’ll be straight with you: this is a cold call. You can hang up right now, or you can give me one minute and I’ll tell you exactly why I called you and nobody else. ...\n\n'+
     '(They almost always laugh or say go ahead.)\n\n'+
-    'Appreciate it. I’m '+me+', a sales representative with Burket Web Design. We help Florida service businesses win the Google map. Before I dialed, I pulled up '+b.name+' on Google, and honestly, '+hook(b)+'.\n\n'+
+    'Appreciate it. I’m '+me+', a sales representative with Burket Web Design. We help Florida service businesses win the Google map. Before I dialed, I pulled up '+biz+' on Google, and honestly, '+theFact+'.\n\n'+
     'When somebody in '+city+' searches for a '+noun+', the top three spots on the map get basically all the calls. We make sure businesses like yours own one of those spots. Our Local Presence program is 500 a month, flat, and it covers everything: your Google profile, reviews on autopilot, citations, content, even how you show up in AI search.\n\n'+
-    'THE CLOSE: "Most owners just say yes right here on the call. I email you the agreement and the secure checkout while we’re talking, you tap twice, and we start on '+b.name+' this week. Want me to send it over right now?"\n\n'+
-    'IF THEY HESITATE: "Totally fair. Then let’s do this: 15 minutes with Ty Burket, the owner, and he’ll pull up your listing live and show you exactly what’s leaking. Does tomorrow morning or afternoon treat you better?"';
+    closeAsk+'\n\n'+tyFallback;
 }
 function buildVM(b){
   var first=BOOT.user.name.split(' ')[0];
@@ -1400,10 +1482,25 @@ function renderPlaybook(){
     '<div class="playcard"><h3>&#127919; The Job, in one paragraph</h3><div style="font-size:13.5px;line-height:1.8;color:var(--muted)">Every day the hub hands you 25 qualified businesses that are losing on Google but close enough to fix. You call them, show them the exact gap, and <b style="color:var(--text)">close them on the phone</b>: agreement and checkout sent while you are still talking. If they need more, you book them 15 minutes with Ty and he closes. Four closed deals a month is the job. Every one past four puts $50 in your pocket.</div></div>'+
     '<div class="playcard"><h3>&#128222; The Opener (permission pattern)</h3><div class="script">"Hey, is this the owner? ... I’ll be straight with you: this is a cold call. You can hang up right now, or give me one minute and I’ll tell you exactly why I called you and nobody else. ... Appreciate it. I’m '+esc(first)+', a sales representative with Burket Web Design. Before I dialed, I pulled up your business on Google, and honestly, [THE FACT: their position, their review count, their missing website]."</div><div class="hint">The call screen fills the fact in for you automatically, for every single business.</div></div>'+
     '<div class="playcard"><h3>&#127942; The Close (ask for it)</h3><div class="script">"Most owners just say yes right here on the call. I email you the agreement and the secure checkout while we’re talking, you tap twice, and we start this week. Want me to send it over right now?"\n\nIf they hesitate: "Then let’s do 15 minutes with Ty Burket, the owner. He pulls up your listing live and shows you exactly what’s leaking. Morning or afternoon?"</div><div class="hint">Close first, meeting second. The gold button on the call screen sends contract + checkout in seconds.</div></div>'+
+    '<div class="playcard"><h3>&#127917; Three script styles (pick on the call screen)</h3><div style="font-size:13.5px;line-height:1.9;color:var(--muted)"><b style="color:var(--text)">Straight Shooter</b>: the permission opener. Admit it is a cold call, ask for one minute, hit them with their own Google fact. Best default.<br><b style="color:var(--text)">Local Expert</b>: opens with a question ("when did you last Google yourself?"), lets them discover the gap, then puts a dollar figure on it. Best for skeptical or chatty owners.<br><b style="color:var(--text)">Gatekeeper Breaker</b>: for front desks and office managers. Calm and familiar, no pitch until the owner is on, and it harvests the owner name, best time, and email if they are out.</div></div>'+
     '<div class="playcard"><h3>&#128172; Voicemail (under 20 seconds)</h3><div class="script vm">"Hey, this is '+esc(first)+' with Burket Web Design. I was on your Google listing right before this call and found something that’s probably costing you customers. Takes two minutes to show you. I’ll shoot the free scan over by email too. Call me back, again it’s '+esc(first)+'." (Say your number twice, slow. Then fire the email sequence.)</div></div>'+
     '<div class="playcard"><h3>&#128737;&#65039; Every comeback you will need</h3>'+objs+'</div>'+
     '<div class="playcard"><h3>&#128181; The Menu</h3><div style="font-size:13.5px;line-height:2;color:var(--muted)"><b style="color:var(--text)">Local Presence</b> · $500/mo · the flagship: GBP managed, reviews on autopilot, citations, content, AI search<br><b style="color:var(--text)">Local Presence + Website SEO &amp; Maintenance</b> · $750/mo<br><b style="color:var(--text)">One Page Website</b> · $650 one time<br><b style="color:var(--text)">Full Site</b> · $850 one time</div></div>'+
     '<div class="playcard"><h3>&#9889; Hotkeys on the call screen</h3><div style="font-size:13.5px;line-height:2;color:var(--muted)"><b style="color:var(--text)">1</b> no answer · <b style="color:var(--text)">2</b> voicemail · <b style="color:var(--text)">3</b> callback · <b style="color:var(--text)">4</b> not interested · <b style="color:var(--text)">5</b> gatekeeper · <b style="color:var(--text)">6</b> do not call · <b style="color:var(--text)">M</b> booked Ty · <b style="color:var(--text)">C</b> closed · <b style="color:var(--text)">N/P</b> next and previous</div></div>';
+}
+
+/* ================= CALL MODAL TABS + SCRIPT STYLES ================= */
+var SCRIPT_MODE = load('sdr_script','straight');
+function cmTab(t){
+  ['script','close','email','obj','log'].forEach(function(x){
+    var b2=$('ctb-'+x); if(b2) b2.classList.toggle('on', x===t);
+    var p2=$('ctab-'+x); if(p2) p2.classList.toggle('on', x===t);
+  });
+}
+function setScriptMode(m){
+  SCRIPT_MODE=m; save('sdr_script',m);
+  ['straight','expert','gatekeeper'].forEach(function(x){ var b2=$('sp-'+x); if(b2) b2.classList.toggle('on', x===m); });
+  var b=curBiz(); if(b) $('p-script').textContent=buildScript(b);
 }
 
 /* ================= CALL MODAL ================= */
@@ -1447,10 +1544,13 @@ function fillModal(b, progressTxt){
   $('seq-email').value=b.email||'';
   $('cl-email').value=b.email||'';
   $('cl-prod').innerHTML=BOOT.products.filter(function(p){return p.amount||p.monthly;}).map(function(p){return '<option value="'+p.id+'">'+esc(p.label)+'</option>';}).join('');
+  $('cl-prod').value='lp500';
   $('cl-status').textContent='';
   $('scrapeOut').innerHTML='';
   $('scrapeBtn').style.display=b.website?'inline-block':'none';
   $('seqStatus').textContent=b.website?'Scrape their site for an email, or paste one, then fire the 3-step sequence with the free scan link.':'No website on file. Paste their email if you can find one (Facebook page is usually the spot).';
+  cmTab('script');
+  ['straight','expert','gatekeeper'].forEach(function(x){ var b2=$('sp-'+x); if(b2) b2.classList.toggle('on', x===SCRIPT_MODE); });
   $('p-script').textContent=buildScript(b);
   $('p-vm').textContent=buildVM(b);
   $('p-objs').innerHTML=OBJECTIONS().map(function(o){
@@ -1556,6 +1656,7 @@ function logOutcome(out){
       if (out==='voicemail'||out==='no_answer'){
         renderList();
         $('seqStatus').innerHTML='<b>Logged (demo).</b> Try the email sequence button, the email really sends, to you.';
+        cmTab('email');
         return;
       }
       var nx=-1;
@@ -1579,6 +1680,7 @@ function logOutcome(out){
     if (out==='voicemail'||out==='no_answer'){
       renderList();
       $('seqStatus').innerHTML='<b>Logged.</b> Now hit them by email while the dial is fresh, then move on.';
+      cmTab('email');
       return;
     }
     var next=-1;
