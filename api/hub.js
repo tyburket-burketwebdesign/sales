@@ -549,11 +549,112 @@ module.exports = async function handler(req, res) {
       await sql`DELETE FROM dnc`;
       await sql`DELETE FROM proposals`;
       await sql`DELETE FROM contracts`;
+      await sql`DELETE FROM shift_reports`;
       await sql`DELETE FROM kv`;
       return ok(true);
     }
 
     /* ---------------- TEAM (owner) ---------------- */
+    /* ---------------- SCREEN POP: who is calling? ---------------- */
+    if (a === 'company.lookup') {
+      const phone = C.normPhone(P.phone);
+      if (!phone) return ok({ found: false });
+      let comp = (await sql`SELECT * FROM companies WHERE phone=${phone}`)[0];
+      const last = await sql`SELECT outcome, note, rep, ts, fup FROM calls WHERE phone=${phone} ORDER BY ts DESC LIMIT 3`;
+      if (!comp) {
+        const lc = (await sql`SELECT * FROM calls WHERE phone=${phone} ORDER BY ts DESC LIMIT 1`)[0];
+        if (!lc) return ok({ found: false, phone });
+        comp = { phone, name: lc.name, website: lc.website, email: lc.email, city: lc.city, industry: lc.industry,
+                 rating: lc.rating, reviews: lc.reviews, pos: lc.pos, addr: lc.addr, maps: lc.maps, stage: 'contacted', contact: '' };
+      }
+      const em = (await sql`SELECT subject, ts FROM emails_log WHERE phone=${phone} ORDER BY ts DESC LIMIT 1`)[0] || null;
+      const mt = (await sql`SELECT meet_date, status FROM meetings WHERE phone=${phone} ORDER BY ts DESC LIMIT 1`)[0] || null;
+      return ok({ found: true, company: comp, last, lastEmail: em, meeting: mt });
+    }
+
+    /* ---------------- MORNING START + END-OF-SHIFT REPORT ---------------- */
+    if (a === 'morning') {
+      const lastDay = (await sql`SELECT to_char(max((ts AT TIME ZONE 'America/New_York')::date), 'YYYY-MM-DD') AS d FROM calls
+        WHERE rep=${user.email} AND (ts AT TIME ZONE 'America/New_York')::date < (now() AT TIME ZONE 'America/New_York')::date`)[0].d;
+      let prev = null;
+      if (lastDay) {
+        prev = (await sql`SELECT count(*)::int AS dials,
+            count(*) FILTER (WHERE outcome IN ('callback','not_interested','meeting','closed','dnc'))::int AS convos,
+            count(*) FILTER (WHERE outcome='meeting')::int AS meetings,
+            count(*) FILTER (WHERE outcome='closed')::int AS closed
+          FROM calls WHERE rep=${user.email} AND (ts AT TIME ZONE 'America/New_York')::date = ${lastDay}::date`)[0];
+        prev.day = lastDay;
+      }
+      const meetSoon = await sql`SELECT business, meet_date, phone FROM meetings WHERE (rep=${user.email} OR ${OWNER})
+        AND status='set' AND meet_date >= (now() AT TIME ZONE 'America/New_York')::date
+        AND meet_date <= (now() AT TIME ZONE 'America/New_York')::date + 7 ORDER BY meet_date LIMIT 8`;
+      const monthMeet = (await sql`SELECT count(*)::int AS n FROM calls WHERE rep=${user.email} AND outcome='meeting'
+        AND ts >= date_trunc('month', now() AT TIME ZONE 'America/New_York') AT TIME ZONE 'America/New_York'`)[0].n;
+      return ok({ prev, meetSoon, monthMeet });
+    }
+    async function shiftStats(email) {
+      const r = (await sql`SELECT count(*)::int AS dials,
+          count(*) FILTER (WHERE outcome IN ('callback','not_interested','meeting','closed','dnc'))::int AS convos,
+          count(*) FILTER (WHERE outcome='meeting')::int AS meetings,
+          count(*) FILTER (WHERE outcome='closed')::int AS closed,
+          count(*) FILTER (WHERE outcome='voicemail')::int AS voicemails,
+          count(*) FILTER (WHERE outcome='callback')::int AS callbacks,
+          count(*) FILTER (WHERE outcome='gatekeeper')::int AS gatekeepers,
+          count(*) FILTER (WHERE outcome='not_interested')::int AS not_int,
+          min(ts) AS first_ts, max(ts) AS last_ts
+        FROM calls WHERE rep=${email} AND (ts AT TIME ZONE 'America/New_York')::date = (now() AT TIME ZONE 'America/New_York')::date`)[0];
+      r.emails = (await sql`SELECT count(*)::int AS n FROM emails_log WHERE rep=${email}
+        AND (ts AT TIME ZONE 'America/New_York')::date = (now() AT TIME ZONE 'America/New_York')::date`)[0].n;
+      const ob = await sql`SELECT obj, count(*)::int AS n FROM calls WHERE rep=${email} AND obj <> ''
+        AND (ts AT TIME ZONE 'America/New_York')::date = (now() AT TIME ZONE 'America/New_York')::date GROUP BY obj ORDER BY n DESC`;
+      r.objections = ob.map(o => o.obj + ' (' + o.n + ')').join(', ');
+      r.wins = await sql`SELECT name, outcome, note FROM calls WHERE rep=${email} AND outcome IN ('meeting','closed','callback')
+        AND (ts AT TIME ZONE 'America/New_York')::date = (now() AT TIME ZONE 'America/New_York')::date ORDER BY ts`;
+      r.day = (await sql`SELECT to_char((now() AT TIME ZONE 'America/New_York')::date, 'YYYY-MM-DD') AS d`)[0].d;
+      r.sent = (await sql`SELECT count(*)::int AS n FROM shift_reports WHERE rep=${email} AND day=${r.day}::date`)[0].n > 0;
+      return r;
+    }
+    if (a === 'shift.preview') {
+      return ok(await shiftStats(user.email));
+    }
+    if (a === 'shift.submit') {
+      const st = await shiftStats(user.email);
+      const T = k => String(P[k] || '').trim().slice(0, 2000);
+      await sql`INSERT INTO shift_reports (rep, rep_name, day, dials, convos, meetings, closed, voicemails, callbacks, gatekeepers, not_int, emails, objections, well, bad, improve, need)
+        VALUES (${user.email}, ${user.name}, ${st.day}::date, ${st.dials}, ${st.convos}, ${st.meetings}, ${st.closed}, ${st.voicemails}, ${st.callbacks},
+                ${st.gatekeepers}, ${st.not_int}, ${st.emails}, ${st.objections}, ${T('well')}, ${T('bad')}, ${T('improve')}, ${T('need')})`;
+      const esc = x => String(x == null ? '' : x).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>');
+      const dayTxt = new Date(String(st.day).slice(0, 10) + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+      const rate = st.dials ? Math.round(st.convos / st.dials * 100) : 0;
+      const box = (n, l) => '<td style="padding:10px 6px;text-align:center;background:#f7f9fc;border-radius:10px"><div style="font-size:24px;font-weight:bold;color:#0e2235">' + n + '</div><div style="font-size:11px;color:#5b6b80">' + l + '</div></td>';
+      const qa = (q, v) => '<p style="margin:16px 0 4px;font-weight:bold;color:#0e2235">' + q + '</p><p style="margin:0;color:#1a2435;line-height:1.6">' + (v ? esc(v) : '<span style="color:#8b9ab0">Nothing added.</span>') + '</p>';
+      const wins = (st.wins || []).map(w => '<li>' + esc(w.name || 'Unknown') + ': ' + esc(String(w.outcome).replace('_', ' ')) + (w.note ? ' (' + esc(w.note) + ')' : '') + '</li>').join('');
+      const html = '<div style="font-family:Arial,Helvetica,sans-serif;max-width:600px;margin:0 auto;background:#ffffff">' +
+        '<div style="background:#0e2235;padding:20px 24px;border-radius:14px 14px 0 0"><img src="https://www.burketwebdesign.com/assets/logo.png" alt="Burket Web Design" style="height:40px"></div>' +
+        '<div style="padding:24px;border:1px solid #e3e9f0;border-top:none;border-radius:0 0 14px 14px">' +
+        '<h2 style="margin:0;color:#0e2235">End-of-shift report</h2><p style="margin:4px 0 18px;color:#5b6b80">' + esc(user.name) + ' &middot; ' + dayTxt + '</p>' +
+        '<table role="presentation" width="100%" cellspacing="6" cellpadding="0"><tr>' + box(st.dials, 'dials') + box(st.convos, 'conversations') + box(st.meetings, 'meetings booked') + box(st.closed, 'sold') + '</tr></table>' +
+        '<p style="color:#5b6b80;font-size:13px;margin:12px 0 0">Conversation rate ' + rate + '% &middot; ' + st.voicemails + ' voicemails &middot; ' + st.callbacks + ' callbacks set &middot; ' + st.gatekeepers + ' gatekeepers &middot; ' + st.emails + ' emails sent</p>' +
+        (st.objections ? '<p style="color:#5b6b80;font-size:13px;margin:6px 0 0">Objections heard: ' + esc(st.objections) + '</p>' : '') +
+        (wins ? '<p style="margin:16px 0 4px;font-weight:bold;color:#0e2235">Wins and warm leads</p><ul style="margin:0;padding-left:18px;color:#1a2435;line-height:1.6">' + wins + '</ul>' : '') +
+        qa('What went well today?', T('well')) + qa('What did not go well?', T('bad')) + qa('Areas for improvement tomorrow', T('improve')) + qa('Anything needed from Ty?', T('need')) +
+        '<p style="margin:22px 0 0;font-size:12px;color:#8b9ab0">Sent from the BWD Sales Hub. Numbers are pulled automatically from logged calls.</p></div></div>';
+      const subj = 'Shift report: ' + user.name + ', ' + dayTxt + ' (' + st.dials + ' dials, ' + st.meetings + ' meetings' + (st.closed ? ', ' + st.closed + ' sold' : '') + ')';
+      const mailTo = process.env.MAIL_TO || process.env.OWNER_EMAIL;
+      let emailed = false, emailError = '';
+      try {
+        if (mailTo) { await C.sendMail(mailTo, subj, html, user.email); emailed = true; }
+        if (mailTo && mailTo.toLowerCase() !== user.email.toLowerCase()) await C.sendMail(user.email, 'Your copy: ' + subj, html).catch(() => {});
+      } catch (e) { emailError = e.message || String(e); }
+      return ok({ emailed, emailError });
+    }
+    if (a === 'shift.list') {
+      const rows = OWNER
+        ? await sql`SELECT *, to_char(day, 'YYYY-MM-DD') AS dayk FROM shift_reports ORDER BY ts DESC LIMIT 40`
+        : await sql`SELECT *, to_char(day, 'YYYY-MM-DD') AS dayk FROM shift_reports WHERE rep=${user.email} ORDER BY ts DESC LIMIT 20`;
+      return ok(rows);
+    }
+
     if (a === 'user.invite') {
       if (!OWNER) return err('Owner only.');
       const em = String(P.email || '').toLowerCase().trim();

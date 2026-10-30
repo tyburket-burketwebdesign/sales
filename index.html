@@ -201,6 +201,28 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--m
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.55}}
 #callbar{position:fixed;bottom:20px;right:20px;background:var(--navy);color:#fff;border-radius:16px;padding:14px 18px;z-index:120;box-shadow:0 16px 48px rgba(0,0,0,.45);display:none;min-width:270px;border:1px solid rgba(255,255,255,.12)}
 #callbar.show{display:block}
+#callbar .cbwho{font-size:12px;color:#cfe3f3;margin-top:4px;line-height:1.5;max-width:300px}
+#callbar .cbwho b{color:var(--gold)}
+.ms-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px}
+.ms-grid div{background:var(--bg,#f4f7fb);border-radius:12px;padding:10px 6px;text-align:center}
+.ms-grid b{display:block;font-size:22px;color:var(--navy)}
+.ms-grid span{font-size:11px;color:var(--muted)}
+.ms-sec{margin-top:16px;text-align:left}
+.ms-sec h4{margin:0 0 6px;font-size:12px;letter-spacing:.08em;color:var(--muted);text-transform:uppercase}
+.ms-plan{background:linear-gradient(135deg,var(--navy),var(--navy2));color:#fff;border-radius:14px;padding:14px 16px;text-align:left}
+.ms-plan b{color:var(--gold)}
+.ms-check{display:flex;align-items:center;gap:8px;font-size:13.5px;padding:6px 0;border-bottom:1px solid var(--line)}
+.ms-check:last-child{border-bottom:none}
+.ms-dot{width:10px;height:10px;border-radius:50%;background:#cbd5e1;flex:none}
+.ms-dot.ok{background:var(--green)}.ms-dot.bad{background:var(--red)}
+#micBar{height:8px;border-radius:8px;background:var(--line);overflow:hidden;flex:1;max-width:160px}
+#micBar i{display:block;height:100%;width:0;background:var(--green);transition:width .08s}
+.sr-q{margin-top:12px;text-align:left}
+.sr-q label{font-weight:700;font-size:13px;color:var(--navy);display:block;margin-bottom:4px}
+.sr-q textarea{width:100%;min-height:58px;resize:vertical}
+.srrow{border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-top:8px;cursor:pointer}
+.srrow .srbody{display:none;margin-top:8px;font-size:13px;line-height:1.6}
+.srrow.open .srbody{display:block}
 #callbar .cbnum{font-weight:700;font-size:14px}
 #callbar .cbstatus{font-size:12px;color:var(--teal);margin-top:2px}
 #callbar .cbtimer{font-size:22px;font-weight:800;font-variant-numeric:tabular-nums;margin:8px 0}
@@ -286,6 +308,8 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--m
         <div><b id="meName">-</b><span id="meRole">-</span></div>
       </div>
       <div class="footbtns">
+        <button onclick="openMorning()" title="Morning start">&#9728;&#65039;</button>
+        <button onclick="openShift()" title="End my shift">&#127937;</button>
         <button onclick="togglePH()" title="Power hour">&#9889;</button>
         <button onclick="toggleDark()" title="Dark mode">&#127769;</button>
         <button onclick="logout()" title="Sign out">&#10162;</button>
@@ -321,6 +345,8 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--m
             <button class="btn-go" onclick="gotoView('dialer');setTimeout(hunt,50)">&#9889; Build Today's 25 &amp; Dial</button>
             <button class="btn-ghost" style="background:rgba(255,255,255,.12);color:#fff" onclick="gotoView('play')">&#128218; Open the Playbook</button>
             <button class="btn-ghost" style="background:rgba(124,58,237,.35);color:#fff" onclick="enterDemo()">&#127891; Demo / Training</button>
+            <button class="btn-ghost" style="background:rgba(255,255,255,.12);color:#fff" onclick="openMorning()">&#9728;&#65039; Morning Start</button>
+            <button class="btn-ghost" style="background:rgba(22,163,74,.4);color:#fff" onclick="openShift()">&#127937; End My Shift</button>
           </div>
           <div class="quote" id="quoteTxt"></div>
         </div>
@@ -472,6 +498,11 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--m
           <div class="kpi"><b id="o-mrr">$0</b><span>client MRR on the books</span></div>
           <div class="kpi"><b id="o-onetime">$0</b><span>one-time revenue closed</span></div>
           <div class="kpi"><b id="o-annual">$0</b><span>annualized run rate</span></div>
+        </div>
+        <div class="card">
+          <div class="row"><b style="font-size:15px">Shift Reports</b><div style="flex:1"></div><button class="btn-ghost btn-sm" onclick="loadShiftReports()">Refresh</button></div>
+          <div class="hint">Every end-of-shift report also lands in your inbox. Tap a report to read the notes.</div>
+          <div id="shiftList" style="margin-top:6px"></div>
         </div>
         <div class="card">
           <div class="row"><b style="font-size:15px">Team Seats</b></div>
@@ -735,7 +766,53 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--m
     <h2 style="font-size:20px;margin-top:6px">List finished.</h2>
     <div id="recapBody" class="hint" style="font-size:14px;line-height:2;margin-top:10px"></div>
     <div class="row" style="margin-top:16px;justify-content:center">
-      <button class="btn-blue" onclick="$('recapmodal').classList.remove('show')">Done</button>
+      <button class="btn-ghost" onclick="$('recapmodal').classList.remove('show')">Done</button>
+      <button class="btn-go" onclick="$('recapmodal').classList.remove('show');openShift()">&#127937; Send my shift report</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal2" id="morningmodal">
+  <div class="inner" style="width:600px">
+    <div style="display:flex;align-items:center;gap:12px">
+      <img src="https://www.burketwebdesign.com/assets/logo.png" style="height:40px" onerror="this.style.display='none'">
+      <div style="flex:1"><h2 style="font-size:20px;margin:0" id="ms-title">Good morning</h2><div class="hint" id="ms-date"></div></div>
+      <button class="btn-ghost btn-sm" onclick="closeMorning()">&#10005;</button>
+    </div>
+    <div class="ms-sec"><div class="ms-plan" id="ms-plan"></div></div>
+    <div class="ms-sec"><h4 id="ms-prevh">Last shift</h4><div class="ms-grid" id="ms-prev"></div></div>
+    <div class="ms-sec"><h4>Due today</h4><div id="ms-due" class="hint" style="line-height:1.9"></div></div>
+    <div class="ms-sec"><h4>This month</h4><div id="ms-month" class="hint" style="line-height:1.9"></div></div>
+    <div class="ms-sec"><h4>Ready to dial</h4>
+      <div class="ms-check"><span class="ms-dot" id="ms-d-dial"></span><span style="flex:1" id="ms-t-dial">Checking the dialer...</span></div>
+      <div class="ms-check"><span class="ms-dot" id="ms-d-mic"></span><span style="flex:1" id="ms-t-mic">Headset mic not tested yet</span><span id="micBar"><i></i></span><button class="btn-ghost btn-sm" onclick="micTest()">Test mic</button></div>
+      <div class="ms-check"><span class="ms-dot ok"></span><span style="flex:1">Keep this tab open all shift. Callbacks ring here, and the caller's record opens when you answer.</span></div>
+    </div>
+    <div class="row" style="margin-top:18px">
+      <button class="btn-ghost" onclick="closeMorning()">Not yet</button>
+      <div style="flex:1"></div>
+      <button class="btn-blue" id="ms-fupBtn" style="display:none" onclick="closeMorning();gotoView('dialer');openFup(0)">Start with follow-ups</button>
+      <button class="btn-go" onclick="closeMorning();gotoView('dialer');setTimeout(hunt,50)">&#9889; Build today's list &amp; dial</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal2" id="shiftmodal">
+  <div class="inner" style="width:600px">
+    <div style="display:flex;align-items:center;gap:12px">
+      <div style="font-size:30px">&#127937;</div>
+      <div style="flex:1"><h2 style="font-size:20px;margin:0">End-of-shift report</h2><div class="hint" id="sr-sub">Your numbers fill in automatically. Add a few lines and send it to Ty.</div></div>
+      <button class="btn-ghost btn-sm" onclick="$('shiftmodal').classList.remove('show')">&#10005;</button>
+    </div>
+    <div class="ms-grid" id="sr-nums" style="margin-top:14px"></div>
+    <div class="hint" id="sr-extra" style="margin-top:8px;line-height:1.7"></div>
+    <div class="sr-q"><label>What went well today?</label><textarea id="sr-well" oninput="srDraft()" placeholder="A great conversation, a script line that landed, a meeting you booked..."></textarea></div>
+    <div class="sr-q"><label>What did not go well?</label><textarea id="sr-bad" oninput="srDraft()" placeholder="Objections you could not get past, an industry that is not answering..."></textarea></div>
+    <div class="sr-q"><label>Areas for improvement tomorrow</label><textarea id="sr-improve" oninput="srDraft()" placeholder="One or two things you will do differently."></textarea></div>
+    <div class="sr-q"><label>Anything you need from Ty?</label><textarea id="sr-need" oninput="srDraft()" placeholder="Leave blank if you are all set."></textarea></div>
+    <div class="row" style="margin-top:16px">
+      <div class="hint" id="sr-status" style="flex:1"></div>
+      <button class="btn-go" id="sr-send" onclick="sendShift()">Send to Ty &rarr;</button>
     </div>
   </div>
 </div>
@@ -759,6 +836,7 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--m
 <div id="callbar">
   <div class="cbnum" id="cb-num">-</div>
   <div class="cbstatus" id="cb-status">Connecting...</div>
+  <div class="cbwho" id="cb-who" style="display:none"></div>
   <div class="cbtimer" id="cb-timer">00:00</div>
   <div class="row" id="cb-actions"><button class="cbm" id="cb-mute" onclick="twMute()">&#127908; Mute</button><button class="cbh" onclick="twHangup()">&#128683; Hang Up</button></div>
   <div class="row" id="cb-inc" style="display:none"><button class="cba" onclick="twAnswer()">&#9989; Answer</button><button class="cbh" onclick="twReject()">&#10060; Decline</button></div>
@@ -862,7 +940,7 @@ var TOKEN = load('sdr_token','');
 var BOOT = null;
 var LIST = load('sdr_list', []);
 var LISTMETA = load('sdr_listmeta', {});
-var CUR = null, CURFUP = null;
+var CUR = null, CURFUP = null, TODAY_PLAN = null;
 var CALLSTART = 0, CALLTICK = null, LASTLOG = null;
 var PH = load('sdr_ph', null);
 var INVITE_TOKEN = '';
@@ -878,6 +956,7 @@ function toast(m, undoable){
 }
 function todayKey(){ return new Date().toISOString().slice(0,10); }
 function fmtPhone(p){ var d=String(p||'').replace(/\D/g,''); if(d.length===11&&d[0]==='1')d=d.slice(1); return d.length===10?'('+d.substr(0,3)+') '+d.substr(3,3)+'-'+d.substr(6):p; }
+function fday(x){ try{ return new Date(String(x).slice(0,10)+'T12:00:00').toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'}); }catch(e){ return x; } }
 function fdate(x){ try{ return new Date(x).toLocaleDateString(undefined,{month:'short',day:'numeric'}); }catch(e){ return x; } }
 function fsec(s){ return Math.floor(s/60)+':'+String(s%60).padStart(2,'0'); }
 function money(n){ return '$'+Number(n||0).toLocaleString(undefined,{maximumFractionDigits:2}); }
@@ -969,6 +1048,9 @@ function boot(){
       $('wm-title').textContent='Welcome to your hub, '+BOOT.user.name.split(' ')[0];
       $('welcomemodal').classList.add('show');
       confetti();
+      save('sdr_morning_'+localKey(), true);
+    } else if (!load('sdr_morning_'+localKey(), false)) {
+      openMorning();
     }
   }).catch(function(e){
     $('login').style.display='flex'; $('app').style.display='none';
@@ -994,6 +1076,7 @@ function initControls(){
   $('heroHi').textContent = greet+', '+BOOT.user.name.split(' ')[0]+'.';
   var mi0 = MARKETS.indexOf($('market').value);
   var sweep = [MARKETS[mi0], MARKETS[(mi0+1)%MARKETS.length], MARKETS[(mi0+2)%MARKETS.length]].join(', ');
+  TODAY_PLAN = { ind: sug.label, best: sug.best, sweep: sweep, week: plan ? GAMEPLAN_WEEKS[plan.wk] : null };
   if (plan){
     var wk = GAMEPLAN_WEEKS[plan.wk];
     $('planLine').textContent = wk.label + ' game plan · today: ' + sug.label + ' in ' + sweep + ' · best window ' + sug.best;
@@ -1021,7 +1104,7 @@ function gotoView(v){
   $('side').classList.remove('open');
   if (v==='past') loadHistory();
   if (v==='pipe') loadPipeline();
-  if (v==='owner'){ refresh(); loadTeam(); }
+  if (v==='owner'){ refresh(); loadTeam(); loadShiftReports(); }
   if (v==='dash'||v==='comm'||v==='seq'||v==='meet') refresh();
 }
 document.querySelectorAll('.nv').forEach(function(b){ b.addEventListener('click', function(){ gotoView(b.getAttribute('data-view')); }); });
@@ -1160,7 +1243,7 @@ function loadBreakdown(){
 function renderHistoryBoot(){
   var due=(BOOT&&BOOT.fups)||[];
   $('dueWrap').innerHTML = due.length ? ('<div class="hint" style="margin-bottom:6px"><b>Follow-ups due:</b></div>'+due.map(function(h,i){
-    return '<div class="histline due" style="display:flex;gap:8px;align-items:center"><span style="flex:1;cursor:pointer" onclick="openFup('+i+')"><b>'+esc(h.name||fmtPhone(h.phone))+'</b> · '+esc(fmtPhone(h.phone))+' · promised '+esc(fdate(h.fup))+(h.note?' · "'+esc(h.note)+'"':'')+'</span><button class="btn-ghost btn-sm" onclick="snoozeFup(\''+h.phone+'\',1)">+1d</button><button class="btn-ghost btn-sm" onclick="snoozeFup(\''+h.phone+'\',7)">+1w</button></div>';
+    return '<div class="histline due" style="display:flex;gap:8px;align-items:center"><span style="flex:1;cursor:pointer" onclick="openFup('+i+')"><b>'+esc(h.name||fmtPhone(h.phone))+'</b> · '+esc(fmtPhone(h.phone))+' · promised '+esc(fday(h.fup))+(h.note?' · "'+esc(h.note)+'"':'')+'</span><button class="btn-ghost btn-sm" onclick="snoozeFup(\''+h.phone+'\',1)">+1d</button><button class="btn-ghost btn-sm" onclick="snoozeFup(\''+h.phone+'\',7)">+1w</button></div>';
   }).join('')) : '';
 }
 function snoozeFup(phone,days){
@@ -1177,7 +1260,7 @@ function loadHistory(){
         '<td><b>'+esc(h.name||'-')+'</b></td>'+
         '<td class="phone">'+esc(fmtPhone(h.phone))+'</td>'+
         '<td class="hidem">'+esc((h.city||'')+(h.industry?' · '+h.industry:''))+'</td>'+
-        '<td>'+statusTag(h.outcome)+(h.fup&&!h.fup_done?' <span class="tag t-gold">f/u '+esc(fdate(h.fup))+'</span>':'')+'</td>'+
+        '<td>'+statusTag(h.outcome)+(h.fup&&!h.fup_done?' <span class="tag t-gold">f/u '+esc(fday(h.fup))+'</span>':'')+'</td>'+
         '<td class="hidem" style="color:var(--muted);max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(h.note||'')+'</td></tr>';
     }).join('') : '<tr><td colspan="6"><div class="empty">No calls logged yet.</div></td></tr>';
   }).catch(function(e){ toast(e.message); });
@@ -1638,7 +1721,7 @@ function openCall(i){
 function openFup(i){
   var h=BOOT.fups[i]; if(!h)return;
   CUR=null; CURFUP=h;
-  fillModal(normHist(h),'Follow-up · promised '+fdate(h.fup));
+  fillModal(normHist(h),'Follow-up · promised '+fday(h.fup));
 }
 function openPastIdx(i){
   var h=HIST_CACHE[i]; if(!h)return;
@@ -1860,7 +1943,7 @@ function exitDemo(){
 }
 
 /* ================= TWILIO DIALER ================= */
-var TW={device:null,conn:null,inc:null,inited:false,sdk:false,timer:null,startAt:0,to:''};
+var TW={device:null,conn:null,inc:null,incInfo:null,inited:false,sdk:false,timer:null,startAt:0,to:''};
 function twEnabled(){ return BOOT&&BOOT.twilio&&BOOT.twilio.enabled; }
 function twSdk(){
   return new Promise(function(res,rej){
@@ -1938,6 +2021,7 @@ function twIncoming(inc){
   $('callbar').classList.add('show');
   inc.on('cancel',twIncEnd);inc.on('reject',twIncEnd);inc.on('disconnect',twEnded);
   toast('📞 Incoming call from '+(fmtPhone(inc.parameters.From||'')||'unknown'));
+  popLookup(inc);
 }
 function twIncEnd(){
   TW.inc=null;
@@ -1950,12 +2034,14 @@ function twAnswer(){
   $('cb-inc').style.display='none';$('cb-actions').style.display='flex';
   inc.on('accept',function(){$('cb-status').textContent='On call';twTimerStart();});
   inc.accept();
+  if(TW.incInfo&&TW.incInfo.found) popOpen(TW.incInfo);
 }
 function twReject(){if(TW.inc){try{TW.inc.reject();}catch(e){}}twIncEnd();}
 function twEnded(){
   clearInterval(TW.timer);
   var secs=TW.startAt?Math.round((Date.now()-TW.startAt)/1000):0;
   $('callbar').classList.remove('show');
+  $('cb-who').style.display='none'; TW.incInfo=null;
   if(secs>0){
     api('twilio.log',{seconds:secs}).catch(function(){});
     toast('Call ended, '+Math.floor(secs/60)+'m '+(secs%60)+'s. Log the outcome.');
@@ -1968,6 +2054,202 @@ function twMute(){
   var m=!TW.conn.isMuted();
   TW.conn.mute(m);
   $('cb-mute').textContent=m?'🔇 Muted':'🎤 Mute';
+}
+
+/* ================= MORNING START ================= */
+function openMorning(){
+  if(!BOOT) return;
+  save('sdr_morning_'+localKey(), true);
+  var hr=new Date().getHours();
+  $('ms-title').textContent=(hr<12?'Good morning':hr<17?'Good afternoon':'Good evening')+', '+BOOT.user.name.split(' ')[0]+'.';
+  $('ms-date').textContent=new Date().toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric'});
+  var P=TODAY_PLAN||{};
+  $('ms-plan').innerHTML='<div style="font-size:12px;letter-spacing:.08em;opacity:.75">'+esc(P.week?P.week.label.toUpperCase()+' GAME PLAN':'TODAY’S PLAY')+'</div>'+
+    '<div style="font-size:17px;margin-top:4px"><b>'+esc(P.ind||'')+'</b> in '+esc(P.sweep||'')+'</div>'+
+    '<div style="font-size:13px;margin-top:4px;opacity:.9">Best window: '+esc(P.best||'')+'</div>'+
+    (P.week?'<div style="font-size:12.5px;margin-top:8px;opacity:.8;line-height:1.5">'+esc(P.week.why)+'</div>':'');
+  var fups=BOOT.fups||[];
+  $('ms-due').innerHTML=fups.length
+    ? '<b>'+fups.length+' follow-up'+(fups.length===1?'':'s')+'</b> promised for today or earlier. Call these first, they answer at double the rate.<br>'+
+      fups.slice(0,5).map(function(f){return '&bull; '+esc(f.name||fmtPhone(f.phone))+(f.note?' <span style="color:var(--muted2)">"'+esc(String(f.note).slice(0,60))+'"</span>':'');}).join('<br>')+(fups.length>5?'<br>&bull; plus '+(fups.length-5)+' more':'')
+    : 'No follow-ups due. Clean slate, straight to new dials.';
+  $('ms-fupBtn').style.display=fups.length?'inline-block':'none';
+  $('ms-fupBtn').textContent='Start with '+fups.length+' follow-up'+(fups.length===1?'':'s');
+  $('ms-prev').innerHTML='<div><b>-</b><span>dials</span></div><div><b>-</b><span>conversations</span></div><div><b>-</b><span>meetings</span></div><div><b>-</b><span>sold</span></div>';
+  $('ms-month').textContent='Loading...';
+  api('morning').then(function(d){
+    var p=d.prev;
+    if(p){
+      $('ms-prevh').textContent='Last shift · '+new Date(String(p.day).slice(0,10)+'T12:00:00').toLocaleDateString(undefined,{weekday:'long',month:'short',day:'numeric'});
+      $('ms-prev').innerHTML='<div><b>'+p.dials+'</b><span>dials</span></div><div><b>'+p.convos+'</b><span>conversations</span></div><div><b>'+p.meetings+'</b><span>meetings</span></div><div><b>'+p.closed+'</b><span>sold</span></div>';
+    } else {
+      $('ms-prevh').textContent='Last shift';
+      $('ms-prev').innerHTML='<div style="grid-column:1/-1"><span style="font-size:13px">First shift. Every number starts today.</span></div>';
+    }
+    var k=BOOT.kpi||{target:4,bonus:50,closedMonth:0};
+    var left=Math.max(0,k.target-k.closedMonth);
+    var mt=(d.meetSoon||[]).map(function(m){return '&bull; '+esc(m.business||fmtPhone(m.phone))+(m.meet_date?' · '+esc(fday(m.meet_date)):'');}).join('<br>');
+    $('ms-month').innerHTML='<b>'+d.monthMeet+'</b> meetings booked with Ty this month · <b>'+k.closedMonth+' of '+k.target+'</b> customers'+
+      (left?' ('+left+' to go before the $'+k.bonus+' bonuses start)':' · every new one pays a $'+k.bonus+' bonus')+
+      (mt?'<br><b>Meetings coming up</b><br>'+mt:'');
+  }).catch(function(e){ $('ms-month').textContent=e.message; });
+  msDialCheck();
+  $('morningmodal').classList.add('show');
+}
+function closeMorning(){ $('morningmodal').classList.remove('show'); micStop(); }
+function msDialCheck(){
+  var dot=$('ms-d-dial'), t=$('ms-t-dial');
+  if(!twEnabled()){ dot.className='ms-dot bad'; t.textContent='Browser dialer is not set up. Use the tel: links, and tell Ty.'; return; }
+  var reg=TW.device&&TW.device.state==='registered';
+  if(reg){ dot.className='ms-dot ok'; t.textContent='Dialer connected. Inbound calls will ring this tab.'; return; }
+  dot.className='ms-dot'; t.textContent='Connecting the dialer...';
+  twInit();
+  setTimeout(function(){
+    var ok=TW.device&&TW.device.state==='registered';
+    dot.className='ms-dot '+(ok?'ok':'bad');
+    t.textContent=ok?'Dialer connected. Inbound calls will ring this tab.':'Dialer did not connect. Refresh the page; if it still fails, tell Ty.';
+  },4000);
+}
+var MIC={stream:null,ctx:null,raf:0,peak:0};
+function micTest(){
+  micStop();
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){ $('ms-t-mic').textContent='This browser cannot test the mic. Use Chrome.'; return; }
+  $('ms-t-mic').textContent='Say "Hi, this is '+BOOT.user.name.split(' ')[0]+' with Burket Web Design"...';
+  navigator.mediaDevices.getUserMedia({audio:true}).then(function(st){
+    MIC.stream=st; MIC.peak=0;
+    var AC=window.AudioContext||window.webkitAudioContext; MIC.ctx=new AC();
+    var an=MIC.ctx.createAnalyser(); an.fftSize=512;
+    MIC.ctx.createMediaStreamSource(st).connect(an);
+    var buf=new Uint8Array(an.fftSize), t0=Date.now();
+    (function loop(){
+      an.getByteTimeDomainData(buf);
+      var mx=0; for(var i=0;i<buf.length;i++){ var v=Math.abs(buf[i]-128); if(v>mx)mx=v; }
+      var lvl=Math.min(100,Math.round(mx/64*100)); if(lvl>MIC.peak)MIC.peak=lvl;
+      var bar=document.querySelector('#micBar i'); if(bar) bar.style.width=lvl+'%';
+      if(Date.now()-t0<5000){ MIC.raf=requestAnimationFrame(loop); return; }
+      var ok=MIC.peak>=12;
+      $('ms-d-mic').className='ms-dot '+(ok?'ok':'bad');
+      $('ms-t-mic').textContent=ok?'Mic sounds good. You are ready.':'Could not hear you. Check the headset is plugged in and selected in Chrome (lock icon, then Microphone).';
+      micStop();
+    })();
+  }).catch(function(){
+    $('ms-d-mic').className='ms-dot bad';
+    $('ms-t-mic').textContent='Mic is blocked. Click the lock icon in the address bar and allow the microphone.';
+  });
+}
+function micStop(){
+  cancelAnimationFrame(MIC.raf);
+  if(MIC.stream){ MIC.stream.getTracks().forEach(function(t){t.stop();}); MIC.stream=null; }
+  if(MIC.ctx){ try{MIC.ctx.close();}catch(e){} MIC.ctx=null; }
+  var bar=document.querySelector('#micBar i'); if(bar) bar.style.width='0';
+}
+
+/* ================= END-OF-SHIFT REPORT ================= */
+var SR_FIELDS=['well','bad','improve','need'];
+function srDraft(){ var d={}; SR_FIELDS.forEach(function(k){d[k]=$('sr-'+k).value;}); save('sdr_srdraft_'+localKey(), d); }
+function openShift(){
+  var d=load('sdr_srdraft_'+localKey(), {});
+  SR_FIELDS.forEach(function(k){ $('sr-'+k).value=d[k]||''; });
+  $('sr-status').textContent=''; $('sr-send').disabled=false;
+  $('sr-nums').innerHTML='<div style="grid-column:1/-1"><span>Pulling today’s numbers...</span></div>';
+  $('sr-extra').innerHTML='';
+  $('shiftmodal').classList.add('show');
+  api('shift.preview').then(function(st){
+    var rate=st.dials?Math.round(st.convos/st.dials*100):0;
+    $('sr-nums').innerHTML='<div><b>'+st.dials+'</b><span>dials</span></div><div><b>'+st.convos+'</b><span>conversations</span></div><div><b>'+st.meetings+'</b><span>meetings booked</span></div><div><b>'+st.closed+'</b><span>sold</span></div>';
+    var wins=(st.wins||[]).map(function(w){return esc(w.name||'')+' ('+esc(String(w.outcome).replace(/_/g,' '))+')';}).join(', ');
+    $('sr-extra').innerHTML='Conversation rate <b>'+rate+'%</b> · '+st.voicemails+' voicemails · '+st.callbacks+' callbacks · '+st.gatekeepers+' gatekeepers · '+st.emails+' emails sent'+
+      (st.objections?'<br>Objections heard: '+esc(st.objections):'')+(wins?'<br>Wins and warm leads: '+wins:'')+
+      (st.sent?'<br><b style="color:var(--green)">You already sent a report today. Sending again adds an update.</b>':'')+
+      (LISTMETA.demo?'<br><b>Demo calls are not counted. Only real logged calls show here.</b>':'');
+  }).catch(function(e){ $('sr-nums').innerHTML='<div style="grid-column:1/-1"><span>'+esc(e.message)+'</span></div>'; });
+}
+function sendShift(){
+  var body={}; SR_FIELDS.forEach(function(k){ body[k]=$('sr-'+k).value.trim(); });
+  if(!body.well&&!body.bad&&!body.improve) return toast('Add at least a line about how the day went.');
+  $('sr-send').disabled=true; $('sr-status').textContent='Sending...';
+  api('shift.submit',body).then(function(r){
+    save('sdr_srdraft_'+localKey(), {});
+    save('sdr_srsent_'+localKey(), true);
+    if(r.emailed){ chime(); confetti(); $('shiftmodal').classList.remove('show'); toast('🏁 Report sent to Ty. Your copy is in your inbox. Great shift.'); }
+    else { $('sr-status').innerHTML='<b style="color:var(--red)">Saved in the hub, but the email did not send: '+esc(r.emailError||'email not set up')+'</b>'; $('sr-send').disabled=false; }
+    if(BOOT&&BOOT.user.role==='owner') loadShiftReports();
+  }).catch(function(e){ $('sr-status').textContent=e.message; $('sr-send').disabled=false; });
+}
+function loadShiftReports(){
+  if(!$('shiftList')) return;
+  api('shift.list').then(function(rows){
+    $('shiftList').innerHTML=rows.length?rows.map(function(r){
+      var day=new Date(String(r.dayk||r.day).slice(0,10)+'T12:00:00').toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'});
+      var q=function(l,v){return '<b>'+l+'</b><br>'+(v?esc(v).replace(/\n/g,'<br>'):'<span style="color:var(--muted2)">Nothing added.</span>')+'<br>';};
+      return '<div class="srrow" onclick="this.classList.toggle(\'open\')"><div style="display:flex;gap:10px;flex-wrap:wrap;font-size:13.5px"><b style="flex:1">'+esc(day)+' · '+esc(r.rep_name||r.rep)+'</b>'+
+        '<span>'+r.dials+' dials · '+r.convos+' convos · <b style="color:var(--green)">'+r.meetings+' meetings</b> · <b style="color:var(--gold2)">'+r.closed+' sold</b></span></div>'+
+        '<div class="srbody">'+(r.objections?'<span class="hint">Objections: '+esc(r.objections)+'</span><br>':'')+q('What went well',r.well)+q('What did not go well',r.bad)+q('Improve tomorrow',r.improve)+q('Needs from Ty',r.need)+'</div></div>';
+    }).join(''):'<div class="empty">No shift reports yet. They show up here and in your inbox.</div>';
+  }).catch(function(e){ $('shiftList').innerHTML='<div class="empty">'+esc(e.message)+'</div>'; });
+}
+setInterval(function(){
+  if(!BOOT||BOOT.user.role==='owner') return;
+  var hr=new Date().getHours(), k='sdr_srnudge_'+localKey();
+  if(hr>=17&&BOOT.today&&BOOT.today.length&&!load('sdr_srsent_'+localKey(),false)&&!load(k,false)){
+    save(k,true); toast('🏁 Wrapping up? Hit End My Shift, your numbers are already filled in.'); beep(660,.12,.05);
+  }
+},300000);
+
+/* ================= SCREEN POP ================= */
+function popLookup(inc){
+  TW.incInfo=null;
+  $('cb-who').style.display='none';
+  api('company.lookup',{phone:inc.parameters.From||''}).then(function(d){
+    if(TW.inc!==inc && TW.conn!==inc) return;
+    TW.incInfo=d;
+    if(!d||!d.found){
+      $('cb-who').innerHTML='New number, not in the hub yet.';
+      $('cb-who').style.display='block';
+      return;
+    }
+    var c=d.company;
+    $('cb-num').textContent=(c.name||fmtPhone(c.phone));
+    $('cb-status').textContent=(TW.conn===inc?'On call':'Calling back')+' · '+fmtPhone(c.phone);
+    $('cb-who').innerHTML=popSummary(d);
+    $('cb-who').style.display='block';
+    if(TW.conn===inc) popOpen(d);
+  }).catch(function(){});
+}
+function popSummary(d){
+  var c=d.company, bits=[];
+  bits.push(esc([c.industry,c.city].filter(Boolean).join(' · ')));
+  var l=(d.last||[])[0];
+  if(l) bits.push('Last touch: <b>'+esc(String(l.outcome).replace(/_/g,' '))+'</b> '+esc(fdate(l.ts))+(l.note?' · "'+esc(String(l.note).slice(0,90))+'"':''));
+  if(d.lastEmail) bits.push('Last email: '+esc(d.lastEmail.subject)+' ('+esc(fdate(d.lastEmail.ts))+')');
+  if(d.meeting&&d.meeting.status==='set') bits.push('<b>Meeting with Ty is set</b>'+(d.meeting.meet_date?' for '+esc(fday(d.meeting.meet_date)):''));
+  return bits.filter(Boolean).join('<br>');
+}
+function buildCallbackScript(b, d){
+  var me=BOOT.user.name, first=me.split(' ')[0];
+  var biz=b.name||'your business', ind=(b.industry||'your industry').toLowerCase(), town=b.town||'your area';
+  var l=(d.last||[])[0];
+  var ctx=l?('[Last touch: '+String(l.outcome).replace(/_/g,' ')+' on '+fdate(l.ts)+(l.note?'. Your note: "'+l.note+'"':'')+(d.lastEmail?'. They also got your email "'+d.lastEmail.subject+'"':'')+']\n\n'):'';
+  var spot=b.pos?('You\u2019re sitting at number '+b.pos+' on the Google map for '+ind+' in '+town+'. The top three get most of the calls before anyone scrolls down to you.'):('When people in '+town+' search for '+ind+' on Google, the top three spots get most of the calls.');
+  return ctx+'"Burket Web Design, this is '+first+'." ...\n\n'+
+    '"Thanks so much for calling me back! Is this the owner of '+biz+'?" ...\n\n'+
+    '"Perfect. I reached out because I pulled up '+biz+' on Google before I called. '+spot+'" ...\n\n'+
+    '"Quick question: how are most of your new customers finding you right now?"\n\n'+
+    '(Let them talk. Then:)\n\n'+
+    '"That\u2019s exactly what we fix. We get local service businesses into those top spots and keep them there, so the calls come to you instead of the guy down the road."\n\n'+
+    '"There are two easy ways to do this. I can get you set up right now. It takes about five minutes and we start this week. Or if you\u2019d like to see it first, I can book you 15 minutes with Ty Burket, our owner. Which works better for you?"';
+}
+function popOpen(d){
+  if(!d||!d.found) return;
+  var c=d.company;
+  var h={ name:c.name, phone:c.phone, website:c.website||'', email:c.email||'', rating:c.rating, reviews:c.reviews, pos:c.pos,
+          addr:c.addr||'', maps:c.maps||'', city:c.city||'', industry:c.industry||'', src:c.pos?'google':'' };
+  CUR=null; CURFUP=h;
+  var l=(d.last||[])[0];
+  fillModal(normHist(h),'📞 Inbound callback'+(l?' · last: '+String(l.outcome).replace(/_/g,' ')+' '+fdate(l.ts):''));
+  $('p-script').textContent=buildCallbackScript(normHist(h), d);
+  var notes=(d.last||[]).filter(function(x){return x.note;});
+  if(notes.length) toast('Last note ('+fdate(notes[0].ts)+'): '+notes[0].note);
 }
 
 /* ================= POWER HOUR / EXTRAS ================= */

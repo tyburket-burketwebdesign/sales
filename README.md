@@ -89,3 +89,9 @@ Meetings and submitted deals email the owner instantly. Deal approval moves comm
 - Local Presence Essentials $299/mo: $149.50 first month + $29.90/mo
 - Local Presence Complete $500/mo: $250 first month + $50/mo
 - Custom amounts available for anything else
+
+## Daily rhythm features
+
+- **Morning Start** opens automatically the first time each rep opens the hub each day (and from the sun button in the sidebar or the dashboard). It shows today's game plan, the last shift's numbers, follow-ups due, meetings coming up, KPI progress, a dialer check, and a 5-second headset mic test.
+- **Screen pop on callbacks.** When a prospect calls a Twilio number and the hub is open, the call bar shows who it is and their last touch before you answer. Answering opens their call screen with a callback script and your last notes. Unknown numbers show as "New number, not in the hub yet."
+- **End-of-shift report.** The flag button (sidebar, dashboard, or the list-finished screen) opens a report with the day's numbers already filled in from logged calls. The rep adds four short answers and hits Send. It emails the owner (MAIL_TO or OWNER_EMAIL, reply-to the rep), sends the rep a copy, and saves it under Command Center > Shift Reports. A reminder pops up after 5 PM if no report has been sent. Days are counted in Eastern time.
