@@ -1338,19 +1338,33 @@ function loadTeam(){
         (u.role!=='owner'?'<button class="btn-ghost btn-sm" onclick="toggleUser(\''+esc(u.email)+'\')">'+(Number(u.active)?'Deactivate':'Reactivate')+'</button>':'')+'</div>';
     }).join('');
     h += (d.pending||[]).map(function(p){
-      return '<div class="histline"><b>'+esc(p.name||p.email)+'</b> · '+esc(p.email)+' · <span class="tag t-cb">invite sent '+esc(fdate(p.ts))+'</span></div>';
+      return '<div class="histline" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span style="flex:1"><b>'+esc(p.name||p.email)+'</b> · '+esc(p.email)+' · <span class="tag t-cb">invite pending since '+esc(fdate(p.ts))+'</span></span>'+
+        '<button class="btn-ghost btn-sm" onclick="copyInvite(\''+esc(p.link)+'\')">Copy invite link</button>'+
+        '<button class="btn-ghost btn-sm" onclick="resendInvite(\''+esc(p.email)+'\',\''+esc(p.name||'')+'\')">Resend email</button></div>';
     }).join('');
     $('teamList').innerHTML = h || '<div class="empty">Just you so far. Send the first invite.</div>';
   }).catch(function(e){toast(e.message);});
 }
+function inviteResult(em,d){
+  chime(); loadTeam();
+  if(d&&d.emailed){ toast('Invite emailed to '+em+'. Tell them to check Spam and Promotions too. You can also copy the link from the Team list.'); }
+  else { copyInvite(d&&d.link, true); alert('The invite was created, but the email did not send:\n\n'+((d&&d.emailError)||'Unknown email error')+'\n\nThe invite link is copied to your clipboard. Text or email it to '+em+' yourself:\n\n'+(d&&d.link)); }
+}
 function sendInvite(){
   var em=$('iv-email').value.trim();
   if(!em)return toast('Their email first.');
-  api('user.invite',{email:em,name:$('iv-name').value.trim()}).then(function(){
-    chime(); toast('Invite sent to '+em+'. The seat activates when they create their account.');
+  api('user.invite',{email:em,name:$('iv-name').value.trim()}).then(function(d){
     $('iv-email').value='';$('iv-name').value='';
-    loadTeam();
+    inviteResult(em,d);
   }).catch(function(e){toast(e.message);});
+}
+function resendInvite(em,nm){
+  api('user.invite',{email:em,name:nm}).then(function(d){ inviteResult(em,d); }).catch(function(e){toast(e.message);});
+}
+function copyInvite(link, quiet){
+  if(!link)return;
+  try{ navigator.clipboard.writeText(link).then(function(){ if(!quiet)toast('Invite link copied. Text or email it to them.'); }); }
+  catch(e){ prompt('Copy this invite link:', link); }
 }
 function toggleUser(em){
   api('user.toggle',{email:em}).then(function(){ toast('Updated.'); loadTeam(); }).catch(function(e){toast(e.message);});

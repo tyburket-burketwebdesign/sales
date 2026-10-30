@@ -565,19 +565,25 @@ module.exports = async function handler(req, res) {
       await sql`INSERT INTO invites (token, email, name, invited_by) VALUES (${token}, ${em}, ${String(P.name || '').trim()}, ${user.email})`;
       const base = 'https://' + (req.headers['x-forwarded-host'] || req.headers.host || 'sales-eta-livid.vercel.app');
       const link = base + '/?invite=' + token;
-      await C.sendMail(em, 'Your seat on the Burket Web Design sales team',
+      let emailed = false, emailError = '', emailId = '';
+      try {
+        const mr = await C.sendMail(em, 'Your seat on the Burket Web Design sales team',
         '<div style="font-family:Arial,sans-serif;max-width:540px">' +
         '<img src="https://www.burketwebdesign.com/assets/logo.png" style="height:46px" alt="Burket Web Design">' +
         '<h2 style="color:#0e2235">Welcome aboard' + (P.name ? ', ' + String(P.name).split(' ')[0] : '') + '</h2>' +
         '<p>Ty set you up with a seat on the BWD Sales Hub: your dialer, scripts, pipeline, contracts, and commissions, all in one place.</p>' +
         '<p><a href="' + link + '" style="background:#fec814;color:#0e2235;padding:12px 22px;border-radius:9px;text-decoration:none;font-weight:bold">Create your account</a></p>' +
-        '<p style="color:#8b9ab0;font-size:12px">This link is for you only and expires in 14 days.</p></div>');
-      return ok(true);
+        '<p style="color:#8b9ab0;font-size:12px">This link is for you only and expires in 14 days. If the button does not work, paste this into your browser:<br>' + link + '</p></div>');
+        emailed = true; emailId = (mr && mr.id) || '';
+      } catch (e) { emailError = e.message || String(e); }
+      return ok({ link, emailed, emailError, emailId });
     }
     if (a === 'user.list') {
       if (!OWNER) return err('Owner only.');
       const users = await sql`SELECT email, name, role, COALESCE(active,1) AS active, created FROM users ORDER BY created`;
-      const pending = await sql`SELECT email, name, ts FROM invites WHERE used=0 AND ts > now() - interval '14 days' ORDER BY ts DESC`;
+      const base2 = 'https://' + (req.headers['x-forwarded-host'] || req.headers.host || 'sales-eta-livid.vercel.app');
+      const pend = await sql`SELECT token, email, name, ts FROM invites WHERE used=0 AND ts > now() - interval '14 days' ORDER BY ts DESC`;
+      const pending = pend.map(p => ({ email: p.email, name: p.name, ts: p.ts, link: base2 + '/?invite=' + p.token }));
       return ok({ users, pending });
     }
     if (a === 'user.toggle') {
