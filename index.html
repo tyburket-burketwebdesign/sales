@@ -770,10 +770,12 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--m
 'use strict';
 
 /* ================= CONFIG ================= */
-var MARKETS = ['Lakeland','Winter Haven','Plant City','Brandon','Tampa','St. Petersburg','Clearwater','Sarasota','Bradenton','Port Charlotte','Fort Myers','Cape Coral','Naples','Ocala','The Villages','Kissimmee','Orlando','Sanford','Daytona Beach','Melbourne','Port St. Lucie','Gainesville','Jacksonville'];
+var MARKETS = ['Cape Coral','Fort Myers','Naples','Bonita Springs','Estero','Punta Gorda','Port Charlotte','Sarasota','Bradenton','Tampa','St. Petersburg','Clearwater','Brandon','Lakeland','Winter Haven','Plant City','Ocala','The Villages','Kissimmee','Orlando','Sanford','Daytona Beach','Melbourne','Port St. Lucie','Gainesville','Jacksonville'];
 var INDUSTRIES = [
-  { label:'Pool Service & Repair', noun:'pool company', best:'7:00-9:00 AM before routes, or 3:30-5:00 PM' },
   { label:'Pool Resurfacing', noun:'pool resurfacing company', best:'7:30-9:00 AM or 4:00-5:30 PM' },
+  { label:'Pool Service & Repair', noun:'pool company', best:'7:00-9:00 AM before routes, or 3:30-5:00 PM' },
+  { label:'Paver & Concrete', noun:'paver company', best:'7:00-8:30 AM or 4:30-6:00 PM' },
+  { label:'Screen Enclosures', noun:'screen enclosure company', best:'8:00-10:00 AM' },
   { label:'Pressure Washing', noun:'pressure washing company', best:'7:00-9:00 AM or rain days' },
   { label:'Lawn Care & Landscaping', noun:'lawn company', best:'7:00-8:00 AM or rain days' },
   { label:'Roofers', noun:'roofer', best:'7:00-8:30 AM, or rain days at the desk' },
@@ -781,8 +783,6 @@ var INDUSTRIES = [
   { label:'Pest Control', noun:'pest control company', best:'7:30-9:30 AM' },
   { label:'Plumbers', noun:'plumber', best:'7:00-9:00 AM or 4:30-6:00 PM' },
   { label:'Electricians', noun:'electrician', best:'7:00-9:00 AM or after 4:30 PM' },
-  { label:'Paver & Concrete', noun:'paver company', best:'7:00-8:30 AM or 4:30-6:00 PM' },
-  { label:'Screen Enclosures', noun:'screen enclosure company', best:'8:00-10:00 AM' },
   { label:'Hurricane Shutters & Windows', noun:'shutter company', best:'9:00-11:00 AM' },
   { label:'Boat & Marine Services', noun:'marine service', best:'9:30-11:30 AM, weekdays' },
   { label:'Auto Repair & Detailing', noun:'auto shop', best:'9:30-11:30 AM after drop-offs' },
@@ -794,6 +794,41 @@ var INDUSTRIES = [
   { label:'Property Management', noun:'property manager', best:'9:00-11:00 AM' }
 ];
 var TARGET = 25;
+/* ---- FIRST-MONTH GAME PLAN (Southwest Florida, dry season) ----
+ * Each day: an industry and a starting market. Build Today's 25 sweeps that market plus
+ * the next two in MARKETS, and same-industry days start 3 markets apart so lists never repeat.
+ * After the last date the hub falls back to the normal daily rotation. */
+var GAMEPLAN = {
+  '2026-10-30': { ind:'Pool Resurfacing',      mkt:'Cape Coral',     wk:0 },
+  '2026-11-02': { ind:'Pool Resurfacing',      mkt:'Bonita Springs', wk:1 },
+  '2026-11-03': { ind:'Pool Service & Repair', mkt:'Cape Coral',     wk:1 },
+  '2026-11-04': { ind:'Pool Resurfacing',      mkt:'Port Charlotte', wk:1 },
+  '2026-11-05': { ind:'Pool Service & Repair', mkt:'Bonita Springs', wk:1 },
+  '2026-11-06': { ind:'Pool Resurfacing',      mkt:'Tampa',          wk:1 },
+  '2026-11-09': { ind:'Paver & Concrete',      mkt:'Cape Coral',     wk:2 },
+  '2026-11-10': { ind:'Screen Enclosures',     mkt:'Cape Coral',     wk:2 },
+  '2026-11-11': { ind:'Paver & Concrete',      mkt:'Bonita Springs', wk:2 },
+  '2026-11-12': { ind:'Screen Enclosures',     mkt:'Bonita Springs', wk:2 },
+  '2026-11-13': { ind:'Paver & Concrete',      mkt:'Port Charlotte', wk:2 },
+  '2026-11-16': { ind:'Pool Service & Repair', mkt:'Port Charlotte', wk:3 },
+  '2026-11-17': { ind:'Pressure Washing',      mkt:'Cape Coral',     wk:3 },
+  '2026-11-18': { ind:'Pool Service & Repair', mkt:'Tampa',          wk:3 },
+  '2026-11-19': { ind:'Pressure Washing',      mkt:'Bonita Springs', wk:3 },
+  '2026-11-20': { ind:'Pool Service & Repair', mkt:'Brandon',        wk:3 },
+  '2026-11-23': { ind:'Pool Resurfacing',      mkt:'Brandon',        wk:4 },
+  '2026-11-24': { ind:'Screen Enclosures',     mkt:'Port Charlotte', wk:4 },
+  '2026-11-25': { ind:'Pressure Washing',      mkt:'Port Charlotte', wk:4 }
+};
+var GAMEPLAN_WEEKS = [
+  { label:'Kickoff (Fri Oct 30)', focus:'Pool Resurfacing in Cape Coral, Fort Myers, Naples', why:'Demo mode first, then your first live list. Testing already found 18 qualified pool companies in this corridor.' },
+  { label:'Week 1 (Nov 2 to 6)', focus:'Pool Resurfacing + Pool Service, Southwest Florida up to Tampa', why:'November starts Florida’s dry season, the best time to drain and resurface a pool. One resurfacing job pays for months of Local Presence, which makes the $500 easy to justify.' },
+  { label:'Week 2 (Nov 9 to 13)', focus:'Pavers & Concrete + Screen Enclosures, Cape Coral to Port Charlotte', why:'Cool, dry weather is outdoor building season. These are big-ticket jobs, so one extra customer a month covers the whole program.' },
+  { label:'Week 3 (Nov 16 to 20)', focus:'Pool Service + Pressure Washing, Southwest Florida into Tampa Bay', why:'Seasonal residents are back and homes get cleaned up for the holidays. Owner-operators in these trades usually answer their own phones.' },
+  { label:'Thanksgiving week (Nov 23 to 25)', focus:'Follow-ups first, light lists', why:'Owners check out by Wednesday, and Thanksgiving is Thursday, Nov 26. Clear every callback and follow-up first, then build one light list.' },
+  { label:'Week 5 (Nov 30 on)', focus:'Double down on the winner', why:'Your 30-day review with Ty. Whichever industry booked the most meetings becomes the focus for December.' }
+];
+function localKey(){ var d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function todayPlan(){ return GAMEPLAN[localKey()] || null; }
 var QUOTES = [
   'Twenty-five qualified dials. One industry. No mercy.',
   'The phone weighs a thousand pounds until you pick it up.',
@@ -946,13 +981,27 @@ function initControls(){
   $('industry').innerHTML = INDUSTRIES.map(function(x,i){return '<option value="'+i+'">'+esc(x.label)+'</option>';}).join('');
   var lastMarket = load('sdr_market', MARKETS[0]);
   if (MARKETS.indexOf(lastMarket)>-1) $('market').value=lastMarket;
+  var plan = todayPlan();
   var sug = INDUSTRIES[dayOfYear()%INDUSTRIES.length];
+  if (plan){
+    var pi = INDUSTRIES.filter(function(x){return x.label===plan.ind;})[0];
+    if (pi) sug = pi;
+    if (MARKETS.indexOf(plan.mkt)>-1) $('market').value = plan.mkt;
+  }
   $('industry').value = String(INDUSTRIES.indexOf(sug));
   var hr = new Date().getHours();
   var greet = hr<12 ? 'Good morning' : hr<17 ? 'Good afternoon' : 'Good evening';
   $('heroHi').textContent = greet+', '+BOOT.user.name.split(' ')[0]+'.';
-  $('planLine').textContent = new Date().toLocaleDateString(undefined,{weekday:'long',month:'short',day:'numeric'}) + ' · today’s play: ' + sug.label + ' in ' + $('market').value + ' · best window ' + sug.best;
-  $('suggestHint').textContent = 'Best window for '+sug.label.toLowerCase()+': '+sug.best+' (their local time). Industry rotates daily, already-worked numbers are skipped automatically.';
+  var mi0 = MARKETS.indexOf($('market').value);
+  var sweep = [MARKETS[mi0], MARKETS[(mi0+1)%MARKETS.length], MARKETS[(mi0+2)%MARKETS.length]].join(', ');
+  if (plan){
+    var wk = GAMEPLAN_WEEKS[plan.wk];
+    $('planLine').textContent = wk.label + ' game plan · today: ' + sug.label + ' in ' + sweep + ' · best window ' + sug.best;
+    $('suggestHint').textContent = 'Game plan: ' + wk.why + ' Best window for ' + sug.label.toLowerCase() + ': ' + sug.best + '.';
+  } else {
+    $('planLine').textContent = new Date().toLocaleDateString(undefined,{weekday:'long',month:'short',day:'numeric'}) + ' · today’s play: ' + sug.label + ' in ' + sweep + ' · best window ' + sug.best;
+    $('suggestHint').textContent = 'Best window for '+sug.label.toLowerCase()+': '+sug.best+' (their local time). Industry rotates daily, already-worked numbers are skipped automatically.';
+  }
   $('quoteTxt').textContent = '"'+QUOTES[dayOfYear()%QUOTES.length]+'"';
   $('d-prod').innerHTML = BOOT.products.map(function(p){return '<option value="'+p.id+'">'+esc(p.label)+'</option>';}).join('');
   $('meName').textContent = BOOT.user.name;
@@ -1485,6 +1534,8 @@ function renderPlaybook(){
     '<div class="playcard"><h3>&#127917; Three script styles (pick on the call screen)</h3><div style="font-size:13.5px;line-height:1.9;color:var(--muted)"><b style="color:var(--text)">Straight Shooter</b>: the permission opener. Admit it is a cold call, ask for one minute, hit them with their own Google fact. Best default.<br><b style="color:var(--text)">Local Expert</b>: opens with a question ("when did you last Google yourself?"), lets them discover the gap, then puts a dollar figure on it. Best for skeptical or chatty owners.<br><b style="color:var(--text)">Gatekeeper Breaker</b>: for front desks and office managers. Calm and familiar, no pitch until the owner is on, and it harvests the owner name, best time, and email if they are out.</div></div>'+
     '<div class="playcard"><h3>&#128172; Voicemail (under 20 seconds)</h3><div class="script vm">"Hey, this is '+esc(first)+' with Burket Web Design. I was on your Google listing right before this call and found something that’s probably costing you customers. Takes two minutes to show you. I’ll shoot the free scan over by email too. Call me back, again it’s '+esc(first)+'." (Say your number twice, slow. Then fire the email sequence.)</div></div>'+
     '<div class="playcard"><h3>&#128737;&#65039; Every comeback you will need</h3>'+objs+'</div>'+
+    '<div class="playcard"><h3>&#128197; Your first-month game plan</h3><div class="hint" style="margin:0 0 8px">The hub preloads each day’s industry and towns. Just hit Build Today’s 25.</div>'+
+      GAMEPLAN_WEEKS.map(function(w){ return '<div class="histline" style="margin-top:8px"><b>'+esc(w.label)+'</b> · <span style="color:var(--blue)">'+esc(w.focus)+'</span><br>'+esc(w.why)+'</div>'; }).join('')+'</div>'+
     '<div class="playcard"><h3>&#128181; The Menu</h3><div style="font-size:13.5px;line-height:2;color:var(--muted)"><b style="color:var(--text)">Local Presence</b> · $500/mo · the flagship: GBP managed, reviews on autopilot, citations, content, AI search<br><b style="color:var(--text)">Local Presence + Website SEO &amp; Maintenance</b> · $750/mo<br><b style="color:var(--text)">One Page Website</b> · $650 one time<br><b style="color:var(--text)">Full Site</b> · $850 one time</div></div>'+
     '<div class="playcard"><h3>&#9889; Hotkeys on the call screen</h3><div style="font-size:13.5px;line-height:2;color:var(--muted)"><b style="color:var(--text)">1</b> no answer · <b style="color:var(--text)">2</b> voicemail · <b style="color:var(--text)">3</b> callback · <b style="color:var(--text)">4</b> not interested · <b style="color:var(--text)">5</b> gatekeeper · <b style="color:var(--text)">6</b> do not call · <b style="color:var(--text)">M</b> booked Ty · <b style="color:var(--text)">C</b> closed · <b style="color:var(--text)">N/P</b> next and previous</div></div>';
 }
