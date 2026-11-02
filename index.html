@@ -235,6 +235,14 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--m
 #cb-pad{display:none;margin-top:10px}
 #cb-pad.show{display:block}
 #cb-digits{font-size:20px;font-weight:800;letter-spacing:.18em;text-align:center;min-height:28px;color:var(--gold);font-variant-numeric:tabular-nums;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;direction:rtl}
+.mdial{display:flex;gap:6px;align-items:center;margin-top:10px;flex-wrap:wrap}
+.mdial input{flex:1;min-width:130px}
+.mdial input.lbl{flex:0 1 130px;min-width:90px}
+.altchips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.altchip{display:inline-flex;align-items:center;gap:6px;background:var(--green-bg);border:1px solid rgba(22,163,74,.3);border-radius:20px;padding:4px 6px 4px 10px;font-size:12.5px;font-weight:600;color:var(--navy)}
+.altchip button{border:none;border-radius:14px;padding:3px 9px;font-size:12px;font-weight:700;cursor:pointer}
+.altchip .go{background:var(--green);color:#fff}
+.altchip .x{background:transparent;color:var(--muted);padding:3px 5px}
 .padgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:6px}
 .padgrid button{background:rgba(255,255,255,.1);color:#fff;border-radius:50px;padding:9px 0;font-size:19px;font-weight:700;line-height:1.05;border:1px solid rgba(255,255,255,.12);transition:background .1s}
 .padgrid button small{display:block;font-size:8.5px;letter-spacing:.14em;opacity:.6;font-weight:600;min-height:9px}
@@ -590,6 +598,13 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--m
         <select id="twCid" style="flex:none;display:none;max-width:140px" onchange="try{localStorage.setItem('sdr_cid',this.value)}catch(e){}" title="Caller ID"></select>
         <button class="btn-ghost btn-sm" onclick="copyTxt($('bignum').textContent,'Number copied.')" style="flex:none">Copy #</button>
       </div>
+      <div class="mdial">
+        <input id="md-num" inputmode="tel" placeholder="Dial another number (owner's cell, direct line...)" onkeydown="if(event.key==='Enter'){event.preventDefault();mdDial();}">
+        <input id="md-lbl" class="lbl" placeholder="Who? (optional)" onkeydown="if(event.key==='Enter'){event.preventDefault();mdDial();}">
+        <button class="btn-green btn-sm" onclick="mdDial()">&#128222; Dial</button>
+        <button class="btn-ghost btn-sm" onclick="mdSave()" title="Save this number to the lead">Save</button>
+      </div>
+      <div class="altchips" id="md-alts"></div>
       <div class="besttime" id="p-besttime" style="display:none"></div>
       <div id="p-prevcalls"></div>
 
@@ -716,6 +731,7 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--m
       <button class="btn-green btn-sm" id="cp-contractBtn" onclick="openContract()">&#9997;&#65039; Send contract</button>
       <button class="btn-go btn-sm" onclick="openCheckout()">&#128179; Send checkout</button>
       <a class="btn-ghost btn-sm" id="cp-callLink" href="#" style="text-decoration:none">&#128222; <span id="cp-phone"></span></a>
+      <span id="cp-alts" style="display:contents"></span>
       <button class="btn-red btn-sm" onclick="cpDelete()">&#128465;&#65039; Delete</button>
     </div>
     <h3 class="sec">Everything that has happened</h3>
@@ -1503,6 +1519,12 @@ function openCompany(phone){
     $('cp-email').value=d.company.email||'';
     $('cp-phone').textContent=fmtPhone(d.company.phone);
     $('cp-callLink').href='tel:+1'+d.company.phone;
+    var calts=[]; try{ calts=JSON.parse(d.company.alt_phones||'[]'); }catch(e){}
+    $('cp-alts').innerHTML=calts.map(function(x){
+      return (BOOT.twilio&&BOOT.twilio.enabled)
+        ? '<button class="btn-ghost btn-sm" onclick="twDial(\''+x.n+'\')">&#128222; '+esc((x.label?x.label+' ':'')+fmtPhone(x.n))+'</button>'
+        : '<a class="btn-ghost btn-sm" style="text-decoration:none" href="tel:+1'+x.n+'">&#128222; '+esc((x.label?x.label+' ':'')+fmtPhone(x.n))+'</a>';
+    }).join('');
     $('cp-contractBtn').style.display=BOOT.docuseal?'inline-block':'none';
     var icons={call:'📞',email:'✉️',meeting:'🤝',proposal:'📄',contract:'✍️'};
     $('cp-timeline').innerHTML=d.timeline.length?d.timeline.map(function(t){
@@ -1694,6 +1716,7 @@ function fillModal(b, progressTxt){
   $('bignum').textContent=fmtPhone(b.phone);
   $('bignum').href='tel:+1'+b.phone;
   $('twCallBtn').style.display=(BOOT.twilio&&BOOT.twilio.enabled)?'inline-block':'none';
+  mdLoad(b);
   var links=[];
   if (b.website) links.push('<a href="'+esc(b.website)+'" target="_blank" rel="noopener">their website</a>');
   if (b.maps) links.push('<a href="'+esc(b.maps)+'" target="_blank" rel="noopener">their Google listing</a>');
@@ -2243,6 +2266,7 @@ function popLookup(inc){
 function popSummary(d){
   var c=d.company, bits=[];
   bits.push(esc([c.industry,c.city].filter(Boolean).join(' · ')));
+  if(d.viaAlt) bits.push('Calling from their saved '+(d.viaAlt.label?esc(d.viaAlt.label)+' ':'other ')+'number');
   var l=(d.last||[])[0];
   if(l) bits.push('Last touch: <b>'+esc(String(l.outcome).replace(/_/g,' '))+'</b> '+esc(fdate(l.ts))+(l.note?' · "'+esc(String(l.note).slice(0,90))+'"':''));
   if(d.lastEmail) bits.push('Last email: '+esc(d.lastEmail.subject)+' ('+esc(fdate(d.lastEmail.ts))+')');
@@ -2276,6 +2300,62 @@ function popOpen(d){
   if(notes.length) toast('Last note ('+fdate(notes[0].ts)+'): '+notes[0].note);
 }
 
+
+
+/* ================= MANUAL DIAL (extra numbers on a lead) ================= */
+var MD_ALTS=[], MD_FOR='';
+function mdClean(v){ var d=String(v||'').replace(/\D/g,''); if(d.length===11&&d[0]==='1') d=d.slice(1); return d.length===10?d:''; }
+function mdLoad(b){
+  $('md-num').value=''; $('md-lbl').value='';
+  MD_ALTS=[]; MD_FOR=b.phone; mdRender();
+  if(LISTMETA.demo&&CUR!=null){ MD_ALTS=(LIST[CUR]&&LIST[CUR].alts)||[]; mdRender(); return; }
+  api('company.alts',{phone:b.phone}).then(function(a){ if(MD_FOR===b.phone){ MD_ALTS=a||[]; mdRender(); } }).catch(function(){});
+}
+function mdRender(){
+  $('md-alts').innerHTML=MD_ALTS.map(function(x){
+    return '<span class="altchip">'+esc(x.label?x.label+' · ':'')+esc(fmtPhone(x.n))+
+      '<button class="go" onclick="mdCall(\''+x.n+'\',\''+esc(x.label||'').replace(/'/g,'&#39;')+'\')">Call</button>'+
+      '<button class="x" title="Remove" onclick="mdRemove(\''+x.n+'\')">&#10005;</button></span>';
+  }).join('');
+}
+function mdCall(n, label){
+  var b=curBiz(); if(!b) return;
+  var note=$('p-note');
+  var tag='Called '+(label?label+' ':'')+fmtPhone(n)+'. ';
+  if(note.value.indexOf(fmtPhone(n))===-1) note.value=tag+note.value;
+  if(BOOT.twilio&&BOOT.twilio.enabled) twDial(n);
+  else window.location.href='tel:+1'+n;
+}
+function mdDial(){
+  var n=mdClean($('md-num').value);
+  if(!n) return toast('Type the full 10-digit number first.');
+  var label=$('md-lbl').value.trim();
+  mdCall(n, label);
+  mdSave(true);
+}
+function mdSave(quiet){
+  var b=curBiz(); if(!b) return;
+  var n=mdClean($('md-num').value);
+  if(!n){ if(!quiet) toast('Type the full 10-digit number first.'); return; }
+  var label=$('md-lbl').value.trim();
+  if(n===b.phone){ if(!quiet) toast('That is already the main number.'); return; }
+  if(LISTMETA.demo&&CUR!=null){
+    MD_ALTS=MD_ALTS.filter(function(x){return x.n!==n;}); MD_ALTS.unshift({n:n,label:label});
+    LIST[CUR].alts=MD_ALTS; mdRender(); $('md-num').value=''; $('md-lbl').value='';
+    if(!quiet) toast('Saved to this lead (demo).'); return;
+  }
+  api('company.altphone',{phone:b.phone,alt:n,label:label,name:b.name,website:b.website,city:b.town||LISTMETA.city||'',
+      industry:LISTMETA.industry||b.industry||'',rating:b.rating,reviews:b.reviews,pos:b.pos,addr:b.addr,maps:b.maps})
+    .then(function(a){ MD_ALTS=a||[]; mdRender(); $('md-num').value=''; $('md-lbl').value='';
+      toast((quiet?'Dialing, and ':'')+'saved '+fmtPhone(n)+' to '+(b.name||'this lead')+'. If they call back from it, their record pops up.'); })
+    .catch(function(e){ toast(e.message); });
+}
+function mdRemove(n){
+  var b=curBiz(); if(!b) return;
+  if(!confirm('Remove '+fmtPhone(n)+' from this lead?')) return;
+  if(LISTMETA.demo&&CUR!=null){ MD_ALTS=MD_ALTS.filter(function(x){return x.n!==n;}); LIST[CUR].alts=MD_ALTS; mdRender(); return; }
+  api('company.altphone',{phone:b.phone,alt:n,remove:true}).then(function(a){ MD_ALTS=a||[]; mdRender(); }).catch(function(e){ toast(e.message); });
+}
 
 /* ================= KEYPAD (phone menus / DTMF) ================= */
 var DTMF={'1':[697,1209],'2':[697,1336],'3':[697,1477],'4':[770,1209],'5':[770,1336],'6':[770,1477],'7':[852,1209],'8':[852,1336],'9':[852,1477],'*':[941,1209],'0':[941,1336],'#':[941,1477]};

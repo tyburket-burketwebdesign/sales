@@ -555,21 +555,57 @@ module.exports = async function handler(req, res) {
     }
 
     /* ---------------- TEAM (owner) ---------------- */
+    /* ---------------- EXTRA NUMBERS ON A LEAD ---------------- */
+    if (a === 'company.alts') {
+      const phone = C.normPhone(P.phone);
+      const row = phone ? (await sql`SELECT alt_phones FROM companies WHERE phone=${phone}`)[0] : null;
+      let alts = []; try { alts = JSON.parse((row && row.alt_phones) || '[]'); } catch (e) { alts = []; }
+      return ok(alts);
+    }
+    if (a === 'company.altphone') {
+      const phone = C.normPhone(P.phone);
+      if (!phone) return err('Bad lead phone number.');
+      let row = (await sql`SELECT alt_phones FROM companies WHERE phone=${phone}`)[0];
+      if (!row) {
+        await C.upsertCompany({ phone, name: P.name, website: P.website, city: P.city, industry: P.industry,
+          rating: P.rating, reviews: P.reviews, pos: P.pos, addr: P.addr, maps: P.maps, rep: user.email }, 'new');
+        row = { alt_phones: '' };
+      }
+      let alts = []; try { alts = JSON.parse(row.alt_phones || '[]'); } catch (e) { alts = []; }
+      const alt = C.normPhone(P.alt);
+      if (P.remove) alts = alts.filter(x => x.n !== alt);
+      else {
+        if (!alt) return err('That number does not look right. Use 10 digits.');
+        if (alt === phone) return err('That is already the main number.');
+        alts = alts.filter(x => x.n !== alt);
+        alts.unshift({ n: alt, label: String(P.label || '').trim().slice(0, 40) });
+        alts = alts.slice(0, 8);
+      }
+      await sql`UPDATE companies SET alt_phones=${JSON.stringify(alts)}, updated=now() WHERE phone=${phone}`;
+      return ok(alts);
+    }
+
     /* ---------------- SCREEN POP: who is calling? ---------------- */
     if (a === 'company.lookup') {
       const phone = C.normPhone(P.phone);
       if (!phone) return ok({ found: false });
       let comp = (await sql`SELECT * FROM companies WHERE phone=${phone}`)[0];
-      const last = await sql`SELECT outcome, note, rep, ts, fup FROM calls WHERE phone=${phone} ORDER BY ts DESC LIMIT 3`;
+      let viaAlt = null;
+      if (!comp) {
+        comp = (await sql`SELECT * FROM companies WHERE alt_phones LIKE ${'%"' + phone + '"%'} LIMIT 1`)[0];
+        if (comp) { try { viaAlt = JSON.parse(comp.alt_phones || '[]').find(x => x.n === phone) || { n: phone, label: '' }; } catch (e) { viaAlt = { n: phone, label: '' }; } }
+      }
+      const mainPhone = comp ? comp.phone : phone;
+      const last = await sql`SELECT outcome, note, rep, ts, fup FROM calls WHERE phone=${mainPhone} ORDER BY ts DESC LIMIT 3`;
       if (!comp) {
         const lc = (await sql`SELECT * FROM calls WHERE phone=${phone} ORDER BY ts DESC LIMIT 1`)[0];
         if (!lc) return ok({ found: false, phone });
         comp = { phone, name: lc.name, website: lc.website, email: lc.email, city: lc.city, industry: lc.industry,
                  rating: lc.rating, reviews: lc.reviews, pos: lc.pos, addr: lc.addr, maps: lc.maps, stage: 'contacted', contact: '' };
       }
-      const em = (await sql`SELECT subject, ts FROM emails_log WHERE phone=${phone} ORDER BY ts DESC LIMIT 1`)[0] || null;
-      const mt = (await sql`SELECT meet_date, status FROM meetings WHERE phone=${phone} ORDER BY ts DESC LIMIT 1`)[0] || null;
-      return ok({ found: true, company: comp, last, lastEmail: em, meeting: mt });
+      const em = (await sql`SELECT subject, ts FROM emails_log WHERE phone=${mainPhone} ORDER BY ts DESC LIMIT 1`)[0] || null;
+      const mt = (await sql`SELECT meet_date, status FROM meetings WHERE phone=${mainPhone} ORDER BY ts DESC LIMIT 1`)[0] || null;
+      return ok({ found: true, company: comp, last, lastEmail: em, meeting: mt, viaAlt });
     }
 
     /* ---------------- MORNING START + END-OF-SHIFT REPORT ---------------- */
