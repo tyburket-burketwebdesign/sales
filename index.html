@@ -2050,8 +2050,15 @@ function twDial(phone){
     conn.on('accept',function(){$('cb-status').textContent='On call';TW.live=true;twTimerStart();});
     conn.on('disconnect',twEnded);
     conn.on('cancel',twEnded);
-    conn.on('error',function(e2){toast('Call error: '+(e2.message||e2));twEnded();});
+    conn.on('error',function(e2){toast(twErrMsg(e2));twEnded();});
   }).catch(function(e2){toast(e2.message||String(e2));$('callbar').classList.remove('show');TW.conn=null;});
+}
+function twErrMsg(e){
+  var code=Number((e&&(e.code||(e.originalError&&e.originalError.code)))||0);
+  if(code===31005||code===31003||code===31002) return 'The call dropped before anyone picked up (busy, no answer, or the number could not be reached). Log it as No answer and keep moving.';
+  if(code===31208||code===31201||code===31204||code===31205||code===20104) return 'Your browser lost its dialer connection. Refresh the page and try again.';
+  if(code===31402||code===31401) return 'Chrome blocked the microphone. Click the lock icon in the address bar and allow it.';
+  return 'Call error'+(code?' '+code:'')+': '+((e&&e.message)||e)+'. If this keeps happening, tell Ty.';
 }
 function twIncoming(inc){
   if(TW.conn||TW.inc){try{inc.reject();}catch(e){}return;}

@@ -16,7 +16,8 @@ module.exports = async function handler(req, res) {
   const key = process.env.TWILIO_WEBHOOK_KEY || '';
   if (!key || (req.query && req.query.k) !== key) {
     res.setHeader('Content-Type', 'text/xml; charset=utf-8');
-    return res.status(403).send('<Response><Reject/></Response>');
+    console.log('[voice] rejected: webhook key missing or wrong (check ?k= in the Twilio URL matches TWILIO_WEBHOOK_KEY)');
+    return res.status(403).send('<?xml version="1.0" encoding="UTF-8"?><Response><Reject/></Response>');
   }
   let P = req.body || {};
   if (typeof P === 'string') {
@@ -24,6 +25,18 @@ module.exports = async function handler(req, res) {
     sp.forEach((v, k2) => { P[k2] = v; });
   }
   try {
+    /* after an OUTBOUND dial ends without a conversation: tell the rep why, so the browser call ends cleanly
+       (without this, Twilio drops the browser leg and the SDK throws error 31005 "Error sent from gateway in HANGUP") */
+    if (req.query.ob === '1') {
+      const st = String(P.DialCallStatus || '');
+      console.log('[voice] outbound dial ended', JSON.stringify({ status: st, to: P.To || '', sid: P.DialCallSid || '', err: P.ErrorCode || '', msg: P.ErrorMessage || '' }));
+      if (st === 'completed' || st === 'answered' || st === 'canceled') return xml(res, '<Response><Hangup/></Response>');
+      const say = st === 'busy' ? 'That line is busy. Log it and try again later.'
+        : st === 'no-answer' ? 'No answer. Log it and move on.'
+        : 'That call could not go through. The number may be disconnected, blocked, or not reachable. Try the other caller I D, or log it and move on.';
+      return xml(res, '<Response><Say voice="Polly.Joanna">' + say + '</Say><Hangup/></Response>');
+    }
+
     /* after-ring callback for inbound: log a miss if nobody answered */
     if (req.query.cb === '1') {
       const st = P.DialCallStatus || '';
@@ -71,9 +84,12 @@ module.exports = async function handler(req, res) {
     let to = String(P.To || '').replace(/[^\d+]/g, '');
     if (to.length === 10) to = '+1' + to;
     if (to.length === 11 && to[0] === '1') to = '+' + to;
-    if (!from || !/^\+1\d{10}$/.test(to)) return xml(res, '<Response><Say>Invalid number.</Say></Response>');
-    return xml(res, '<Response><Dial callerId="' + escXml(from) + '" answerOnBridge="true"><Number>' + escXml(to) + '</Number></Dial></Response>');
+    if (!from) { console.log('[voice] TWILIO_FROM is not set'); return xml(res, '<Response><Say>The calling number is not set up yet. Tell Ty.</Say></Response>'); }
+    if (!/^\+1\d{10}$/.test(to)) return xml(res, '<Response><Say>That number is not a valid 10 digit U S number.</Say></Response>');
+    const obAction = '/api/voice?k=' + encodeURIComponent(key) + '&ob=1';
+    return xml(res, '<Response><Dial callerId="' + escXml(from) + '" answerOnBridge="true" timeout="30" action="' + escXml(obAction) + '" method="POST"><Number>' + escXml(to) + '</Number></Dial></Response>');
   } catch (e) {
+    console.log('[voice] error', e && e.message);
     return xml(res, '<Response><Say>Something went wrong. Try again.</Say></Response>');
   }
 };
