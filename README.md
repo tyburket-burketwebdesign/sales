@@ -76,7 +76,7 @@ To change a password, change the env var and redeploy. Seats re-sync from env on
 
 ## How the SDR flow works
 
-Build My 50 pulls up to 50 fresh businesses (Google position, rating, reviews, website; numbers already called or on the do-not-call list are skipped forever). Start Calling opens the one-at-a-time screen: stats, tel: link, personalized permission-opener script, voicemail script, objections, best-time window, note + follow-up date, keyboard shortcuts 1-6 / M / N / P.
+Build My 50 pulls up to 50 fresh businesses (Google position, rating, reviews, website; numbers already called or on the do-not-call list are skipped forever). Start Calling opens the one-at-a-time screen: stats, tel: link, personalized permission-opener script, voicemail script, objections, best-time window, note + follow-up date.
 
 No answer or voicemail keeps the screen open and arms the email panel: scrape their website for an email (or paste one), hit Start Email Sequence. Email 1 goes out instantly with the free scan link, emails 2 and 3 follow on about day 3 and day 7 automatically. Replies go to the SDR (reply-to). Sequences stop on meeting, do-not-call, or manually.
 
