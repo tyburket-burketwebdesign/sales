@@ -230,6 +230,16 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--m
 .cbm{background:rgba(255,255,255,.14);color:#fff}
 .cbh{background:var(--red);color:#fff}
 .cba{background:var(--green);color:#fff}
+.cbk{background:rgba(255,255,255,.14);color:#fff}
+.cbk.on{background:var(--gold);color:var(--navy)}
+#cb-pad{display:none;margin-top:10px}
+#cb-pad.show{display:block}
+#cb-digits{font-size:20px;font-weight:800;letter-spacing:.18em;text-align:center;min-height:28px;color:var(--gold);font-variant-numeric:tabular-nums;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;direction:rtl}
+.padgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:6px}
+.padgrid button{background:rgba(255,255,255,.1);color:#fff;border-radius:50px;padding:9px 0;font-size:19px;font-weight:700;line-height:1.05;border:1px solid rgba(255,255,255,.12);transition:background .1s}
+.padgrid button small{display:block;font-size:8.5px;letter-spacing:.14em;opacity:.6;font-weight:600;min-height:9px}
+.padgrid button:active,.padgrid button.hit{background:var(--teal);color:var(--navy)}
+#cb-padhint{font-size:11px;color:#9fb6cc;text-align:center;margin-top:8px}
 #login{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#0e2235,#17405f 70%,#1f5d8c);padding:16px;position:relative;overflow:hidden}
 #login::before{content:'';position:absolute;width:600px;height:600px;border-radius:50%;background:radial-gradient(circle,rgba(254,200,20,.12),transparent 60%);top:-200px;right:-150px}
 #login .box{background:#fff;border-radius:22px;padding:36px;width:420px;max-width:100%;box-shadow:0 36px 100px rgba(0,0,0,.5);text-align:center;position:relative}
@@ -838,7 +848,17 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--m
   <div class="cbstatus" id="cb-status">Connecting...</div>
   <div class="cbwho" id="cb-who" style="display:none"></div>
   <div class="cbtimer" id="cb-timer">00:00</div>
-  <div class="row" id="cb-actions"><button class="cbm" id="cb-mute" onclick="twMute()">&#127908; Mute</button><button class="cbh" onclick="twHangup()">&#128683; Hang Up</button></div>
+  <div class="row" id="cb-actions"><button class="cbm" id="cb-mute" onclick="twMute()">&#127908; Mute</button><button class="cbk" id="cb-kbtn" onclick="padToggle()">&#9000;&#65039; Keypad</button><button class="cbh" onclick="twHangup()">&#128683; Hang Up</button></div>
+  <div id="cb-pad">
+    <div id="cb-digits"></div>
+    <div class="padgrid">
+      <button onclick="padPress('1')">1<small>&nbsp;</small></button><button onclick="padPress('2')">2<small>ABC</small></button><button onclick="padPress('3')">3<small>DEF</small></button>
+      <button onclick="padPress('4')">4<small>GHI</small></button><button onclick="padPress('5')">5<small>JKL</small></button><button onclick="padPress('6')">6<small>MNO</small></button>
+      <button onclick="padPress('7')">7<small>PQRS</small></button><button onclick="padPress('8')">8<small>TUV</small></button><button onclick="padPress('9')">9<small>WXYZ</small></button>
+      <button onclick="padPress('*')">&#10033;<small>&nbsp;</small></button><button onclick="padPress('0')">0<small>+</small></button><button onclick="padPress('#')">#<small>&nbsp;</small></button>
+    </div>
+    <div id="cb-padhint">Phone menu? Tap the option, or type it on your keyboard while this pad is open.</div>
+  </div>
   <div class="row" id="cb-inc" style="display:none"><button class="cba" onclick="twAnswer()">&#9989; Answer</button><button class="cbh" onclick="twReject()">&#10060; Decline</button></div>
 </div>
 
@@ -1943,7 +1963,7 @@ function exitDemo(){
 }
 
 /* ================= TWILIO DIALER ================= */
-var TW={device:null,conn:null,inc:null,incInfo:null,inited:false,sdk:false,timer:null,startAt:0,to:''};
+var TW={device:null,conn:null,inc:null,incInfo:null,live:false,inited:false,sdk:false,timer:null,startAt:0,to:''};
 function twEnabled(){ return BOOT&&BOOT.twilio&&BOOT.twilio.enabled; }
 function twSdk(){
   return new Promise(function(res,rej){
@@ -1995,6 +2015,7 @@ function twDial(phone){
   $('cb-status').textContent='Connecting...';
   $('cb-timer').textContent='00:00';
   $('cb-inc').style.display='none';$('cb-actions').style.display='flex';
+  padReset(); padToggle(load('sdr_pad', false));
   $('callbar').classList.add('show');
   twSdk().then(function(){return api('twilio.token');}).then(function(t){
     if(t.minutesLeft<60)toast('Heads up: '+t.minutesLeft+' calling minutes left this month.');
@@ -2005,7 +2026,7 @@ function twDial(phone){
     return dev.connect({params:params});
   }).then(function(conn){
     TW.conn=conn;
-    conn.on('accept',function(){$('cb-status').textContent='On call';twTimerStart();});
+    conn.on('accept',function(){$('cb-status').textContent='On call';TW.live=true;twTimerStart();});
     conn.on('disconnect',twEnded);
     conn.on('cancel',twEnded);
     conn.on('error',function(e2){toast('Call error: '+(e2.message||e2));twEnded();});
@@ -2018,6 +2039,7 @@ function twIncoming(inc){
   $('cb-status').textContent='Incoming call';
   $('cb-timer').textContent='00:00';
   $('cb-inc').style.display='flex';$('cb-actions').style.display='none';
+  padReset(); $('cb-pad').classList.remove('show');
   $('callbar').classList.add('show');
   inc.on('cancel',twIncEnd);inc.on('reject',twIncEnd);inc.on('disconnect',twEnded);
   toast('📞 Incoming call from '+(fmtPhone(inc.parameters.From||'')||'unknown'));
@@ -2032,7 +2054,8 @@ function twAnswer(){
   var inc=TW.inc;if(!inc)return;
   TW.conn=inc;TW.to=String(inc.parameters.From||'').replace(/\D/g,'');TW.inc=null;
   $('cb-inc').style.display='none';$('cb-actions').style.display='flex';
-  inc.on('accept',function(){$('cb-status').textContent='On call';twTimerStart();});
+  padToggle(load('sdr_pad', false));
+  inc.on('accept',function(){$('cb-status').textContent='On call';TW.live=true;twTimerStart();});
   inc.accept();
   if(TW.incInfo&&TW.incInfo.found) popOpen(TW.incInfo);
 }
@@ -2042,6 +2065,7 @@ function twEnded(){
   var secs=TW.startAt?Math.round((Date.now()-TW.startAt)/1000):0;
   $('callbar').classList.remove('show');
   $('cb-who').style.display='none'; TW.incInfo=null;
+  padReset();
   if(secs>0){
     api('twilio.log',{seconds:secs}).catch(function(){});
     toast('Call ended, '+Math.floor(secs/60)+'m '+(secs%60)+'s. Log the outcome.');
@@ -2251,6 +2275,42 @@ function popOpen(d){
   var notes=(d.last||[]).filter(function(x){return x.note;});
   if(notes.length) toast('Last note ('+fdate(notes[0].ts)+'): '+notes[0].note);
 }
+
+
+/* ================= KEYPAD (phone menus / DTMF) ================= */
+var DTMF={'1':[697,1209],'2':[697,1336],'3':[697,1477],'4':[770,1209],'5':[770,1336],'6':[770,1477],'7':[852,1209],'8':[852,1336],'9':[852,1477],'*':[941,1209],'0':[941,1336],'#':[941,1477]};
+function padOpen(){ return $('cb-pad').classList.contains('show'); }
+function padToggle(force){
+  var on = typeof force==='boolean' ? force : !padOpen();
+  $('cb-pad').classList.toggle('show', on);
+  $('cb-kbtn').classList.toggle('on', on);
+  save('sdr_pad', on);
+}
+function padTone(d){
+  var f=DTMF[d]; if(!f) return;
+  try{
+    var AC=window.AudioContext||window.webkitAudioContext; padTone.ctx=padTone.ctx||new AC();
+    var c=padTone.ctx, g=c.createGain(); g.gain.value=0.05; g.connect(c.destination);
+    f.forEach(function(hz){ var o=c.createOscillator(); o.frequency.value=hz; o.connect(g); o.start(); o.stop(c.currentTime+0.12); });
+  }catch(e){}
+}
+function padPress(d){
+  if(!TW.conn||!TW.live){ toast('Keypad works once the call connects.'); return; }
+  try{ TW.conn.sendDigits(d); }catch(e){ toast('Could not send that key: '+(e.message||e)); return; }
+  padTone(d);
+  var el=$('cb-digits'); el.textContent=(el.textContent+d).slice(-24);
+  var btns=document.querySelectorAll('.padgrid button');
+  var idx='123456789*0#'.indexOf(d);
+  if(btns[idx]){ btns[idx].classList.add('hit'); setTimeout(function(){btns[idx].classList.remove('hit');},140); }
+}
+function padReset(){ $('cb-digits').textContent=''; TW.live=false; }
+document.addEventListener('keydown',function(e){
+  if(!TW.conn||!TW.live||!padOpen()) return;
+  var tag=(document.activeElement&&document.activeElement.tagName)||'';
+  if(tag==='INPUT'||tag==='TEXTAREA') return;
+  var k=e.key;
+  if(DTMF[k]){ e.preventDefault(); e.stopImmediatePropagation(); padPress(k); }
+}, true);
 
 /* ================= POWER HOUR / EXTRAS ================= */
 function togglePH(){
