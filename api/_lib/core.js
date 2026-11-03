@@ -123,11 +123,15 @@ async function login(email, pass) {
 }
 
 /* ---- Resend ---- */
-async function sendMail(to, subject, html, replyTo) {
+async function sendMail(to, subject, html, replyTo, opts) {
   const key = process.env.RESEND_API_KEY;
   if (!key) throw new Error('RESEND_API_KEY is not set.');
   const body = { from: process.env.MAIL_FROM || 'BWD <hello@burketwebdesign.com>', to: [to], subject, html };
   if (replyTo) body.reply_to = [replyTo];
+  if (opts && opts.bcc && opts.bcc.length) {
+    const bcc = opts.bcc.filter(x => x && x.toLowerCase() !== String(to).toLowerCase());
+    if (bcc.length) body.bcc = bcc;
+  }
   const r = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: { 'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json' },
@@ -139,6 +143,23 @@ async function sendMail(to, subject, html, replyTo) {
   }
   return r.json();
 }
+
+/* ---- Emails that go to PROSPECTS / CLIENTS ----
+ * Replies always go to the owner (OWNER_REPLY_TO, else OWNER_EMAIL, else ty@burketwebdesign.com).
+ * Every one is BCC'd to MAIL_BCC (comma separated). Default: Steven, so he sees everything that goes out. */
+function prospectReplyTo() {
+  return process.env.OWNER_REPLY_TO || process.env.OWNER_EMAIL || 'ty@burketwebdesign.com';
+}
+function prospectBcc() {
+  const raw = process.env.MAIL_BCC != null ? process.env.MAIL_BCC : 'wing.stevenhermoso@gmail.com';
+  return String(raw).split(',').map(x => x.trim().toLowerCase()).filter(x => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(x));
+}
+function sendProspectMail(to, subject, html) {
+  return sendMail(to, subject, html, prospectReplyTo(), { bcc: prospectBcc() });
+}
+
+/* ---- Sequence timing (the cron runs once a day at 12:00 UTC = 7 AM EST / 8 AM EDT) ---- */
+const SEQ_GAPS = [0, 3, 4];   // email 1 instantly, email 2 three days later, email 3 four days after that
 
 /* ---- Google Places (server-side, key stays private) ---- */
 async function placesSearch(query) {
@@ -457,4 +478,5 @@ function seqTemplates(s, repName) {
 }
 
 module.exports = { hashPass, docusealTemplate, LP_FEATURES, LP750_EXTRA, sql, ensureSchema, userFromToken, login, sendMail, placesSearch, scrapeEmails, isChain, geocodeCity, placesBiased, inStormZone, twE164, twilioReady, twilioNumbers, twilioToken, upsertCompany, STAGE_RANK, docusealSend, waveLink, kpiTarget, kpiBonus,
-                   PRODUCTS, seqTemplates, auditUrl, normPhone, uid };
+                   PRODUCTS, seqTemplates, auditUrl, normPhone, uid,
+                   sendProspectMail, prospectReplyTo, prospectBcc, SEQ_GAPS };

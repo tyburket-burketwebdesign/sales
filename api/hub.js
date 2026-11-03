@@ -60,7 +60,11 @@ module.exports = async function handler(req, res) {
         FROM calls WHERE rep=${user.email}`;
       const myDeals = await sql`SELECT * FROM deals WHERE rep=${user.email} ORDER BY ts DESC LIMIT 100`;
       const myLedger = await sql`SELECT * FROM ledger WHERE rep=${user.email} ORDER BY ts DESC LIMIT 200`;
-      const mySeqs = await sql`SELECT * FROM seqs WHERE rep=${user.email} ORDER BY started DESC LIMIT 100`;
+      const mySeqs = OWNER
+        ? await sql`SELECT s.*, u.name AS rep_name FROM seqs s LEFT JOIN users u ON u.email = s.rep ORDER BY s.started DESC LIMIT 150`
+        : await sql`SELECT s.*, u.name AS rep_name FROM seqs s LEFT JOIN users u ON u.email = s.rep WHERE s.rep=${user.email} ORDER BY s.started DESC LIMIT 100`;
+      const seqIds = mySeqs.map(x => x.id);
+      const seqLog = seqIds.length ? await sql`SELECT seq_id, step, subject, ts FROM emails_log WHERE seq_id = ANY(${seqIds}) ORDER BY ts` : [];
       const myMeetings = await sql`SELECT * FROM meetings WHERE rep=${user.email} OR ${OWNER} ORDER BY meet_date DESC NULLS LAST, ts DESC LIMIT 100`;
       let team = null;
       if (OWNER) {
@@ -89,7 +93,8 @@ module.exports = async function handler(req, res) {
       const waveReady = {};
       C.PRODUCTS.forEach(p => { if (C.waveLink(p.id)) waveReady[p.id] = true; });
       return ok({ user, products: C.PRODUCTS, today, fups, fourteen, totals: totals[0],
-                  deals: myDeals, ledger: myLedger, seqs: mySeqs, meetings: myMeetings, team, auditUrl: C.auditUrl(),
+                  deals: myDeals, ledger: myLedger, seqs: mySeqs, seqLog: seqLog, seqGaps: C.SEQ_GAPS,
+                  mailInfo: { replyTo: C.prospectReplyTo(), bcc: C.prospectBcc() }, meetings: myMeetings, team, auditUrl: C.auditUrl(),
                   twilio: { enabled: C.twilioReady(), numbers: C.twilioNumbers() },
                   kpi: { target: C.kpiTarget(), bonus: C.kpiBonus(), closedMonth: closedMonth },
                   pipeline: pipeline, waveReady: waveReady,
@@ -262,10 +267,25 @@ module.exports = async function handler(req, res) {
       const s = ins[0];
       await C.upsertCompany({ phone: phone, name: P.business, email: to, website: P.website, city: P.city, industry: P.industry, rep: user.email }, 'contacted');
       const t = C.seqTemplates(s, user.name)[0];
-      await C.sendMail(to, t.subject, t.html, user.email);
-      await sql`UPDATE seqs SET step=1, next_at = now() + interval '3 days' WHERE id=${s.id}`;
+      await C.sendProspectMail(to, t.subject, t.html);
+      await sql`UPDATE seqs SET step=1, next_at = now() + make_interval(days => ${C.SEQ_GAPS[1]}::int) WHERE id=${s.id}`;
       await sql`INSERT INTO emails_log (seq_id, phone, to_email, rep, step, subject) VALUES (${s.id}, ${phone}, ${to}, ${user.email}, 1, ${t.subject})`;
       return ok({ started: true });
+    }
+    if (a === 'seq.preview') {
+      /* the exact emails a sequence sends: by sequence id, or for a lead before it starts */
+      let s = null, repName = user.name;
+      if (P.id) {
+        s = (await sql`SELECT s.*, u.name AS rep_name FROM seqs s LEFT JOIN users u ON u.email = s.rep WHERE s.id=${Number(P.id)}`)[0];
+        if (!s) return err('Sequence not found.');
+        repName = s.rep_name || repName;
+      } else {
+        s = { business: P.business || '', city: P.city || '', industry: P.industry || '', website: P.website || '' };
+      }
+      const tpl = C.seqTemplates(s, repName);
+      const log = P.id ? await sql`SELECT step, subject, ts FROM emails_log WHERE seq_id=${Number(P.id)} ORDER BY step` : [];
+      return ok({ emails: tpl.map((t, i) => ({ step: i + 1, subject: t.subject, html: t.html, gapDays: C.SEQ_GAPS[i] })),
+                  log, replyTo: C.prospectReplyTo(), bcc: C.prospectBcc(), seq: P.id ? s : null });
     }
     if (a === 'seq.stop') {
       await sql`UPDATE seqs SET status='stopped' WHERE id=${Number(P.id)} AND (rep=${user.email} OR ${OWNER})`;
@@ -387,7 +407,7 @@ module.exports = async function handler(req, res) {
       if (!subject || !bodyTxt) return err('Subject and message are both needed.');
       const html = bodyTxt.split('\n').map(l => '<p>' + l.replace(/</g, '&lt;') + '</p>').join('') +
         '<p>' + user.name + '<br>Burket Web Design, Altoona PA</p>';
-      await C.sendMail(to, subject, html, user.email);
+      await C.sendProspectMail(to, subject, html);
       await sql`INSERT INTO emails_log (seq_id, phone, to_email, rep, step, subject) VALUES (0, ${C.normPhone(P.phone) || ''}, ${to}, ${user.email}, 0, ${subject})`;
       return ok(true);
     }
@@ -478,7 +498,7 @@ module.exports = async function handler(req, res) {
         (checkout ? '<p><a href="' + checkout + '" style="background:#fec814;color:#0e2235;padding:12px 22px;border-radius:9px;text-decoration:none;font-weight:bold">Pay securely online</a></p>' : '') +
         '<p>Questions? Just reply to this email or call us. We only start work once you are completely comfortable.</p>' +
         '<p>' + user.name + '<br>Burket Web Design, Altoona PA<br><a href="https://www.burketwebdesign.com">burketwebdesign.com</a></p></div>';
-      await C.sendMail(to, 'Your proposal from Burket Web Design', html, user.email);
+      await C.sendProspectMail(to, 'Your proposal from Burket Web Design', html);
       await sql`INSERT INTO proposals (phone, rep, to_email, products, total, note, checkout)
                 VALUES (${phone}, ${user.email}, ${to}, ${picked.map(p => p.label).join(' + ')}, ${total}, ${P.note || ''}, ${checkout})`;
       await C.upsertCompany({ phone: phone, name: P.business, email: to, rep: user.email }, 'proposal');
@@ -525,7 +545,7 @@ module.exports = async function handler(req, res) {
         '<p><a href="' + link + '" style="background:#fec814;color:#0e2235;padding:12px 22px;border-radius:9px;text-decoration:none;font-weight:bold">Complete checkout</a></p>' +
         '<p>Once it goes through, we get to work. Reply to this email with any questions.</p>' +
         '<p>' + user.name + '<br>Burket Web Design, Altoona PA</p></div>';
-      await C.sendMail(to, 'Checkout for ' + biz + ' - Burket Web Design', html, user.email);
+      await C.sendProspectMail(to, 'Checkout for ' + biz + ' - Burket Web Design', html);
       await sql`INSERT INTO emails_log (seq_id, phone, to_email, rep, step, subject) VALUES (0, ${phone}, ${to}, ${user.email}, 0, ${'Checkout: ' + prod.label})`;
       return ok(true);
     }

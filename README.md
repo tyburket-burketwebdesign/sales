@@ -27,6 +27,8 @@ Tables create themselves on first request. The cron in `vercel.json` runs daily 
 | `GOOGLE_PLACES_KEY` | yes | Google Places API key. Stays server-side, never exposed to the browser |
 | `RESEND_API_KEY` | yes | From resend.com -> API Keys |
 | `MAIL_FROM` | yes | Verified sender, e.g. `Burket Web Design <hello@burketwebdesign.com>` (domain must be verified in Resend) |
+| `MAIL_BCC` | no | Comma-separated addresses BCC'd on every email that goes to a prospect or client (sequences, one-offs, proposals, checkouts). Defaults to wing.stevenhermoso@gmail.com. Set it to an empty value to turn BCC off |
+| `OWNER_REPLY_TO` | no | Where prospect replies go. Defaults to OWNER_EMAIL |
 | `MAIL_TO` | no | Where owner notifications and daily reports go. Defaults to OWNER_EMAIL |
 | `AUDIT_URL` | no | Defaults to https://www.burketwebdesign.com/scan/ |
 | `CRON_SECRET` | no | If set, Vercel protects the cron endpoint with it automatically |
@@ -78,7 +80,7 @@ To change a password, change the env var and redeploy. Seats re-sync from env on
 
 Build My 50 pulls up to 50 fresh businesses (Google position, rating, reviews, website; numbers already called or on the do-not-call list are skipped forever). Start Calling opens the one-at-a-time screen: stats, tel: link, personalized permission-opener script, voicemail script, objections, best-time window, note + follow-up date.
 
-No answer or voicemail keeps the screen open and arms the email panel: scrape their website for an email (or paste one), hit Start Email Sequence. Email 1 goes out instantly with the free scan link, emails 2 and 3 follow on about day 3 and day 7 automatically. Replies go to the SDR (reply-to). Sequences stop on meeting, do-not-call, or manually.
+No answer or voicemail keeps the screen open and arms the email panel: scrape their website for an email (or paste one), hit Start Email Sequence. Email 1 goes out instantly with the free scan link, emails 2 and 3 follow on about day 3 and day 7 automatically. Replies go to the owner (reply-to), and every email is BCC'd to MAIL_BCC. The Sequences tab shows each email's subject, when it went out, when the next one goes, and a preview. Sequences stop on meeting, do-not-call, or manually.
 
 Meetings and submitted deals email the owner instantly. Deal approval moves commission to the ledger (websites 20% one-time; monthly plans 50% of month one plus 10% monthly, accrued automatically every 30 days). The owner tab has approvals, payouts, team activity, and all sequences.
 

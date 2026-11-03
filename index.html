@@ -234,6 +234,29 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--m
 #cb-pad{display:none;margin-top:10px}
 #cb-pad.show{display:block}
 #cb-digits{font-size:20px;font-weight:800;letter-spacing:.18em;text-align:center;min-height:28px;color:var(--gold);font-variant-numeric:tabular-nums;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;direction:rtl}
+.sqhow{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}
+.sqhow div{background:var(--bg,#f4f7fb);border-radius:12px;padding:12px;font-size:13px;line-height:1.5}
+.sqhow b{display:block;color:var(--navy);font-size:14px;margin-bottom:2px}
+.sqhow span{color:var(--muted);font-size:12px}
+.sqmeta{font-size:12.5px;color:var(--muted);margin-top:10px;line-height:1.7}
+.sqcard{border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-top:10px}
+.sqtop{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.sqsteps{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+.sqstep{border-radius:10px;padding:9px 10px;font-size:12.5px;line-height:1.45;border:1px solid var(--line);background:var(--card)}
+.sqstep.sent{background:var(--green-bg);border-color:rgba(22,163,74,.3)}
+.sqstep.next{background:#fff8dc;border-color:rgba(245,180,0,.45)}
+.sqstep.off{opacity:.55}
+.sqstep .st{font-weight:800;font-size:11px;letter-spacing:.06em;text-transform:uppercase}
+.sqstep .sj{font-weight:700;color:var(--navy);margin:3px 0}
+.sqstep a{font-size:12px;font-weight:700;cursor:pointer;color:var(--blue)}
+.seqinfo{font-size:12px;color:var(--muted);margin-top:6px;line-height:1.6}
+#seqPrevFrame{max-height:56vh;overflow-y:auto;border:1px solid var(--line);border-radius:10px;background:#fff;color:#1a2435;margin-top:10px;padding:14px 18px;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.6}
+#seqPrevFrame p{margin:0 0 12px}
+#seqPrevFrame a{color:#1f5d8c}
+.sqtabs{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.sqtabs button{font-size:12.5px}
+.sqtabs button.on{background:var(--navy);color:#fff}
+@media(max-width:700px){.sqhow,.sqsteps{grid-template-columns:1fr}}
 .mdial{display:flex;gap:6px;align-items:center;margin-top:10px;flex-wrap:wrap}
 .mdial input{flex:1;min-width:130px}
 .mdial input.lbl{flex:0 1 130px;min-width:90px}
@@ -439,14 +462,22 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--m
 
       <div class="view" id="v-seq">
         <div class="card">
-          <b style="font-size:15px">Email Sequences</b>
-          <p class="hint">Fired from the call screen after a voicemail or no-answer. Three emails over about ten days, each with the free scan link. Replies land in your inbox. Sequences stop on a win or do-not-call.</p>
-          <div style="overflow-x:auto;margin-top:10px">
-            <table>
-              <thead><tr><th>Business</th><th>Email</th><th>Step</th><th>Status</th><th>Next send</th><th></th></tr></thead>
-              <tbody id="seqRows"></tbody>
-            </table>
+          <div class="row"><b style="font-size:15px">Email Sequences</b><div style="flex:1"></div><button class="btn-ghost btn-sm" onclick="seqPreview(null)">&#128065;&#65039; Preview the 3 emails</button></div>
+          <p class="hint" style="margin-top:4px">Started from the call screen (Email tab) after a voicemail or no answer. Three emails go out on this schedule:</p>
+          <div class="sqhow">
+            <div><b>Email 1: right away</b>"Tried calling about [business]&rsquo;s Google listing"<br><span>Sends the moment you hit Start. Includes the free scan link.</span></div>
+            <div><b>Email 2: 3 days later</b>"The free scan for [business]"<br><span>Short follow-up with the scan link again.</span></div>
+            <div><b>Email 3: 4 days after that</b>"Closing the file on [business]"<br><span>Polite last note. About day 7. Then the sequence ends.</span></div>
           </div>
+          <div class="sqmeta" id="seqMeta"></div>
+          <div class="row" style="margin-top:12px">
+            <button class="btn-ghost btn-sm sqf on" data-f="active" onclick="seqFilter('active')">Active</button>
+            <button class="btn-ghost btn-sm sqf" data-f="all" onclick="seqFilter('all')">All</button>
+            <button class="btn-ghost btn-sm sqf" data-f="done" onclick="seqFilter('done')">Finished / stopped</button>
+            <div style="flex:1"></div>
+            <span class="hint" id="seqCount"></span>
+          </div>
+          <div id="seqRows"></div>
         </div>
       </div>
 
@@ -635,6 +666,7 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--m
       <div class="ctab" id="ctab-email">
       <div class="seqbox" id="seqPanel" style="margin-top:0">
         <b style="font-size:13px">&#9993;&#65039; No answer? Hit them by email.</b>
+        <div class="seqinfo" id="seqHowLine">Email 1 goes out <b>right away</b>, Email 2 <b>3 days later</b>, Email 3 <b>4 days after that</b> (about day 7). Stops automatically if they book, buy, or go on do-not-call. <a style="cursor:pointer;color:var(--blue);font-weight:700" onclick="seqPreviewLead()">Preview the emails</a></div>
         <div class="hint" id="seqStatus" style="margin-top:4px"></div>
         <div class="row" style="margin-top:8px">
           <input id="seq-email" placeholder="their email address" style="flex:1;min-width:170px">
@@ -794,6 +826,18 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--m
       <button class="btn-ghost" onclick="$('recapmodal').classList.remove('show')">Done</button>
       <button class="btn-go" onclick="$('recapmodal').classList.remove('show');openShift()">&#127937; Send my shift report</button>
     </div>
+  </div>
+</div>
+
+<div class="modal2" id="seqprevmodal">
+  <div class="inner" style="width:680px">
+    <div style="display:flex;align-items:center;gap:12px">
+      <div style="flex:1"><h2 style="font-size:19px;margin:0" id="sp-title">Email sequence preview</h2><div class="hint" id="sp-sub"></div></div>
+      <button class="btn-ghost btn-sm" onclick="$('seqprevmodal').classList.remove('show')">&#10005;</button>
+    </div>
+    <div class="sqtabs" id="sp-tabs"></div>
+    <div class="seqinfo" id="sp-info"></div>
+    <div id="seqPrevFrame"></div>
   </div>
 </div>
 
@@ -1300,14 +1344,86 @@ function loadHistory(){
     }).join('') : '<tr><td colspan="6"><div class="empty">No calls logged yet.</div></td></tr>';
   }).catch(function(e){ toast(e.message); });
 }
+var SEQ_FILTER='active';
+function seqFilter(f){
+  SEQ_FILTER=f;
+  document.querySelectorAll('.sqf').forEach(function(x){ x.classList.toggle('on', x.getAttribute('data-f')===f); });
+  renderSeqs();
+}
+/* the daily send runs at 12:00 UTC: an email is due at next_at, it actually goes at the first run after that */
+function seqNextRun(t){
+  var d=new Date(t); var r=new Date(Date.UTC(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate(),12,0,0));
+  if (r.getTime()<d.getTime()) r=new Date(r.getTime()+86400000);
+  return r;
+}
+function seqWhen(d){
+  try{ return new Date(d).toLocaleString(undefined,{weekday:'short',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}); }catch(e){ return String(d); }
+}
 function renderSeqs(){
-  var rows=(BOOT&&BOOT.seqs)||[];
-  $('seqRows').innerHTML = rows.length ? rows.map(function(s){
-    return '<tr><td><b>'+esc(s.business||fmtPhone(s.phone))+'</b></td><td>'+esc(s.to_email)+'</td>'+
-      '<td>'+s.step+' / 3</td><td>'+(s.status==='active'?'<span class="tag t-cb">active</span>':s.status==='done'?'<span class="tag t-meet">finished</span>':'<span class="tag t-na">stopped</span>')+'</td>'+
-      '<td>'+(s.status==='active'?esc(fdate(s.next_at)):'-')+'</td>'+
-      '<td>'+(s.status==='active'?'<button class="btn-ghost btn-sm" onclick="stopSeq('+s.id+')">Stop</button>':'')+'</td></tr>';
-  }).join('') : '<tr><td colspan="6"><div class="empty">No sequences yet. Start one from the call screen after a voicemail.</div></td></tr>';
+  var all=(BOOT&&BOOT.seqs)||[], log=(BOOT&&BOOT.seqLog)||[], gaps=(BOOT&&BOOT.seqGaps)||[0,3,4];
+  var mi=(BOOT&&BOOT.mailInfo)||{};
+  $('seqMeta').innerHTML='&#9993;&#65039; Sent from your Burket Web Design address. <b>Replies go to '+esc(mi.replyTo||'ty@burketwebdesign.com')+'</b>'+
+    (mi.bcc&&mi.bcc.length?' &middot; <b>BCC on every email: '+esc(mi.bcc.join(', '))+'</b>':'')+
+    ' &middot; Follow-ups send once a day at '+esc(seqNextRun(Date.now()).toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'}))+' your time. A sequence stops on its own when they book a meeting, buy, or are marked do not call.';
+  var rows=all.filter(function(x){ return SEQ_FILTER==='all' ? true : SEQ_FILTER==='active' ? x.status==='active' : x.status!=='active'; });
+  var act=all.filter(function(x){return x.status==='active';}).length;
+  $('seqCount').textContent=act+' active · '+all.length+' total';
+  var isOwner=BOOT&&BOOT.user.role==='owner';
+  $('seqRows').innerHTML = rows.length ? rows.map(function(q){
+    var sent={}; log.forEach(function(l){ if(l.seq_id===q.id) sent[l.step]=l; });
+    var subj=['Tried calling about '+(q.business||'your business')+'’s Google listing','The free scan for '+(q.business||'your business'),'Closing the file on '+(q.business||'your business')];
+    var nextRun = q.status==='active'&&q.next_at ? seqNextRun(q.next_at) : null;
+    var steps=[1,2,3].map(function(n){
+      var l=sent[n], cls='', st='', when='';
+      if (l){ cls='sent'; st='&#10003; Sent'; when=seqWhen(l.ts); subj[n-1]=l.subject||subj[n-1]; }
+      else if (q.status==='active' && n===q.step+1 && nextRun){ cls='next'; st='&#9203; Next'; when='goes out '+seqWhen(nextRun); }
+      else if (q.status==='active' && n>q.step+1 && nextRun){ st='Scheduled'; when='about '+seqWhen(new Date(nextRun.getTime()+gaps[n-1]*86400000)); }
+      else { cls='off'; st=q.status==='done'?'Not needed':'Cancelled'; when=q.status==='stopped'?'sequence was stopped':'sequence ended'; }
+      return '<div class="sqstep '+cls+'"><div class="st">Email '+n+' · '+st+'</div><div class="sj">'+esc(subj[n-1])+'</div><div>'+esc(when)+'</div>'+
+        '<a onclick="seqPreview('+q.id+','+n+')">Preview</a></div>';
+    }).join('');
+    var tag=q.status==='active'?'<span class="tag t-cb">active</span>':q.status==='done'?'<span class="tag t-meet">finished</span>':'<span class="tag t-na">stopped</span>';
+    return '<div class="sqcard"><div class="sqtop"><b style="font-size:14.5px">'+esc(q.business||fmtPhone(q.phone))+'</b>'+tag+
+      '<span class="hint">to '+esc(q.to_email)+' · started '+esc(seqWhen(q.started))+(isOwner&&q.rep_name?' by '+esc(q.rep_name):'')+'</span><div style="flex:1"></div>'+
+      (q.status==='active'?'<button class="btn-ghost btn-sm" onclick="stopSeq('+q.id+')">Stop sequence</button>':'')+'</div>'+
+      '<div class="sqsteps">'+steps+'</div></div>';
+  }).join('') : '<div class="empty">'+(SEQ_FILTER==='active'?'No active sequences. Start one from the Email tab on the call screen after a voicemail.':'Nothing here yet.')+'</div>';
+}
+var SEQ_PREV=null;
+function seqPreview(id, step){
+  var params = id ? {id:id} : {business:'Gulf Coast Pool Co', city:'Cape Coral'};
+  seqPreviewOpen(params, step||1, id ? null : 'Sample using a made-up business. Real emails use the lead’s name and town.');
+}
+function seqPreviewLead(){
+  var b=curBiz(); if(!b) return;
+  seqPreviewOpen({business:b.name, city:b.town||LISTMETA.city||'', industry:LISTMETA.industry||b.industry||'', website:b.website||''}, 1,
+    'Exactly what '+(b.name||'this business')+' will get if you start the sequence.');
+}
+function seqPreviewOpen(params, step, note){
+  $('sp-title').textContent='Loading...'; $('sp-sub').textContent=''; $('sp-tabs').innerHTML=''; $('sp-info').innerHTML='';
+  $('seqPrevFrame').innerHTML='';
+  $('seqprevmodal').classList.add('show');
+  api('seq.preview',params).then(function(d){
+    SEQ_PREV=d; SEQ_PREV.note=note||'';
+    $('sp-title').textContent='Email sequence: '+((d.seq&&d.seq.business)||params.business||'');
+    $('sp-sub').textContent=note||('To '+(d.seq?d.seq.to_email:''));
+    seqPrevShow(step);
+  }).catch(function(e){ $('sp-title').textContent=e.message; });
+}
+function seqPrevShow(n){
+  var d=SEQ_PREV; if(!d) return;
+  var labels=['right away','3 days later','4 days after that'];
+  $('sp-tabs').innerHTML=d.emails.map(function(e){
+    return '<button class="btn-ghost btn-sm'+(e.step===n?' on':'')+'" onclick="seqPrevShow('+e.step+')">Email '+e.step+' · '+labels[e.step-1]+'</button>';
+  }).join('');
+  var e=d.emails[n-1]; if(!e) return;
+  var l=(d.log||[]).find(function(x){return x.step===n;});
+  $('sp-info').innerHTML='<b>Subject:</b> '+esc(e.subject)+'<br><b>When:</b> '+(l?'sent '+esc(seqWhen(l.ts)):(n===1?'the moment the sequence starts':esc(labels[n-1])+', at the daily send'))+
+    '<br><b>Replies go to:</b> '+esc(d.replyTo)+(d.bcc&&d.bcc.length?' &middot; <b>BCC:</b> '+esc(d.bcc.join(', ')):'');
+  var doc=new DOMParser().parseFromString(e.html,'text/html');
+  doc.querySelectorAll('script,iframe,object,embed,style,link').forEach(function(x){x.remove();});
+  doc.querySelectorAll('*').forEach(function(el){ Array.prototype.slice.call(el.attributes).forEach(function(at){ if(/^on/i.test(at.name)) el.removeAttribute(at.name); }); if(el.tagName==='A'){ el.setAttribute('target','_blank'); el.setAttribute('rel','noopener'); } });
+  $('seqPrevFrame').innerHTML=doc.body.innerHTML;
 }
 function stopSeq(id){ api('seq.stop',{id:id}).then(function(){ toast('Sequence stopped.'); refresh(); }).catch(function(e){toast(e.message);}); }
 
@@ -1925,7 +2041,8 @@ function startSeq(){
     .then(function(){
       chime();
       if (CUR!=null){ LIST[CUR].seqStarted=true; save('sdr_list',LIST); }
-      $('seqStatus').innerHTML='<b style="color:var(--green)">Email 1 just went out with the scan link.</b> Two more follow automatically. Replies land in your inbox.';
+      var mi=(BOOT&&BOOT.mailInfo)||{};
+      $('seqStatus').innerHTML='<b style="color:var(--green)">Email 1 just went to '+esc(to)+'.</b> Email 2 goes out '+esc(seqWhen(seqNextRun(Date.now()+3*86400000)))+', Email 3 about 4 days after that. Replies go to '+esc(mi.replyTo||'Ty')+(mi.bcc&&mi.bcc.length?'; '+esc(mi.bcc.join(', '))+' gets a BCC copy of each one':'')+'. Track it in Sequences.';
       toast('Sequence started for '+(b.name||to)+'.');
       if (CUR!=null){
         var next=-1;

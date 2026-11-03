@@ -21,10 +21,10 @@ module.exports = async function handler(req, res) {
         const nextStep = s.step + 1;
         const t = C.seqTemplates(s, s.rep_name)[nextStep - 1];
         if (!t) { await sql`UPDATE seqs SET status='done' WHERE id=${s.id}`; continue; }
-        await C.sendMail(s.to_email, t.subject, t.html, s.rep);
+        await C.sendProspectMail(s.to_email, t.subject, t.html);
         await sql`INSERT INTO emails_log (seq_id, phone, to_email, rep, step, subject) VALUES (${s.id}, ${s.phone}, ${s.to_email}, ${s.rep}, ${nextStep}, ${t.subject})`;
         if (nextStep >= 3) await sql`UPDATE seqs SET step=3, status='done' WHERE id=${s.id}`;
-        else await sql`UPDATE seqs SET step=${nextStep}, next_at = now() + interval '4 days' WHERE id=${s.id}`;
+        else await sql`UPDATE seqs SET step=${nextStep}, next_at = now() + make_interval(days => ${C.SEQ_GAPS[nextStep]}::int) WHERE id=${s.id}`;
         out.seqSent++;
       } catch (e) { out.errors.push('seq ' + s.id + ': ' + e.message); }
     }
