@@ -234,6 +234,40 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--m
 #cb-pad{display:none;margin-top:10px}
 #cb-pad.show{display:block}
 #cb-digits{font-size:20px;font-weight:800;letter-spacing:.18em;text-align:center;min-height:28px;color:var(--gold);font-variant-numeric:tabular-nums;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;direction:rtl}
+.anbar{display:flex;gap:6px;flex-wrap:wrap;align-items:flex-end}
+.anbar .chip{font-size:12.5px;padding:7px 11px}
+.anbar .chip.on{background:var(--navy);color:#fff}
+.an-h{font-size:15px;font-weight:800;color:var(--navy);margin:0 0 4px}
+.an-sub{font-size:12px;color:var(--muted);margin-bottom:8px}
+.an-kpi b{font-size:26px}
+.an-kpi small{display:block;font-size:11.5px;color:var(--muted);margin-top:3px;font-weight:600}
+.an-kpi small.good{color:var(--green)} .an-kpi small.bad{color:var(--red)}
+.funnel{display:flex;flex-direction:column;gap:6px;margin-top:6px}
+.funnel .fr{display:flex;align-items:center;gap:10px;font-size:13px}
+.funnel .fl{width:120px;flex:none;font-weight:700;color:var(--navy)}
+.funnel .ft{flex:1;background:var(--line);border-radius:8px;height:24px;overflow:hidden}
+.funnel .ft i{display:block;height:100%;background:linear-gradient(90deg,var(--blue),var(--teal));border-radius:8px;min-width:2px}
+.funnel .fn{width:120px;flex:none;text-align:right;font-variant-numeric:tabular-nums}
+.hb{display:flex;align-items:center;gap:8px;font-size:12.5px;margin:4px 0}
+.hb .l{width:130px;flex:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hb .t{flex:1;background:var(--line);border-radius:6px;height:12px;overflow:hidden}
+.hb .t i{display:block;height:100%;background:var(--blue);border-radius:6px}
+.hb .n{width:78px;flex:none;text-align:right;color:var(--muted);font-variant-numeric:tabular-nums}
+.an-t{font-size:12.5px}
+.an-t th{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);text-align:left;padding:7px 8px;border-bottom:1px solid var(--line);white-space:nowrap;cursor:default}
+.an-t td{padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+.an-t td.num,.an-t th.num{text-align:right;font-variant-numeric:tabular-nums}
+.an-t tr.best td{background:var(--green-bg)}
+.an-t tr.worst td{background:var(--red-bg)}
+.an-t td.note{max-width:280px;color:var(--muted)}
+.insights{display:flex;flex-direction:column;gap:6px;margin-top:4px}
+.insights div{font-size:13.5px;line-height:1.5;padding:9px 12px;border-radius:10px;background:var(--bg,#f4f7fb);border-left:4px solid var(--blue)}
+.insights div.good{border-left-color:var(--green)} .insights div.warn{border-left-color:var(--gold2)} .insights div.bad{border-left-color:var(--red)}
+.hourbars{display:flex;align-items:flex-end;gap:4px;height:110px;margin-top:22px}
+.hourbars .b{flex:1;background:linear-gradient(180deg,var(--teal),var(--blue));border-radius:4px 4px 0 0;position:relative;min-height:2px}
+.hourbars .b i{position:absolute;top:-16px;left:-4px;right:-4px;text-align:center;font-size:9.5px;font-style:normal;color:var(--muted);font-weight:700}
+.hourbars .b u{position:absolute;bottom:-16px;left:-4px;right:-4px;text-align:center;font-size:9px;text-decoration:none;color:var(--muted2)}
+.hourbars .b.top{background:linear-gradient(180deg,var(--gold),var(--gold2))}
 .sqhow{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}
 .sqhow div{background:var(--bg,#f4f7fb);border-radius:12px;padding:12px;font-size:13px;line-height:1.5}
 .sqhow b{display:block;color:var(--navy);font-size:14px;margin-bottom:2px}
@@ -340,6 +374,7 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--m
       <div id="ownerNav" style="display:none">
         <div class="navsec">OWNER</div>
         <button class="nv" data-view="owner"><span class="ic">&#9881;&#65039;</span>Command Center<span class="pill" id="apprBadge" style="display:none"></span></button>
+        <button class="nv" data-view="perf"><span class="ic">&#128200;</span>Rep Performance</button>
       </div>
     </div>
     <div class="foot">
@@ -539,6 +574,68 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--m
 
       <div class="view" id="v-play">
         <div id="playWrap"></div>
+      </div>
+
+      <div class="view" id="v-perf">
+        <div class="card">
+          <div class="anbar">
+            <div><label>Rep</label><select id="an-rep" onchange="anLoad()"></select></div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap" id="an-ranges"></div>
+            <div id="an-custom" style="display:none;gap:6px;align-items:flex-end">
+              <div><label>From</label><input type="date" id="an-from"></div>
+              <div><label>To</label><input type="date" id="an-to"></div>
+              <button class="btn-blue btn-sm" onclick="anLoad()">Apply</button>
+            </div>
+            <div style="flex:1"></div>
+            <button class="btn-ghost btn-sm" onclick="anLoad()">&#8635; Refresh</button>
+          </div>
+          <div class="hint" id="an-label" style="margin-top:8px"></div>
+        </div>
+
+        <div class="card" style="margin-top:14px"><div class="an-h">Coaching insights</div><div class="an-sub">Pulled from the numbers below. Use these in your weekly 1:1.</div><div class="insights" id="an-insights"></div></div>
+
+        <div class="g4" style="margin-top:14px" id="an-kpis1"></div>
+        <div class="g4" style="margin-top:12px" id="an-kpis2"></div>
+
+        <div class="g2" style="margin-top:14px">
+          <div class="card"><div class="an-h">Call funnel</div><div class="an-sub">How dials turn into money.</div><div class="funnel" id="an-funnel"></div></div>
+          <div class="card"><div class="an-h">Outcome mix</div><div class="an-sub">Every logged result.</div><div id="an-outcomes"></div></div>
+        </div>
+
+        <div class="card" style="margin-top:14px"><div class="an-h">By industry</div><div class="an-sub">Green is the best meeting rate (15+ dials), red is the weakest. Meetings per 100 dials is the number to steer by.</div><div style="overflow-x:auto"><table class="an-t" id="an-ind"></table></div></div>
+        <div class="card" style="margin-top:14px"><div class="an-h">By market</div><div class="an-sub">Which towns are answering and booking.</div><div style="overflow-x:auto"><table class="an-t" id="an-city"></table></div></div>
+
+        <div class="g2" style="margin-top:14px">
+          <div class="card"><div class="an-h">Best hours to call (Eastern)</div><div class="an-sub">Conversation rate by hour. Gold is the best hour with 10+ dials.</div><div class="hourbars" id="an-hours"></div><div style="height:18px"></div></div>
+          <div class="card"><div class="an-h">By day of week</div><div class="an-sub">&nbsp;</div><table class="an-t" id="an-dow"></table></div>
+        </div>
+
+        <div class="card" style="margin-top:14px"><div class="an-h">Daily activity</div><div class="an-sub">Each shift: volume, results, and when he started and stopped dialing.</div><div style="overflow-x:auto"><table class="an-t" id="an-daily"></table></div></div>
+
+        <div class="g2" style="margin-top:14px">
+          <div class="card"><div class="an-h">Objections heard</div><div class="an-sub">Logged on Not interested and Callback.</div><div id="an-obj"></div></div>
+          <div class="card"><div class="an-h">After the call</div><div class="an-sub">Meetings, contracts, and deals in this range.</div><div id="an-after"></div></div>
+        </div>
+
+        <div class="card" style="margin-top:14px" id="an-teamcard"><div class="an-h">Team leaderboard</div><div style="overflow-x:auto"><table class="an-t" id="an-team"></table></div></div>
+
+        <div class="g2" style="margin-top:14px">
+          <div class="card"><div class="an-h">Wins</div><div class="an-sub">Meetings booked and closes, with his notes.</div><div id="an-wins"></div></div>
+          <div class="card"><div class="an-h">Shift reports</div><div class="an-sub">Tap to read what he wrote.</div><div id="an-reports"></div></div>
+        </div>
+
+        <div class="card" style="margin-top:14px">
+          <div class="row" style="align-items:flex-end">
+            <div><div class="an-h">Call sheet</div><div class="an-sub" id="cs-count" style="margin:0"></div></div>
+            <div style="flex:1"></div>
+            <div><label>Outcome</label><select id="cs-out" onchange="csLoad(true)"><option value="">All outcomes</option><option value="no_answer">No answer</option><option value="voicemail">Voicemail</option><option value="gatekeeper">Gatekeeper</option><option value="callback">Callback</option><option value="not_interested">Not interested</option><option value="meeting">Meeting</option><option value="closed">Closed</option><option value="dnc">Do not call</option></select></div>
+            <div><label>Industry</label><select id="cs-ind" onchange="csLoad(true)"><option value="">All industries</option></select></div>
+            <div><label>Search</label><input id="cs-q" placeholder="Business, phone, note, town" oninput="clearTimeout(window.__csT);window.__csT=setTimeout(function(){csLoad(true);},350)"></div>
+            <button class="btn-ghost btn-sm" onclick="csExport()">&#11015;&#65039; Export CSV</button>
+          </div>
+          <div style="overflow-x:auto;margin-top:10px"><table class="an-t"><thead><tr><th>When</th><th>Rep</th><th>Business</th><th>Phone</th><th>Town</th><th>Industry</th><th>Outcome</th><th>Note</th><th>Follow-up</th><th class="num">Google #</th></tr></thead><tbody id="cs-rows"></tbody></table></div>
+          <div style="text-align:center;margin-top:10px"><button class="btn-ghost btn-sm" id="cs-more" onclick="csLoad(false)" style="display:none">Load more</button></div>
+        </div>
       </div>
 
       <div class="view" id="v-owner">
@@ -1009,7 +1106,8 @@ var TITLES = {
   past:['Past Calls','Everything you have worked'],
   comm:['Commissions','Your KPI and your money'],
   play:['Playbook','Scripts, comebacks, and the plan'],
-  owner:['Command Center','Approvals, payouts, team']
+  owner:['Command Center','Approvals, payouts, team'],
+  perf:['Rep Performance','Owner only: every call, outcome, and industry']
 };
 
 /* ================= STATE ================= */
@@ -1184,6 +1282,7 @@ function gotoView(v){
   if (v==='past') loadHistory();
   if (v==='pipe') loadPipeline();
   if (v==='owner'){ refresh(); loadTeam(); loadShiftReports(); }
+  if (v==='perf'){ anInit(); anLoad(); }
   if (v==='dash'||v==='comm'||v==='seq'||v==='meet') refresh();
 }
 document.querySelectorAll('.nv').forEach(function(b){ b.addEventListener('click', function(){ gotoView(b.getAttribute('data-view')); }); });
@@ -2423,6 +2522,197 @@ function popOpen(d){
 }
 
 
+
+
+/* ================= REP PERFORMANCE (owner only) ================= */
+var AN={range:'month', data:null, cs:[], csTotal:0};
+var AN_RANGES=[['today','Today'],['yesterday','Yesterday'],['week','This week'],['7','Last 7 days'],['month','This month'],['30','Last 30 days'],['all','All time'],['custom','Custom']];
+var OUT_LBL={no_answer:'No answer',voicemail:'Voicemail',gatekeeper:'Gatekeeper',callback:'Callback',not_interested:'Not interested',meeting:'Meeting booked',closed:'Closed on call',dnc:'Do not call'};
+function dkey(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function anRangeDates(){
+  var t=new Date(), f=new Date(t), r=AN.range;
+  if(r==='custom') return [$('an-from').value||dkey(t), $('an-to').value||dkey(t)];
+  if(r==='yesterday'){ f.setDate(t.getDate()-1); return [dkey(f),dkey(f)]; }
+  if(r==='week'){ var dw=(t.getDay()+6)%7; f.setDate(t.getDate()-dw); }
+  else if(r==='7'){ f.setDate(t.getDate()-6); }
+  else if(r==='30'){ f.setDate(t.getDate()-29); }
+  else if(r==='month'){ f=new Date(t.getFullYear(),t.getMonth(),1); }
+  else if(r==='all'){ f=new Date(2025,0,1); }
+  return [dkey(f), dkey(t)];
+}
+function anInit(){
+  $('an-ranges').innerHTML=AN_RANGES.map(function(x){ return '<button class="btn-ghost chip'+(AN.range===x[0]?' on':'')+'" onclick="anRange(\''+x[0]+'\')">'+x[1]+'</button>'; }).join('');
+  $('an-custom').style.display=AN.range==='custom'?'flex':'none';
+}
+function anRange(r){
+  AN.range=r; anInit();
+  if(r==='custom'){ var d=anRangeDates(); if(!$('an-from').value){ var t=new Date(); $('an-from').value=dkey(new Date(t.getFullYear(),t.getMonth(),1)); $('an-to').value=dkey(t);} return; }
+  anLoad();
+}
+function pct(a,b){ return b?Math.round(a/b*1000)/10:0; }
+function per100(a,b){ return b?Math.round(a/b*1000)/10:0; }
+function anLoad(){
+  if(!BOOT||BOOT.user.role!=='owner') return;
+  var d=anRangeDates(), repSel=$('an-rep'), cur=repSel.value;
+  $('an-label').textContent='Loading...';
+  api('owner.analytics',{rep:cur||'',from:d[0],to:d[1]}).then(function(x){
+    AN.data=x;
+    if(!repSel.options.length || repSel.getAttribute('data-n')!==String(x.reps.length)){
+      var sdrs=x.reps.filter(function(r){return r.role!=='owner';});
+      repSel.innerHTML='<option value="">Everyone</option>'+x.reps.map(function(r){ return '<option value="'+esc(r.email)+'">'+esc(r.name||r.email)+(r.role==='owner'?' (you)':'')+(Number(r.active)?'':' (inactive)')+'</option>'; }).join('');
+      repSel.setAttribute('data-n',String(x.reps.length));
+      if(!cur && sdrs.length===1){ repSel.value=sdrs[0].email; return anLoad(); }
+      repSel.value=cur||'';
+    }
+    anRender(x);
+    csFillInd(x.byInd);
+    csLoad(true);
+  }).catch(function(e){ $('an-label').textContent=e.message; });
+}
+function anRender(x){
+  var t=x.totals, repName=$('an-rep').value?($('an-rep').options[$('an-rep').selectedIndex].text):'Everyone';
+  var rangeTxt=fday(x.from)+(x.from!==x.to?' to '+fday(x.to):'');
+  $('an-label').innerHTML='<b>'+esc(repName)+'</b> &middot; '+esc(rangeTxt)+' &middot; '+t.days+' day'+(t.days===1?'':'s')+' with calls &middot; '+t.businesses+' different businesses reached out to';
+  var avg=t.days?Math.round(t.dials/t.days):0, conv=pct(t.convos,t.dials), mp=per100(t.meetings,t.dials);
+  var reached=t.convos+t.gatekeepers;
+  var kp=function(v,l,sub,cls){ return '<div class="kpi an-kpi"><b>'+v+'</b><span>'+l+'</span>'+(sub?'<small class="'+(cls||'')+'">'+sub+'</small>':'')+'</div>'; };
+  $('an-kpis1').innerHTML=kp(t.dials,'dials',avg+' per day (goal 50)',avg>=50?'good':avg>=35?'':'bad')+
+    kp(t.convos,'owner conversations',conv+'% of dials')+
+    kp(t.meetings,'meetings booked with you',mp+' per 100 dials',t.meetings?'good':'')+
+    kp(t.closed,'closed on the call',(x.deals.n||0)+((x.deals.n||0)===1?' deal':' deals')+' approved in range',t.closed?'good':'');
+  var hrs=Math.floor(t.secs/3600), mins=Math.round((t.secs%3600)/60);
+  $('an-kpis2').innerHTML=kp(pct(reached,t.dials)+'%','reached a person','owner or gatekeeper')+
+    kp((hrs?hrs+'h ':'')+mins+'m','on the call screen','about '+(t.dials?Math.round(t.secs/t.dials):0)+'s per dial')+
+    kp(x.emails,'emails sent',x.seqsStarted+' sequences started')+
+    kp(x.overdue,'follow-ups overdue','promised callbacks not made yet',x.overdue>5?'bad':x.overdue?'':'good');
+
+  var F=[['Dials',t.dials],['Reached a person',reached],['Owner conversations',t.convos],['Callbacks set',t.callbacks],['Meetings booked',t.meetings],['Closed on call',t.closed]];
+  $('an-funnel').innerHTML=F.map(function(f,i){
+    var w=t.dials?Math.max(1,Math.round(f[1]/t.dials*100)):0;
+    return '<div class="fr"><div class="fl">'+f[0]+'</div><div class="ft"><i style="width:'+w+'%"></i></div><div class="fn"><b>'+f[1]+'</b> '+(i?'<span style="color:var(--muted)">'+pct(f[1],t.dials)+'%</span>':'')+'</div></div>';
+  }).join('');
+  var O=['no_answer','voicemail','gatekeeper','callback','not_interested','meeting','closed','dnc'].map(function(k){ return [k,t[k==='not_interested'?'not_int':k==='meeting'?'meetings':k==='callback'?'callbacks':k==='gatekeeper'?'gatekeepers':k==='voicemail'?'voicemails':k]||0]; });
+  var mx=Math.max.apply(null,O.map(function(o){return o[1];}).concat([1]));
+  $('an-outcomes').innerHTML=O.map(function(o){ return '<div class="hb"><div class="l">'+OUT_LBL[o[0]]+'</div><div class="t"><i style="width:'+Math.round(o[1]/mx*100)+'%;'+(o[0]==='meeting'||o[0]==='closed'?'background:var(--green)':o[0]==='dnc'||o[0]==='not_interested'?'background:var(--red)':'')+'"></i></div><div class="n">'+o[1]+' &middot; '+pct(o[1],t.dials)+'%</div></div>'; }).join('');
+
+  var grpTable=function(rows,label){
+    var elig=rows.filter(function(r){return r.dials>=15;});
+    var best=null, worst=null;
+    elig.forEach(function(r){ var m=r.meetings+r.closed; r._mr=m/r.dials; });
+    if(elig.length>1){ best=elig.reduce(function(a,b){return b._mr>a._mr?b:a;}); worst=elig.reduce(function(a,b){return b._mr<a._mr?b:a;}); if(best===worst) worst=null; }
+    return '<thead><tr><th>'+label+'</th><th class="num">Dials</th><th class="num">Convos</th><th class="num">Conv %</th><th class="num">Gatekeeper %</th><th class="num">Callbacks</th><th class="num">Meetings</th><th class="num">Closed</th><th class="num">Mtgs / 100</th></tr></thead><tbody>'+
+      (rows.length?rows.map(function(r){
+        return '<tr class="'+(r===best?'best':r===worst?'worst':'')+'"><td><b>'+esc(r.k)+'</b></td><td class="num">'+r.dials+'</td><td class="num">'+r.convos+'</td><td class="num">'+pct(r.convos,r.dials)+'%</td><td class="num">'+pct(r.gatekeepers,r.dials)+'%</td><td class="num">'+r.callbacks+'</td><td class="num">'+r.meetings+'</td><td class="num">'+r.closed+'</td><td class="num"><b>'+per100(r.meetings+r.closed,r.dials)+'</b></td></tr>';
+      }).join(''):'<tr><td colspan="9"><div class="empty">No calls in this range.</div></td></tr>')+'</tbody>';
+  };
+  $('an-ind').innerHTML=grpTable(x.byInd,'Industry');
+  $('an-city').innerHTML=grpTable(x.byCity,'Town');
+
+  var H={}; x.byHour.forEach(function(h){H[h.h]=h;});
+  var hrsList=[]; for(var h=7;h<=19;h++) hrsList.push(h);
+  var bestH=null; hrsList.forEach(function(h){ var r=H[h]; if(r&&r.dials>=10&&(!bestH||r.convos/r.dials>bestH.convos/bestH.dials)) bestH=r; });
+  var maxR=Math.max.apply(null,hrsList.map(function(h){var r=H[h];return r&&r.dials?r.convos/r.dials:0;}).concat([0.01]));
+  $('an-hours').innerHTML=hrsList.map(function(h){
+    var r=H[h]||{dials:0,convos:0}, rate=r.dials?r.convos/r.dials:0;
+    return '<div class="b'+(bestH&&bestH.h===h?' top':'')+'" style="height:'+Math.round(rate/maxR*100)+'%" title="'+r.dials+' dials, '+r.convos+' conversations"><i>'+(r.dials?Math.round(rate*100)+'%':'')+'</i><u>'+((h%12)||12)+(h<12?'a':'p')+'</u></div>';
+  }).join('');
+  var DN=['','Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  $('an-dow').innerHTML='<thead><tr><th>Day</th><th class="num">Dials</th><th class="num">Conv %</th><th class="num">Wins</th></tr></thead><tbody>'+
+    (x.byDow.length?x.byDow.map(function(r){ return '<tr><td><b>'+DN[r.d]+'</b></td><td class="num">'+r.dials+'</td><td class="num">'+pct(r.convos,r.dials)+'%</td><td class="num">'+r.wins+'</td></tr>'; }).join(''):'<tr><td colspan="4"><div class="empty">No calls yet.</div></td></tr>')+'</tbody>';
+
+  $('an-daily').innerHTML='<thead><tr><th>Day</th><th class="num">Dials</th><th class="num">vs goal</th><th class="num">Convos</th><th class="num">Conv %</th><th class="num">Meetings</th><th class="num">Closed</th><th>First call</th><th>Last call</th></tr></thead><tbody>'+
+    (x.daily.length?x.daily.slice().reverse().map(function(r){
+      var g=r.dials-50;
+      return '<tr><td><b>'+esc(fday(r.d))+'</b></td><td class="num">'+r.dials+'</td><td class="num" style="color:'+(g>=0?'var(--green)':'var(--red)')+'">'+(g>=0?'+':'')+g+'</td><td class="num">'+r.convos+'</td><td class="num">'+pct(r.convos,r.dials)+'%</td><td class="num">'+r.meetings+'</td><td class="num">'+r.closed+'</td><td>'+esc(r.first_call||'')+'</td><td>'+esc(r.last_call||'')+'</td></tr>';
+    }).join(''):'<tr><td colspan="9"><div class="empty">No calls in this range.</div></td></tr>')+'</tbody>';
+
+  var omx=Math.max.apply(null,x.objections.map(function(o){return o.n;}).concat([1]));
+  $('an-obj').innerHTML=x.objections.length?x.objections.map(function(o){ return '<div class="hb"><div class="l">'+esc(o.obj)+'</div><div class="t"><i style="width:'+Math.round(o.n/omx*100)+'%;background:var(--gold2)"></i></div><div class="n">'+o.n+'</div></div>'; }).join(''):'<div class="empty">No objections logged in this range.</div>';
+
+  var ms={}; x.meetStatus.forEach(function(m){ms[m.status]=m.n;});
+  var mtot=x.meetStatus.reduce(function(a,m){return a+m.n;},0);
+  var held=(ms.showed||0)+(ms.proposal||0)+(ms.closed_won||0)+(ms.closed_lost||0);
+  $('an-after').innerHTML='<div class="hb"><div class="l">Meetings booked</div><div class="n" style="flex:1;text-align:left"><b>'+mtot+'</b> &middot; '+(ms.set||0)+' still upcoming</div></div>'+
+    '<div class="hb"><div class="l">Showed up</div><div class="n" style="flex:1;text-align:left"><b>'+held+'</b> &middot; '+(ms.no_show||0)+' no-shows'+(held+(ms.no_show||0)?' ('+pct(held,held+(ms.no_show||0))+'% show rate)':'')+'</div></div>'+
+    '<div class="hb"><div class="l">Meetings won</div><div class="n" style="flex:1;text-align:left"><b>'+(ms.closed_won||0)+'</b> won &middot; '+(ms.closed_lost||0)+' lost</div></div>'+
+    '<div class="hb"><div class="l">Contracts</div><div class="n" style="flex:1;text-align:left"><b>'+x.contracts.sent+'</b> sent &middot; '+x.contracts.signed+' signed</div></div>'+
+    '<div class="hb"><div class="l">Deals approved</div><div class="n" style="flex:1;text-align:left"><b>'+x.deals.n+'</b> &middot; $'+Number(x.deals.mrr).toLocaleString()+'/mo + $'+Number(x.deals.onetime).toLocaleString()+' one-time</div></div>'+
+    '<div class="hb"><div class="l">KPI</div><div class="n" style="flex:1;text-align:left">'+x.kpi.target+' customers a month, $'+x.kpi.bonus+' for each one past that</div></div>';
+
+  var active=x.reps.filter(function(r){return r.dials>0;});
+  $('an-teamcard').style.display=active.length>1?'block':'none';
+  $('an-team').innerHTML='<thead><tr><th>Rep</th><th class="num">Days</th><th class="num">Dials</th><th class="num">Per day</th><th class="num">Conv %</th><th class="num">Meetings</th><th class="num">Closed</th><th class="num">Mtgs / 100</th></tr></thead><tbody>'+
+    active.map(function(r){ return '<tr><td><b>'+esc(r.name||r.email)+'</b></td><td class="num">'+r.days+'</td><td class="num">'+r.dials+'</td><td class="num">'+(r.days?Math.round(r.dials/r.days):0)+'</td><td class="num">'+pct(r.convos,r.dials)+'%</td><td class="num">'+r.meetings+'</td><td class="num">'+r.closed+'</td><td class="num"><b>'+per100(r.meetings+r.closed,r.dials)+'</b></td></tr>'; }).join('')+'</tbody>';
+
+  $('an-wins').innerHTML=x.wins.length?x.wins.map(function(w){
+    return '<div class="histline">'+(w.outcome==='closed'?'<span class="tag t-gold">CLOSED</span>':'<span class="tag t-meet">meeting</span>')+' <b>'+esc(w.name||fmtPhone(w.phone))+'</b> &middot; '+esc([w.industry,w.city].filter(Boolean).join(', '))+' &middot; '+esc(fdate(w.ts))+(w.rep_name&&!$('an-rep').value?' &middot; '+esc(w.rep_name):'')+(w.note?'<br><span style="color:var(--muted)">"'+esc(w.note)+'"</span>':'')+'</div>';
+  }).join(''):'<div class="empty">No meetings or closes in this range yet.</div>';
+
+  $('an-reports').innerHTML=x.reports.length?x.reports.map(function(r){
+    var q=function(l,v){return '<b>'+l+'</b><br>'+(v?esc(v).replace(/\n/g,'<br>'):'<span style="color:var(--muted2)">Nothing added.</span>')+'<br>';};
+    return '<div class="srrow" onclick="this.classList.toggle(\'open\')"><div style="display:flex;gap:10px;flex-wrap:wrap;font-size:13px"><b style="flex:1">'+esc(fday(r.d))+' &middot; '+esc(r.rep_name||'')+'</b><span>'+r.dials+' dials &middot; '+r.meetings+' mtgs &middot; '+r.closed+' sold</span></div><div class="srbody">'+q('Went well',r.well)+q('Did not go well',r.bad)+q('Improve',r.improve)+q('Needs from you',r.need)+'</div></div>';
+  }).join(''):'<div class="empty">No shift reports in this range.</div>';
+
+  $('an-insights').innerHTML=anInsights(x).map(function(i){ return '<div class="'+i[0]+'">'+i[1]+'</div>'; }).join('');
+}
+function anInsights(x){
+  var t=x.totals, out=[];
+  if(!t.dials) return [['warn','No calls logged in this range yet.']];
+  var avg=t.days?Math.round(t.dials/t.days):0;
+  out.push(avg>=50?['good','Volume is on target: <b>'+avg+' dials per day</b> against the 50 goal.']:['bad','Volume is under target: <b>'+avg+' dials per day</b> against the 50 goal. That is about '+((50-avg)*t.days)+' dials short across '+t.days+' day'+(t.days===1?'':'s')+'.']);
+  var conv=pct(t.convos,t.dials);
+  out.push([conv>=10?'good':conv>=5?'warn':'bad','<b>'+conv+'%</b> of dials turn into an owner conversation. For cold calls to owner-operated trades, 8 to 15% is healthy.']);
+  if(t.convos){ var m=pct(t.meetings+t.closed,t.convos); out.push([m>=15?'good':m>=7?'warn':'bad','When he gets the owner, <b>'+m+'%</b> of conversations end in a meeting or a close. '+(m<10?'This is the place to coach: listen to how he asks for the meeting.':'The pitch is working; more dials means more meetings.')]); }
+  var gk=pct(t.gatekeepers,t.dials);
+  if(gk>=15) out.push(['warn','Gatekeepers stop <b>'+gk+'%</b> of calls. Push the Gatekeeper Breaker script and earlier-morning calls when owners pick up themselves.']);
+  var elig=x.byInd.filter(function(r){return r.dials>=15;});
+  if(elig.length){
+    var best=elig.reduce(function(a,b){return (b.meetings+b.closed)/b.dials>(a.meetings+a.closed)/a.dials?b:a;});
+    out.push(['good','Best industry: <b>'+esc(best.k)+'</b> at '+per100(best.meetings+best.closed,best.dials)+' meetings per 100 dials ('+best.dials+' dials).']);
+    if(elig.length>1){ var worst=elig.reduce(function(a,b){return (b.meetings+b.closed)/b.dials<(a.meetings+a.closed)/a.dials?b:a;}); if(worst!==best) out.push(['warn','Weakest industry: <b>'+esc(worst.k)+'</b> at '+per100(worst.meetings+worst.closed,worst.dials)+' per 100 dials. Consider shifting those hours to '+esc(best.k)+'.']); }
+  } else out.push(['warn','Not enough calls per industry yet (15+ each) to call a winner. Keep going.']);
+  var bh=null; x.byHour.forEach(function(h){ if(h.dials>=10&&(!bh||h.convos/h.dials>bh.convos/bh.dials)) bh=h; });
+  if(bh) out.push(['good','Best hour: <b>'+((bh.h%12)||12)+(bh.h<12?' AM':' PM')+'</b> with '+pct(bh.convos,bh.dials)+'% conversation rate. Protect that hour for dialing.']);
+  if(x.overdue) out.push([x.overdue>5?'bad':'warn','<b>'+x.overdue+' follow-up'+(x.overdue===1?' is':'s are')+' overdue.</b> Promised callbacks are the warmest dials he has.']);
+  if(x.objections.length) out.push(['warn','Top objection: <b>"'+esc(x.objections[0].obj)+'"</b> ('+x.objections[0].n+' times). Role-play that comeback in the 1:1.']);
+  var reports=x.reports.length; if(t.days&&reports<t.days) out.push(['warn','Shift reports: <b>'+reports+' of '+t.days+'</b> working days have one.']);
+  return out;
+}
+function csFillInd(byInd){
+  var sel=$('cs-ind'), cur=sel.value;
+  sel.innerHTML='<option value="">All industries</option>'+byInd.map(function(r){ return '<option'+(r.k===cur?' selected':'')+'>'+esc(r.k)+'</option>'; }).join('');
+}
+function csParams(off,lim){
+  var d=anRangeDates();
+  return {rep:$('an-rep').value||'',from:d[0],to:d[1],outcome:$('cs-out').value,industry:$('cs-ind').value==='Unknown'?'':$('cs-ind').value,q:$('cs-q').value.trim(),offset:off,limit:lim};
+}
+function csLoad(reset){
+  if(reset){ AN.cs=[]; }
+  api('owner.callsheet',csParams(AN.cs.length,50)).then(function(x){
+    AN.cs=AN.cs.concat(x.rows); AN.csTotal=x.total;
+    $('cs-count').textContent='Showing '+AN.cs.length+' of '+x.total+' calls';
+    $('cs-more').style.display=AN.cs.length<x.total?'inline-block':'none';
+    $('cs-rows').innerHTML=AN.cs.length?AN.cs.map(function(c){
+      var dt=new Date(c.ts);
+      return '<tr><td style="white-space:nowrap">'+esc(dt.toLocaleDateString(undefined,{month:'short',day:'numeric'}))+' '+esc(dt.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'}))+'</td><td>'+esc((c.rep_name||c.rep||'').split(' ')[0])+'</td>'+
+        '<td><a style="cursor:pointer;color:var(--blue);font-weight:700" onclick="openCompany(\''+c.phone+'\')">'+esc(c.name||'-')+'</a></td><td style="white-space:nowrap">'+esc(fmtPhone(c.phone))+'</td><td>'+esc(c.city||'')+'</td><td>'+esc(c.industry||'')+'</td>'+
+        '<td>'+statusTag(c.outcome)+(c.obj?'<br><span class="hint">'+esc(c.obj)+'</span>':'')+'</td><td class="note">'+esc(c.note||'')+'</td><td style="white-space:nowrap">'+(c.fup?esc(fday(c.fup)):'')+'</td><td class="num">'+(c.pos||'')+'</td></tr>';
+    }).join(''):'<tr><td colspan="10"><div class="empty">No calls match.</div></td></tr>';
+  }).catch(function(e){ toast(e.message); });
+}
+function csExport(){
+  toast('Building the CSV...');
+  api('owner.callsheet',csParams(0,5000)).then(function(x){
+    var cols=['Date','Time','Rep','Business','Phone','Town','Industry','Outcome','Objection','Note','Follow-up','Google position','Reviews','Rating','Website','Seconds on screen'];
+    var q=function(v){ v=String(v==null?'':v); return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v; };
+    var lines=[cols.join(',')].concat(x.rows.map(function(c){ var dt=new Date(c.ts);
+      return [dkey(dt),dt.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'}),c.rep_name||c.rep,c.name,fmtPhone(c.phone),c.city,c.industry,OUT_LBL[c.outcome]||c.outcome,c.obj,c.note,c.fup||'',c.pos||'',c.reviews>-1?c.reviews:'',c.rating||'',c.website,c.secs].map(q).join(','); }));
+    var blob=new Blob([lines.join('\n')],{type:'text/csv'});
+    var a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+    a.download='call-sheet-'+x.from+'-to-'+x.to+'.csv'; document.body.appendChild(a); a.click(); a.remove();
+    toast('Exported '+x.rows.length+' calls.');
+  }).catch(function(e){ toast(e.message); });
+}
 
 /* ================= MANUAL DIAL (extra numbers on a lead) ================= */
 var MD_ALTS=[], MD_FOR='';

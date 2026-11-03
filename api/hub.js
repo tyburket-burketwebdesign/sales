@@ -575,6 +575,108 @@ module.exports = async function handler(req, res) {
     }
 
     /* ---------------- TEAM (owner) ---------------- */
+    /* ---------------- OWNER ANALYTICS (owner only) ---------------- */
+    if (a === 'owner.analytics' || a === 'owner.callsheet') {
+      if (!OWNER) return err('Owner only.');
+      const isDay = x => /^\d{4}-\d{2}-\d{2}$/.test(String(x || ''));
+      const todayET = (await sql`SELECT to_char((now() AT TIME ZONE 'America/New_York')::date, 'YYYY-MM-DD') AS d`)[0].d;
+      const to = isDay(P.to) ? P.to : todayET;
+      const from = isDay(P.from) ? P.from : todayET;
+      const rep = String(P.rep || '').toLowerCase().trim();   // '' = everyone
+
+      if (a === 'owner.callsheet') {
+        const outcome = String(P.outcome || ''), ind = String(P.industry || ''), q = String(P.q || '').trim();
+        const like = '%' + q.toLowerCase() + '%';
+        const lim = Math.min(Math.max(Number(P.limit) || 50, 1), 5000), off = Math.max(Number(P.offset) || 0, 0);
+        const rows = await sql`SELECT c.id, c.ts, c.rep, u.name AS rep_name, c.name, c.phone, c.city, c.industry, c.outcome, c.note, c.obj,
+            to_char(c.fup, 'YYYY-MM-DD') AS fup, c.secs, c.pos, c.reviews, c.rating, c.website
+          FROM calls c LEFT JOIN users u ON u.email = c.rep
+          WHERE (c.ts AT TIME ZONE 'America/New_York')::date BETWEEN ${from}::date AND ${to}::date
+            AND (${rep} = '' OR c.rep = ${rep}) AND (${outcome} = '' OR c.outcome = ${outcome})
+            AND (${ind} = '' OR c.industry = ${ind})
+            AND (${q} = '' OR lower(c.name || ' ' || c.phone || ' ' || c.note || ' ' || c.city) LIKE ${like})
+          ORDER BY c.ts DESC LIMIT ${lim} OFFSET ${off}`;
+        const total = (await sql`SELECT count(*)::int AS n FROM calls c
+          WHERE (c.ts AT TIME ZONE 'America/New_York')::date BETWEEN ${from}::date AND ${to}::date
+            AND (${rep} = '' OR c.rep = ${rep}) AND (${outcome} = '' OR c.outcome = ${outcome})
+            AND (${ind} = '' OR c.industry = ${ind})
+            AND (${q} = '' OR lower(c.name || ' ' || c.phone || ' ' || c.note || ' ' || c.city) LIKE ${like})`)[0].n;
+        return ok({ rows, total, from, to });
+      }
+
+      const CONV = ['callback', 'not_interested', 'meeting', 'closed', 'dnc'];
+      const totals = (await sql`SELECT count(*)::int AS dials,
+          count(*) FILTER (WHERE outcome = ANY(${CONV}))::int AS convos,
+          count(*) FILTER (WHERE outcome='meeting')::int AS meetings,
+          count(*) FILTER (WHERE outcome='closed')::int AS closed,
+          count(*) FILTER (WHERE outcome='callback')::int AS callbacks,
+          count(*) FILTER (WHERE outcome='not_interested')::int AS not_int,
+          count(*) FILTER (WHERE outcome='gatekeeper')::int AS gatekeepers,
+          count(*) FILTER (WHERE outcome='voicemail')::int AS voicemails,
+          count(*) FILTER (WHERE outcome='no_answer')::int AS no_answer,
+          count(*) FILTER (WHERE outcome='dnc')::int AS dnc,
+          COALESCE(sum(secs),0)::int AS secs,
+          count(DISTINCT (ts AT TIME ZONE 'America/New_York')::date)::int AS days,
+          count(DISTINCT phone)::int AS businesses
+        FROM calls WHERE (ts AT TIME ZONE 'America/New_York')::date BETWEEN ${from}::date AND ${to}::date AND (${rep} = '' OR rep = ${rep})`)[0];
+      const grp = async (col) => {
+        if (col === 'industry') return sql`SELECT COALESCE(NULLIF(industry,''),'Unknown') AS k, count(*)::int AS dials,
+            count(*) FILTER (WHERE outcome = ANY(${CONV}))::int AS convos, count(*) FILTER (WHERE outcome='callback')::int AS callbacks,
+            count(*) FILTER (WHERE outcome='meeting')::int AS meetings, count(*) FILTER (WHERE outcome='closed')::int AS closed,
+            count(*) FILTER (WHERE outcome='gatekeeper')::int AS gatekeepers
+          FROM calls WHERE (ts AT TIME ZONE 'America/New_York')::date BETWEEN ${from}::date AND ${to}::date AND (${rep} = '' OR rep = ${rep})
+          GROUP BY 1 ORDER BY dials DESC LIMIT 30`;
+        return sql`SELECT COALESCE(NULLIF(city,''),'Unknown') AS k, count(*)::int AS dials,
+            count(*) FILTER (WHERE outcome = ANY(${CONV}))::int AS convos, count(*) FILTER (WHERE outcome='callback')::int AS callbacks,
+            count(*) FILTER (WHERE outcome='meeting')::int AS meetings, count(*) FILTER (WHERE outcome='closed')::int AS closed,
+            count(*) FILTER (WHERE outcome='gatekeeper')::int AS gatekeepers
+          FROM calls WHERE (ts AT TIME ZONE 'America/New_York')::date BETWEEN ${from}::date AND ${to}::date AND (${rep} = '' OR rep = ${rep})
+          GROUP BY 1 ORDER BY dials DESC LIMIT 30`;
+      };
+      const byInd = await grp('industry');
+      const byCity = await grp('city');
+      const byHour = await sql`SELECT extract(hour from ts AT TIME ZONE 'America/New_York')::int AS h, count(*)::int AS dials,
+          count(*) FILTER (WHERE outcome = ANY(${CONV}))::int AS convos, count(*) FILTER (WHERE outcome IN ('meeting','closed'))::int AS wins
+        FROM calls WHERE (ts AT TIME ZONE 'America/New_York')::date BETWEEN ${from}::date AND ${to}::date AND (${rep} = '' OR rep = ${rep})
+        GROUP BY 1 ORDER BY 1`;
+      const byDow = await sql`SELECT extract(isodow from ts AT TIME ZONE 'America/New_York')::int AS d, count(*)::int AS dials,
+          count(*) FILTER (WHERE outcome = ANY(${CONV}))::int AS convos, count(*) FILTER (WHERE outcome IN ('meeting','closed'))::int AS wins
+        FROM calls WHERE (ts AT TIME ZONE 'America/New_York')::date BETWEEN ${from}::date AND ${to}::date AND (${rep} = '' OR rep = ${rep})
+        GROUP BY 1 ORDER BY 1`;
+      const daily = await sql`SELECT to_char((ts AT TIME ZONE 'America/New_York')::date, 'YYYY-MM-DD') AS d, count(*)::int AS dials,
+          count(*) FILTER (WHERE outcome = ANY(${CONV}))::int AS convos, count(*) FILTER (WHERE outcome='meeting')::int AS meetings,
+          count(*) FILTER (WHERE outcome='closed')::int AS closed,
+          to_char(min(ts AT TIME ZONE 'America/New_York'), 'HH12:MI AM') AS first_call, to_char(max(ts AT TIME ZONE 'America/New_York'), 'HH12:MI AM') AS last_call
+        FROM calls WHERE (ts AT TIME ZONE 'America/New_York')::date BETWEEN ${from}::date AND ${to}::date AND (${rep} = '' OR rep = ${rep})
+        GROUP BY 1 ORDER BY 1`;
+      const objections = await sql`SELECT obj, count(*)::int AS n FROM calls WHERE obj <> ''
+        AND (ts AT TIME ZONE 'America/New_York')::date BETWEEN ${from}::date AND ${to}::date AND (${rep} = '' OR rep = ${rep})
+        GROUP BY 1 ORDER BY n DESC LIMIT 12`;
+      const reps = await sql`SELECT u.email, u.name, u.role, COALESCE(u.active,1) AS active,
+          count(c.id)::int AS dials, count(c.id) FILTER (WHERE c.outcome = ANY(${CONV}))::int AS convos,
+          count(c.id) FILTER (WHERE c.outcome='meeting')::int AS meetings, count(c.id) FILTER (WHERE c.outcome='closed')::int AS closed,
+          count(DISTINCT (c.ts AT TIME ZONE 'America/New_York')::date)::int AS days
+        FROM users u LEFT JOIN calls c ON c.rep = u.email
+          AND (c.ts AT TIME ZONE 'America/New_York')::date BETWEEN ${from}::date AND ${to}::date
+        GROUP BY u.email, u.name, u.role, u.active ORDER BY dials DESC`;
+      const emails = (await sql`SELECT count(*)::int AS n FROM emails_log WHERE (ts AT TIME ZONE 'America/New_York')::date BETWEEN ${from}::date AND ${to}::date AND (${rep} = '' OR rep = ${rep})`)[0].n;
+      const seqsStarted = (await sql`SELECT count(*)::int AS n FROM seqs WHERE (started AT TIME ZONE 'America/New_York')::date BETWEEN ${from}::date AND ${to}::date AND (${rep} = '' OR rep = ${rep})`)[0].n;
+      const meetStatus = await sql`SELECT status, count(*)::int AS n FROM meetings WHERE (ts AT TIME ZONE 'America/New_York')::date BETWEEN ${from}::date AND ${to}::date AND (${rep} = '' OR rep = ${rep}) GROUP BY 1`;
+      const deals = (await sql`SELECT count(*)::int AS n, COALESCE(sum(monthly),0)::numeric AS mrr, COALESCE(sum(amount),0)::numeric AS onetime
+        FROM deals WHERE status='approved' AND (COALESCE(reviewed_ts, ts) AT TIME ZONE 'America/New_York')::date BETWEEN ${from}::date AND ${to}::date AND (${rep} = '' OR rep = ${rep})`)[0];
+      const contracts = (await sql`SELECT count(*)::int AS sent, count(*) FILTER (WHERE status='signed' OR signed_ts IS NOT NULL)::int AS signed
+        FROM contracts WHERE (ts AT TIME ZONE 'America/New_York')::date BETWEEN ${from}::date AND ${to}::date AND (${rep} = '' OR rep = ${rep})`)[0];
+      const overdue = (await sql`SELECT count(DISTINCT phone)::int AS n FROM calls WHERE fup IS NOT NULL AND fup_done=false
+        AND fup < (now() AT TIME ZONE 'America/New_York')::date AND outcome NOT IN ('meeting','dnc','closed') AND (${rep} = '' OR rep = ${rep})`)[0].n;
+      const reports = await sql`SELECT to_char(day, 'YYYY-MM-DD') AS d, rep_name, dials, meetings, closed, well, bad, improve, need
+        FROM shift_reports WHERE day BETWEEN ${from}::date AND ${to}::date AND (${rep} = '' OR rep = ${rep}) ORDER BY day DESC, ts DESC LIMIT 30`;
+      const wins = await sql`SELECT c.ts, c.name, c.phone, c.city, c.industry, c.outcome, c.note, u.name AS rep_name FROM calls c LEFT JOIN users u ON u.email=c.rep
+        WHERE c.outcome IN ('meeting','closed') AND (c.ts AT TIME ZONE 'America/New_York')::date BETWEEN ${from}::date AND ${to}::date
+          AND (${rep} = '' OR c.rep = ${rep}) ORDER BY c.ts DESC LIMIT 25`;
+      return ok({ from, to, rep, totals, byInd, byCity, byHour, byDow, daily, objections, reps, emails, seqsStarted,
+                  meetStatus, deals, contracts, overdue, reports, wins, kpi: { target: C.kpiTarget(), bonus: C.kpiBonus() } });
+    }
+
     /* ---------------- EXTRA NUMBERS ON A LEAD ---------------- */
     if (a === 'company.alts') {
       const phone = C.normPhone(P.phone);
