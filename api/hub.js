@@ -48,7 +48,8 @@ module.exports = async function handler(req, res) {
       const today = await sql`SELECT * FROM calls WHERE rep=${user.email} AND ts::date = CURRENT_DATE ORDER BY ts`;
       const fups = await sql`
         SELECT DISTINCT ON (phone) * FROM calls
-        WHERE rep=${user.email} AND fup IS NOT NULL AND fup <= CURRENT_DATE AND fup_done=false
+        WHERE (CASE WHEN COALESCE(fup_rep,'') <> '' THEN fup_rep ELSE rep END) = ${user.email}
+          AND fup IS NOT NULL AND fup <= CURRENT_DATE AND fup_done=false
           AND outcome NOT IN ('meeting','dnc')
         ORDER BY phone, ts DESC`;
       const fourteen = await sql`
@@ -188,11 +189,17 @@ module.exports = async function handler(req, res) {
       if (!phone) return err('Bad phone number.');
       const outcome = String(P.outcome || 'no_answer');
       await sql`UPDATE calls SET fup_done=true WHERE phone=${phone} AND fup IS NOT NULL AND fup_done=false`;
+      let fupRep = '';
+      if (OWNER && P.fupRep && String(P.fupRep).toLowerCase() !== user.email) {
+        const fr = (await sql`SELECT email FROM users WHERE email=${String(P.fupRep).toLowerCase()}`)[0];
+        if (fr) fupRep = fr.email;
+      }
       const row = await sql`INSERT INTO calls (phone, name, rep, outcome, note, secs, fup, city, industry, website, email, rating, reviews, pos, addr, maps, src, obj)
         VALUES (${phone}, ${P.name || ''}, ${user.email}, ${outcome}, ${P.note || ''}, ${Number(P.secs) || 0},
                 ${P.fup || null}, ${P.city || ''}, ${P.industry || ''}, ${P.website || ''}, ${P.email || ''},
                 ${Number(P.rating) || 0}, ${P.reviews == null ? -1 : Number(P.reviews)}, ${Number(P.pos) || 0},
                 ${P.addr || ''}, ${P.maps || ''}, ${P.src || ''}, ${P.obj || ''}) RETURNING id`;
+      if (fupRep) await sql`UPDATE calls SET fup_rep=${fupRep} WHERE id=${row[0].id}`;
       const stageMap = { meeting: 'meeting', callback: 'engaged', closed: 'contract' };
       await C.upsertCompany({ phone: phone, name: P.name, website: P.website, email: P.email, addr: P.addr,
         city: P.city, industry: P.industry, rating: P.rating, reviews: P.reviews, pos: P.pos, maps: P.maps, rep: user.email },
@@ -439,14 +446,56 @@ module.exports = async function handler(req, res) {
       const phone = C.normPhone(P.phone);
       const comp = (await sql`SELECT * FROM companies WHERE phone=${phone}`)[0];
       if (!comp) return err('No company on file for that number.');
-      const callsT = await sql`SELECT 'call' AS kind, outcome AS label, note, rep, ts FROM calls WHERE phone=${phone} ORDER BY ts DESC LIMIT 30`;
+      const callsT = await sql`SELECT 'call' AS kind, id, outcome, outcome AS label, note, obj, rep, ts, to_char(fup, 'YYYY-MM-DD') AS fup, fup_done, COALESCE(fup_rep,'') AS fup_rep FROM calls WHERE phone=${phone} ORDER BY ts DESC LIMIT 40`;
+      const notesT = await sql`SELECT 'note' AS kind, id, 'note' AS label, note, author AS rep, ts FROM company_notes WHERE phone=${phone} ORDER BY ts DESC LIMIT 40`;
       const emailsT = await sql`SELECT 'email' AS kind, subject AS label, '' AS note, rep, ts FROM emails_log WHERE phone=${phone} ORDER BY ts DESC LIMIT 30`;
       const meetT = await sql`SELECT 'meeting' AS kind, status AS label, note, rep, ts FROM meetings WHERE phone=${phone} ORDER BY ts DESC LIMIT 10`;
       const propT = await sql`SELECT 'proposal' AS kind, products AS label, note, rep, ts FROM proposals WHERE phone=${phone} ORDER BY ts DESC LIMIT 10`;
       const contT = await sql`SELECT 'contract' AS kind, (product || ' - ' || status) AS label, '' AS note, rep, ts FROM contracts WHERE phone=${phone} ORDER BY ts DESC LIMIT 10`;
-      const timeline = [].concat(callsT, emailsT, meetT, propT, contT)
-        .sort((x, y) => new Date(y.ts) - new Date(x.ts)).slice(0, 60);
+      const timeline = [].concat(callsT, notesT, emailsT, meetT, propT, contT)
+        .sort((x, y) => new Date(y.ts) - new Date(x.ts)).slice(0, 80);
       return ok({ company: comp, timeline: timeline });
+    }
+    if (a === 'company.note') {
+      const phone = C.normPhone(P.phone);
+      const note = String(P.note || '').trim().slice(0, 4000);
+      if (!phone) return err('Bad phone number.');
+      if (!note) return err('Type the note first.');
+      const r = await sql`INSERT INTO company_notes (phone, author, note) VALUES (${phone}, ${user.email}, ${note}) RETURNING id`;
+      await sql`UPDATE companies SET updated=now() WHERE phone=${phone}`;
+      return ok({ id: r[0].id });
+    }
+    if (a === 'company.note.delete') {
+      await sql`DELETE FROM company_notes WHERE id=${Number(P.id)} AND (author=${user.email} OR ${OWNER})`;
+      return ok(true);
+    }
+    if (a === 'call.update') {
+      const id = Number(P.id);
+      const cur = (await sql`SELECT * FROM calls WHERE id=${id}`)[0];
+      if (!cur) return err('That call was not found.');
+      if (!OWNER && cur.rep !== user.email) return err('You can only edit your own calls.');
+      const allowed = ['no_answer', 'voicemail', 'gatekeeper', 'callback', 'not_interested', 'meeting', 'closed', 'dnc'];
+      const outcome = allowed.indexOf(P.outcome) > -1 ? P.outcome : cur.outcome;
+      const note = P.note != null ? String(P.note).slice(0, 4000) : cur.note;
+      const fup = /^\d{4}-\d{2}-\d{2}$/.test(String(P.fup || '')) ? P.fup : null;
+      await sql`UPDATE calls SET outcome=${outcome}, note=${note}, fup=${fup}::date, fup_done=${fup ? false : cur.fup_done} WHERE id=${id}`;
+      const phone = cur.phone;
+      if (outcome !== cur.outcome) {
+        const stageMap = { meeting: 'meeting', callback: 'engaged', closed: 'contract', not_interested: 'contacted', dnc: 'lost' };
+        if (stageMap[outcome]) await sql`UPDATE companies SET stage=${stageMap[outcome]}, updated=now() WHERE phone=${phone}`;
+        if (outcome === 'dnc') {
+          await sql`INSERT INTO dnc (phone) VALUES (${phone}) ON CONFLICT DO NOTHING`;
+          await sql`UPDATE seqs SET status='stopped' WHERE phone=${phone} AND status='active'`;
+        } else if (cur.outcome === 'dnc') {
+          await sql`DELETE FROM dnc WHERE phone=${phone}`;
+        }
+        if (outcome === 'meeting' || outcome === 'closed') await sql`UPDATE seqs SET status='done' WHERE phone=${phone} AND status='active'`;
+        if (outcome === 'meeting') {
+          const has = (await sql`SELECT id FROM meetings WHERE phone=${phone} AND status='set'`)[0];
+          if (!has) await sql`INSERT INTO meetings (phone, business, rep, meet_date, note) VALUES (${phone}, ${cur.name || ''}, ${cur.rep}, ${fup}::date, ${note || ''})`;
+        }
+      }
+      return ok(true);
     }
     if (a === 'company.stage') {
       const phone = C.normPhone(P.phone);

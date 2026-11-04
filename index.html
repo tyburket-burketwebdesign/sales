@@ -234,6 +234,16 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--m
 #cb-pad{display:none;margin-top:10px}
 #cb-pad.show{display:block}
 #cb-digits{font-size:20px;font-weight:800;letter-spacing:.18em;text-align:center;min-height:28px;color:var(--gold);font-variant-numeric:tabular-nums;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;direction:rtl}
+.cpupd{border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-top:14px;background:var(--bg,#f4f7fb)}
+.cpupd textarea{width:100%;min-height:62px;resize:vertical;margin-top:8px}
+.cpupd .row{margin-top:8px;align-items:flex-end}
+.cpupd label{font-size:11px}
+.tlrow{display:flex;gap:8px;align-items:flex-start}
+.tlrow .tlx{flex:1;min-width:0}
+.tlrow .tled{flex:none;font-size:11.5px;font-weight:700;color:var(--blue);cursor:pointer;background:none;border:none;padding:2px 4px}
+.tledit{margin-top:6px;padding:8px;border:1px dashed var(--line);border-radius:10px;display:flex;gap:6px;flex-wrap:wrap;align-items:flex-end}
+.tledit input,.tledit select{font-size:12.5px}
+.tledit input.n{flex:1;min-width:160px}
 .anbar{display:flex;gap:6px;flex-wrap:wrap;align-items:flex-end}
 .anbar .chip{font-size:12.5px;padding:7px 11px}
 .anbar .chip.on{background:var(--navy);color:#fff}
@@ -861,6 +871,28 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--m
       <a class="btn-ghost btn-sm" id="cp-callLink" href="#" style="text-decoration:none">&#128222; <span id="cp-phone"></span></a>
       <span id="cp-alts" style="display:contents"></span>
       <button class="btn-red btn-sm" onclick="cpDelete()">&#128465;&#65039; Delete</button>
+    </div>
+    <div class="cpupd">
+      <b style="font-size:13.5px">&#9998;&#65039; Add an update</b>
+      <span class="hint" style="margin-left:6px">They called back, you followed up, or you just want a note on file.</span>
+      <textarea id="cu-note" placeholder="What happened? e.g. Mike called back, wants pricing for the $500 plan, call him Thursday after 3."></textarea>
+      <div class="row">
+        <div><label>What happened</label><select id="cu-out">
+          <option value="">Note only (no call)</option>
+          <option value="callback">Talked: call back later</option>
+          <option value="meeting">Talked: meeting booked</option>
+          <option value="closed">Talked: closed / sold</option>
+          <option value="not_interested">Talked: not interested</option>
+          <option value="voicemail">Left a voicemail</option>
+          <option value="no_answer">No answer</option>
+          <option value="gatekeeper">Gatekeeper</option>
+          <option value="dnc">Do not call</option>
+        </select></div>
+        <div><label>Follow up on</label><input type="date" id="cu-fup"></div>
+        <div id="cu-forwrap" style="display:none"><label>Follow-up for</label><select id="cu-for"></select></div>
+        <div style="flex:1"></div>
+        <button class="btn-blue btn-sm" id="cu-save" onclick="cpUpdate()">Save update</button>
+      </div>
     </div>
     <h3 class="sec">Everything that has happened</h3>
     <div id="cp-timeline" style="max-height:34vh;overflow-y:auto"></div>
@@ -1740,10 +1772,9 @@ function openCompany(phone){
         : '<a class="btn-ghost btn-sm" style="text-decoration:none" href="tel:+1'+x.n+'">&#128222; '+esc((x.label?x.label+' ':'')+fmtPhone(x.n))+'</a>';
     }).join('');
     $('cp-contractBtn').style.display=BOOT.docuseal?'inline-block':'none';
-    var icons={call:'📞',email:'✉️',meeting:'🤝',proposal:'📄',contract:'✍️'};
-    $('cp-timeline').innerHTML=d.timeline.length?d.timeline.map(function(t){
-      return '<div class="histline"><b>'+(icons[t.kind]||'•')+' '+esc(fdate(t.ts))+'</b> · '+esc(String(t.label||t.kind).replace(/_/g,' '))+(t.note?' · "'+esc(t.note)+'"':'')+' <span style="color:var(--muted2)">('+esc(String(t.rep||'').split('@')[0])+')</span></div>';
-    }).join(''):'<div class="empty">No activity yet.</div>';
+    CP_EDIT=null; CP_TL=d.timeline;
+    cpRenderTimeline();
+    cpUpdReset();
     $('compmodal').classList.add('show');
   }).catch(function(e){toast(e.message);});
 }
@@ -2523,6 +2554,77 @@ function popOpen(d){
 
 
 
+
+
+/* ================= COMPANY UPDATES: notes, outcomes, follow-ups ================= */
+var CP_TL=[], CP_EDIT=null;
+var CU_OUTS=[['no_answer','No answer'],['voicemail','Voicemail'],['gatekeeper','Gatekeeper'],['callback','Callback'],['not_interested','Not interested'],['meeting','Meeting booked'],['closed','Closed / sold'],['dnc','Do not call']];
+function cpWho(email){
+  var e=String(email||'').toLowerCase();
+  if(BOOT&&BOOT.user&&e===BOOT.user.email) return 'you';
+  var r=BOOT&&BOOT.team&&(BOOT.team.reps||[]).find(function(x){return x.email===e;});
+  return r&&r.name ? r.name.split(' ')[0] : e.split('@')[0];
+}
+function cpRenderTimeline(){
+  var icons={call:'📞',email:'✉️',meeting:'🤝',proposal:'📄',contract:'✍️',note:'📝'};
+  var me=BOOT.user.email, owner=BOOT.user.role==='owner';
+  $('cp-timeline').innerHTML=CP_TL.length?CP_TL.map(function(t,i){
+    var canEdit=(t.kind==='call'||t.kind==='note')&&(owner||t.rep===me);
+    var label=t.kind==='note'?'Note':(t.kind==='call'?(OUT_LBL[t.outcome]||String(t.label).replace(/_/g,' ')):String(t.label||t.kind).replace(/_/g,' '));
+    var extra=t.kind==='call'&&t.fup?' <span class="tag t-gold">f/u '+esc(fday(t.fup))+(t.fup_rep?' for '+esc(cpWho(t.fup_rep)):'')+(t.fup_done?' done':'')+'</span>':'';
+    var line='<b>'+(icons[t.kind]||'•')+' '+esc(fdate(t.ts))+' '+esc(new Date(t.ts).toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'}))+'</b> · '+esc(label)+extra+
+      (t.note?'<br><span>'+esc(t.note)+'</span>':'')+' <span style="color:var(--muted2)">('+esc(cpWho(t.rep))+')</span>';
+    var ed='';
+    if(CP_EDIT===i&&t.kind==='call'){
+      ed='<div class="tledit"><div><label>Outcome</label><select id="te-out">'+CU_OUTS.map(function(o){return '<option value="'+o[0]+'"'+(o[0]===t.outcome?' selected':'')+'>'+o[1]+'</option>';}).join('')+'</select></div>'+
+        '<input class="n" id="te-note" value="'+esc(t.note||'')+'" placeholder="Note">'+
+        '<div><label>Follow up</label><input type="date" id="te-fup" value="'+esc(t.fup||'')+'"></div>'+
+        '<button class="btn-blue btn-sm" onclick="cpEditSave('+i+')">Save</button><button class="btn-ghost btn-sm" onclick="CP_EDIT=null;cpRenderTimeline()">Cancel</button></div>';
+    }
+    var btns='';
+    if(canEdit&&t.kind==='call'&&CP_EDIT!==i) btns='<button class="tled" onclick="CP_EDIT='+i+';cpRenderTimeline()">Edit</button>';
+    if(canEdit&&t.kind==='note') btns='<button class="tled" style="color:var(--red)" onclick="cpNoteDel('+t.id+')">Delete</button>';
+    return '<div class="histline"><div class="tlrow"><div class="tlx">'+line+'</div>'+btns+'</div>'+ed+'</div>';
+  }).join(''):'<div class="empty">No activity yet.</div>';
+}
+function cpUpdReset(){
+  $('cu-note').value=''; $('cu-out').value=''; $('cu-fup').value='';
+  var owner=BOOT.user.role==='owner', reps=(BOOT.team&&BOOT.team.reps)||[];
+  $('cu-forwrap').style.display=owner&&reps.length>1?'block':'none';
+  if(owner) $('cu-for').innerHTML=reps.map(function(r){ return '<option value="'+esc(r.email)+'"'+(r.email===BOOT.user.email?' selected':'')+'>'+esc(r.email===BOOT.user.email?'Me':(r.name||r.email))+'</option>'; }).join('');
+}
+function cpAfterChange(){
+  openCompany(CURCOMP.phone);
+  refresh();
+  if($('v-perf')&&$('v-perf').classList.contains('on')) csLoad(true);
+  if($('v-pipe')&&$('v-pipe').classList.contains('on')) loadPipeline();
+}
+function cpUpdate(){
+  if(!CURCOMP) return;
+  var note=$('cu-note').value.trim(), out=$('cu-out').value, fup=$('cu-fup').value;
+  if(!out&&!note) return toast('Type a note or pick what happened.');
+  if(!out&&fup) return toast('To set a follow-up date, pick what happened (for example "call back later").');
+  $('cu-save').disabled=true;
+  var c=CURCOMP, done=function(msg){ toast(msg); cpAfterChange(); };
+  var pr = !out ? api('company.note',{phone:c.phone,note:note}).then(function(){ done('Note saved.'); })
+    : api('call.log',{phone:c.phone,name:c.name,outcome:out,note:note,secs:0,fup:out==='dnc'?'':(fup||null),fupRep:$('cu-forwrap').style.display!=='none'?$('cu-for').value:'',
+        city:c.city||'',industry:c.industry||'',website:c.website||'',email:c.email||'',rating:c.rating||0,reviews:c.reviews==null?-1:c.reviews,pos:c.pos||0,addr:c.addr||'',maps:c.maps||'',src:c.pos?'google':''})
+      .then(function(){
+        if(out==='closed'||out==='meeting'){ chime(); confetti(); }
+        done((OUT_LBL[out]||out)+' logged'+(fup?', follow-up set for '+fday(fup):'')+'.');
+      });
+  pr.catch(function(e){ toast(e.message); }).finally(function(){ $('cu-save').disabled=false; });
+}
+function cpEditSave(i){
+  var t=CP_TL[i]; if(!t) return;
+  api('call.update',{id:t.id,outcome:$('te-out').value,note:$('te-note').value,fup:$('te-fup').value})
+    .then(function(){ CP_EDIT=null; toast('Call updated.'); cpAfterChange(); })
+    .catch(function(e){ toast(e.message); });
+}
+function cpNoteDel(id){
+  if(!confirm('Delete this note?')) return;
+  api('company.note.delete',{id:id}).then(function(){ toast('Note deleted.'); cpAfterChange(); }).catch(function(e){ toast(e.message); });
+}
 
 /* ================= REP PERFORMANCE (owner only) ================= */
 var AN={range:'month', data:null, cs:[], csTotal:0};
