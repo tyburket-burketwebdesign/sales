@@ -458,7 +458,7 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--m
           <div class="row" style="align-items:flex-end">
             <div><label>Market</label><select id="market"></select></div>
             <div><label>Industry</label><select id="industry"></select></div>
-            <div style="flex:1;min-width:110px"><label>Or any town (FL)</label><input id="customCity" placeholder="e.g. Punta Gorda"></div>
+            <div style="flex:1;min-width:110px"><label id="customLbl">Or any town</label><input id="customCity" placeholder="any town in your territory"></div>
             <button class="btn-go" id="goBtn" onclick="hunt()">Build Today's 25 &rarr;</button>
             <button class="btn-ghost" onclick="reattack()" title="Rebuild from no-answers older than 30 days">&#9851; Re-attack</button>
             <button class="btn-ghost" onclick="enterDemo()" title="Practice the whole flow safely">&#127891; Demo</button>
@@ -840,7 +840,7 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--m
       <button class="o-no" onclick="logOutcome('not_interested')">Not interested</button>
       <button class="o-na" onclick="logOutcome('gatekeeper')">Gatekeeper</button>
       <button class="o-dnc" onclick="logOutcome('dnc')">Do not call</button>
-      <button class="o-meet" onclick="logOutcome('meeting')">&#128197; Booked Ty</button>
+      <button class="o-meet" id="o-meetBtn" onclick="logOutcome('meeting')">&#128197; Booked Ty</button>
       <button class="o-close" style="grid-column:auto" onclick="logOutcome('closed')">&#127942; CLOSED</button>
     </div>
     <div class="foot">
@@ -1115,6 +1115,76 @@ var GAMEPLAN_WEEKS = [
 ];
 function localKey(){ var d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
 function todayPlan(){ return GAMEPLAN[localKey()] || null; }
+
+/* ================= TERRITORIES ================= *
+ * FL: Steven's Southwest Florida plan above.  PA: Ty's home turf, central Pennsylvania.
+ * Each seat gets a territory (owner defaults to PA). The hub swaps markets, industries, and the daily plan to match. */
+var FL_SET = { state:'FL', region:'Florida', markets:MARKETS, industries:INDUSTRIES, plan:GAMEPLAN, weeks:GAMEPLAN_WEEKS };
+/* Sweeps take the chosen town plus the next two, so towns are listed in clusters of three neighbours. */
+var PA_MARKETS = [
+  'Altoona','Hollidaysburg','Duncansville',
+  'Johnstown','Ebensburg','Windber',
+  'State College','Bellefonte','Philipsburg',
+  'Tyrone','Huntingdon','Mount Union',
+  'Bedford','Everett','Roaring Spring',
+  'Indiana','Punxsutawney','Clearfield',
+  'Somerset','Berlin','Meyersdale',
+  'Lewistown','Lock Haven','Mifflintown',
+  'Latrobe','Greensburg','Ligonier',
+  'DuBois','St. Marys','Ridgway',
+  'Chambersburg','Harrisburg','Carlisle',
+  'Erie','Meadville','Franklin'
+];
+/* Ranked for central PA in November: cold-weather trades first (furnaces, frozen pipes, chimneys, roofs before snow),
+ * then high-ticket indoor work and businesses that need to be found before their January rush. */
+var PA_INDUSTRIES = [
+  { label:'Heating & Furnace (HVAC)', q:'furnace repair heating HVAC', noun:'heating company', best:'7:00-8:30 AM or 4:00-5:30 PM' },
+  { label:'Plumbers', q:'plumber', noun:'plumber', best:'7:00-8:30 AM or 4:00-5:30 PM' },
+  { label:'Chimney & Fireplace', q:'chimney sweep fireplace wood stove', noun:'chimney company', best:'8:00-10:00 AM' },
+  { label:'Roofers', q:'roofing contractor', noun:'roofer', best:'7:00-8:00 AM, or rain and snow days' },
+  { label:'Septic Services', q:'septic tank pumping service', noun:'septic company', best:'7:30-9:30 AM' },
+  { label:'Electricians & Generators', q:'electrician generator installation', noun:'electrician', best:'7:00-8:30 AM or after 4:00 PM' },
+  { label:'Kitchen & Bath Remodelers', q:'kitchen bathroom remodeling contractor', noun:'remodeling contractor', best:'7:00-8:00 AM or 4:30-6:00 PM' },
+  { label:'Garage Doors', q:'garage door repair', noun:'garage door company', best:'8:00-10:00 AM' },
+  { label:'Tree Service', q:'tree service removal', noun:'tree service', best:'7:00-8:00 AM, or rain and snow days' },
+  { label:'Water Treatment & Wells', q:'water treatment well pump service', noun:'water treatment company', best:'9:00-11:00 AM' },
+  { label:'Accountants & Tax Prep', q:'accountant tax preparation', noun:'accounting office', best:'10:00 AM-12:00 PM, Tue to Thu' },
+  { label:'Excavating & Paving', q:'excavating contractor paving', noun:'excavating company', best:'7:00-8:00 AM (slow season, owners have time)' },
+  { label:'Snow Plowing & Landscaping', q:'snow plowing landscaping', noun:'landscaping company', best:'7:00-8:30 AM' },
+  { label:'Auto Repair & Towing', q:'auto repair towing', noun:'auto shop', best:'9:30-11:30 AM after drop-offs' },
+  { label:'Pest Control', q:'pest control exterminator', noun:'pest control company', best:'8:00-10:00 AM' },
+  { label:'Dentists', q:'dentist', noun:'dental office', best:'12:00-1:30 PM, front desk lunch lull' }
+];
+var PA_PLAN = {
+  '2026-11-09': { ind:'Heating & Furnace (HVAC)',   mkt:'Altoona',       wk:0 },
+  '2026-11-10': { ind:'Plumbers',                   mkt:'Johnstown',     wk:0 },
+  '2026-11-11': { ind:'Chimney & Fireplace',        mkt:'State College', wk:0 },
+  '2026-11-12': { ind:'Roofers',                    mkt:'Altoona',       wk:0 },
+  '2026-11-13': { ind:'Septic Services',            mkt:'Tyrone',        wk:0 },
+  '2026-11-16': { ind:'Heating & Furnace (HVAC)',   mkt:'Johnstown',     wk:1 },
+  '2026-11-17': { ind:'Electricians & Generators',  mkt:'Altoona',       wk:1 },
+  '2026-11-18': { ind:'Kitchen & Bath Remodelers',  mkt:'State College', wk:1 },
+  '2026-11-19': { ind:'Plumbers',                   mkt:'Bedford',       wk:1 },
+  '2026-11-20': { ind:'Accountants & Tax Prep',     mkt:'Altoona',       wk:1 },
+  '2026-11-23': { ind:'Chimney & Fireplace',        mkt:'Johnstown',     wk:2 },
+  '2026-11-24': { ind:'Garage Doors',               mkt:'Altoona',       wk:2 },
+  '2026-11-25': { ind:'Heating & Furnace (HVAC)',   mkt:'Indiana',       wk:2 }
+};
+var PA_WEEKS = [
+  { label:'PA week 1 (Nov 9 to 13)', focus:'Heating, plumbing, chimneys, roofs, septic around Altoona, Johnstown, State College',
+    why:'First hard cold of the year. "Furnace repair near me", frozen pipes, and chimney cleanings all spike now, so these owners are busy and feel every call that goes to the guy above them on the map. You live here: offer to stop by in person.' },
+  { label:'PA week 2 (Nov 16 to 20)', focus:'Repeat the winner, plus generators, remodelers, and tax offices',
+    why:'Generator installs ahead of winter outages, indoor remodels booked over the winter, and accountants who need to show up first before tax season starts in January. Go back to whichever trade booked the most meetings in week 1.' },
+  { label:'Thanksgiving week (Nov 23 to 25)', focus:'Follow-ups first, then light lists',
+    why:'Owners check out by Wednesday. Clear every callback and drop-by first, then dial chimney, garage door, and heating companies early in the morning.' }
+];
+var PA_SET = { state:'PA', region:'Pennsylvania', markets:PA_MARKETS, industries:PA_INDUSTRIES, plan:PA_PLAN, weeks:PA_WEEKS };
+var TERR = FL_SET;
+function applyTerritory(t){
+  TERR = t==='PA' ? PA_SET : FL_SET;
+  MARKETS = TERR.markets; INDUSTRIES = TERR.industries; GAMEPLAN = TERR.plan; GAMEPLAN_WEEKS = TERR.weeks;
+}
+function isOwner(){ return !!(BOOT && BOOT.user && BOOT.user.role==='owner'); }
 var QUOTES = [
   'Twenty-five qualified dials. One industry. No mercy.',
   'The phone weighs a thousand pounds until you pick it up.',
@@ -1248,6 +1318,7 @@ function boot(){
   api('bootstrap').then(function(d){
     BOOT=d;
     $('login').style.display='none'; $('app').style.display='block';
+    applyTerritory(d.territory||'FL');
     initControls();
     if (BOOT.user.role==='owner'){ $('ownerNav').style.display='block'; }
     renderAll();
@@ -1270,7 +1341,7 @@ function refresh(){ api('bootstrap').then(function(d){ BOOT=d; renderAll(); }).c
 function initControls(){
   $('market').innerHTML = MARKETS.map(function(m){return '<option>'+esc(m)+'</option>';}).join('');
   $('industry').innerHTML = INDUSTRIES.map(function(x,i){return '<option value="'+i+'">'+esc(x.label)+'</option>';}).join('');
-  var lastMarket = load('sdr_market', MARKETS[0]);
+  var lastMarket = load('sdr_market_'+TERR.state, MARKETS[0]);
   if (MARKETS.indexOf(lastMarket)>-1) $('market').value=lastMarket;
   var plan = todayPlan();
   var sug = INDUSTRIES[dayOfYear()%INDUSTRIES.length];
@@ -1280,6 +1351,9 @@ function initControls(){
     if (MARKETS.indexOf(plan.mkt)>-1) $('market').value = plan.mkt;
   }
   $('industry').value = String(INDUSTRIES.indexOf(sug));
+  if($('customLbl')) $('customLbl').textContent='Or any town ('+TERR.state+')';
+  if($('o-meetBtn')) $('o-meetBtn').innerHTML=isOwner()?'&#128197; Meeting set':'&#128197; Booked Ty';
+  if($('customCity')) $('customCity').placeholder=TERR.state==='PA'?'e.g. Ebensburg':'e.g. Punta Gorda';
   var hr = new Date().getHours();
   var greet = hr<12 ? 'Good morning' : hr<17 ? 'Good afternoon' : 'Good evening';
   $('heroHi').textContent = greet+', '+BOOT.user.name.split(' ')[0]+'.';
@@ -1324,16 +1398,16 @@ function hunt(){
   var custom = $('customCity').value.trim();
   var city = custom || $('market').value;
   var metros;
-  if (custom) metros = custom.replace(/,/g,' ')+' FL';
+  if (custom) metros = custom.replace(/,/g,' ')+' '+TERR.state;
   else {
     var mi = MARKETS.indexOf($('market').value);
-    metros = [MARKETS[mi], MARKETS[(mi+1)%MARKETS.length], MARKETS[(mi+2)%MARKETS.length]].map(function(m){return m+' FL';}).join(', ');
+    metros = [MARKETS[mi], MARKETS[(mi+1)%MARKETS.length], MARKETS[(mi+2)%MARKETS.length]].map(function(m){return m+' '+TERR.state;}).join(', ');
   }
   var ind = INDUSTRIES[Number($('industry').value)];
-  save('sdr_market', $('market').value);
+  save('sdr_market_'+TERR.state, $('market').value);
   var btn=$('goBtn'); btn.disabled=true; btn.textContent='Qualifying '+ind.label+'...';
-  $('rows').innerHTML='<tr><td colspan="6"><div class="empty">Scanning '+esc(city)+', FL for '+esc(ind.label.toLowerCase())+' sitting at positions 4 through 12 on the map...</div></td></tr>';
-  api('listbuild',{vertical:ind.label,metros:metros,minReviews:3,maxReviews:120,target:TARGET}).then(function(d){
+  $('rows').innerHTML='<tr><td colspan="6"><div class="empty">Scanning '+esc(city)+', '+TERR.state+' for '+esc(ind.label.toLowerCase())+' sitting at positions 4 through 12 on the map...</div></td></tr>';
+  api('listbuild',{vertical:ind.q||ind.label,metros:metros,minReviews:3,maxReviews:120,target:TARGET}).then(function(d){
     LIST = d.list.map(function(b){ b.status=''; b.note=''; return b; });
     LISTMETA = { city:city, industry:ind.label, noun:ind.noun, best:ind.best, date:todayKey(), pro:true };
     save('sdr_list',LIST); save('sdr_listmeta',LISTMETA);
@@ -1698,7 +1772,10 @@ function resetAll(){
 function loadTeam(){
   api('user.list').then(function(d){
     var h = (d.users||[]).map(function(u){
-      return '<div class="histline" style="display:flex;align-items:center;gap:10px"><span style="flex:1"><b>'+esc(u.name||u.email)+'</b> · '+esc(u.email)+' · '+esc(u.role)+'</span>'+
+      var nums=d.numbers||[];
+      var terrSel='<select title="Territory" onchange="seatSet(\''+esc(u.email)+'\',this.value,null)" style="max-width:150px">'+[['','Default ('+(u.role==='owner'?'PA':'FL')+')'],['PA','Pennsylvania'],['FL','Florida']].map(function(o){return '<option value="'+o[0]+'"'+(u.territory===o[0]?' selected':'')+'>'+o[1]+'</option>';}).join('')+'</select>';
+      var numSel='<select title="Calls from" onchange="seatSet(\''+esc(u.email)+'\',null,this.value)" style="max-width:170px"><option value="">Default ('+esc(fmtPhone(u.callerEff))+')</option>'+nums.map(function(n){return '<option value="'+esc(n)+'"'+(u.caller_id===n?' selected':'')+'>'+esc(fmtPhone(n))+'</option>';}).join('')+'</select>';
+      return '<div class="histline" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><span style="flex:1;min-width:200px"><b>'+esc(u.name||u.email)+'</b> · '+esc(u.email)+' · '+esc(u.role)+'<br><span class="hint">Territory '+esc(u.territoryEff)+' · calls from '+esc(fmtPhone(u.callerEff))+'</span></span>'+terrSel+numSel+
         (Number(u.active)?'<span class="tag t-meet">active</span>':'<span class="tag t-na">deactivated</span>')+
         (u.role!=='owner'?'<button class="btn-ghost btn-sm" onclick="toggleUser(\''+esc(u.email)+'\')">'+(Number(u.active)?'Deactivate':'Reactivate')+'</button>':'')+'</div>';
     }).join('');
@@ -1709,6 +1786,16 @@ function loadTeam(){
     }).join('');
     $('teamList').innerHTML = h || '<div class="empty">Just you so far. Send the first invite.</div>';
   }).catch(function(e){toast(e.message);});
+}
+var SEATS={};
+function seatSet(em, terr, cid){
+  var cur=SEATS[em]||{};
+  api('user.list').then(function(d){
+    var u=(d.users||[]).find(function(x){return x.email===em;})||{};
+    var body={email:em, territory: terr!=null?terr:(u.territory||''), caller_id: cid!=null?cid:(u.caller_id||'')};
+    return api('user.settings',body);
+  }).then(function(){ toast('Seat updated. They pick it up next time they load the hub.'); loadTeam(); if(em===BOOT.user.email) setTimeout(function(){location.reload();},900); })
+    .catch(function(e){ toast(e.message); loadTeam(); });
 }
 function inviteResult(em,d){
   chime(); loadTeam();
@@ -1865,12 +1952,15 @@ function buildScript(b){
   var biz=b.name||'your business';
   var theFact=hook(b);
   var closeAsk='THE CLOSE: "Most owners just say yes right here on the call. I email you the agreement and the secure checkout while we’re talking, you tap twice, and we start on '+biz+' this week. Want me to send it over right now?"';
-  var tyFallback='IF THEY HESITATE: "Totally fair. Then let’s do this: 15 minutes with Ty Burket, the owner, and he’ll pull up your listing live and show you exactly what’s leaking. Does tomorrow morning or afternoon treat you better?"';
+  var tyFallback= isOwner()
+    ? 'IF THEY HESITATE: "Totally fair. I’m local, right here in '+(TERR.state==='PA'?'central PA':'the area')+'. Let me stop by for 15 minutes, pull up your listing on my laptop, and show you exactly what’s leaking. Is early or late in the week better for you?"'
+    : 'IF THEY HESITATE: "Totally fair. Then let’s do this: 15 minutes with Ty Burket, the owner, and he’ll pull up your listing live and show you exactly what’s leaking. Does tomorrow morning or afternoon treat you better?"';
+  var whoAmI = isOwner() ? 'I own Burket Web Design, right here in '+(TERR.state==='PA'?'central PA':'town') : 'I’m with Burket Web Design';
   if (SCRIPT_MODE==='expert'){
-    return '"Hi, is this the owner of '+biz+'? ... Hey, this is '+me+' with Burket Web Design. Quick question before anything else: when’s the last time you Googled “'+noun+' '+city+'” and looked at where you actually show up? ...\n\n'+
+    return '"Hi, is this the owner of '+biz+'? ... Hey, this is '+me+'. '+whoAmI+'. Quick question before anything else: when’s the last time you Googled “'+noun+' '+city+'” and looked at where you actually show up? ...\n\n'+
       '(Let them answer. Most say never, or not lately.)\n\n'+
       'That’s why I’m calling. I did it right before I dialed, and honestly, '+theFact+'.\n\n'+
-      'Here’s what that means in dollars: the top three spots on that map get basically every call in '+city+'. Every day you’re not up there, those jobs go to the three names above you. And your gap is fixable, we close it every day for Florida businesses like yours.\n\n'+
+      'Here’s what that means in dollars: the top three spots on that map get basically every call in '+city+'. Every day you’re not up there, those jobs go to the three names above you. And your gap is fixable, we close it every day for '+TERR.region+' businesses like yours.\n\n'+
       'The program is called Local Presence, 500 a month flat: your Google profile managed weekly, reviews growing on autopilot, citations, content, even how you show up when people ask AI tools who to hire.\n\n'+
       closeAsk+'\n\n'+tyFallback;
   }
@@ -1878,13 +1968,13 @@ function buildScript(b){
     return 'STEP 1, WHOEVER ANSWERS: "Hey, it’s '+first+'. Is the owner around?" (Calm, familiar, zero pitch. Say nothing else.)\n\n'+
       'IF THEY ASK WHAT IT’S ABOUT: "It’s about '+biz+'’s Google listing, there’s something on it they’ll want to see. Takes two minutes."\n\n'+
       'IF THE OWNER IS NOT AVAILABLE: "No problem. Who should I ask for when I call back, and are mornings or afternoons better? ... Perfect. And if it’s easier, what’s the best email for them? I’ll send over the free Google scan so they can see it before we talk." (Log every scrap: name, best time, email. Set the callback. A gatekeeper who gives you the owner’s name is halfway to a warm call.)\n\n'+
-      'STEP 2, OWNER PICKS UP: "Hey, '+first+' with Burket Web Design, I’ll keep this to 30 seconds. I pulled up '+biz+' on Google before calling, and '+theFact+'. The top three map spots in '+city+' get basically all the calls, and we put businesses like yours up there for 500 a month flat."\n\n'+
+      'STEP 2, OWNER PICKS UP: "Hey, '+first+'. '+whoAmI+', I’ll keep this to 30 seconds. I pulled up '+biz+' on Google before calling, and '+theFact+'. The top three map spots in '+city+' get basically all the calls, and we put businesses like yours up there for 500 a month flat."\n\n'+
       closeAsk+'\n\n'+tyFallback;
   }
   return '"Hey, is this the owner of '+biz+'? ...\n\n'+
     'I’ll be straight with you: this is a cold call. You can hang up right now, or you can give me one minute and I’ll tell you exactly why I called you and nobody else. ...\n\n'+
     '(They almost always laugh or say go ahead.)\n\n'+
-    'Appreciate it. I’m '+me+', a sales representative with Burket Web Design. We help Florida service businesses win the Google map. Before I dialed, I pulled up '+biz+' on Google, and honestly, '+theFact+'.\n\n'+
+    'Appreciate it. I’m '+me+'. '+(isOwner()?'I own Burket Web Design here in '+(TERR.state==='PA'?'central PA':'town')+'. We help local':'I’m a sales representative with Burket Web Design. We help '+TERR.region)+' service businesses win the Google map. Before I dialed, I pulled up '+biz+' on Google, and honestly, '+theFact+'.\n\n'+
     'When somebody in '+city+' searches for a '+noun+', the top three spots on the map get basically all the calls. We make sure businesses like yours own one of those spots. Our Local Presence program is 500 a month, flat, and it covers everything: your Google profile, reviews on autopilot, citations, content, even how you show up in AI search.\n\n'+
     closeAsk+'\n\n'+tyFallback;
 }
@@ -1896,11 +1986,11 @@ function OBJECTIONS(){
   var first=BOOT.user.name.split(' ')[0];
   return [
     { l:'"How much is it?"', r:'"Websites are one-time, 650 for a one-pager, 850 for a full site. The Local Presence program is 500 a month flat, or 750 with website SEO and full maintenance folded in. And I can have the agreement and checkout in your inbox before we hang up, want me to send it?"' },
-    { l:'"I’m busy."', r:'"Totally fair, that’s why this takes two minutes, not ten. Your Google listing is losing you calls. I can send the agreement right now and we handle everything from here, or I’ll grab you 15 minutes with Ty this week. Which is easier?"' },
+    { l:'"I’m busy."', r:'"Totally fair, that’s why this takes two minutes, not ten. Your Google listing is losing you calls. I can send the agreement right now and we handle everything from here, or '+(isOwner()?'I can swing by for 15 minutes this week':'I’ll grab you 15 minutes with Ty this week')+'. Which is easier?"' },
     { l:'"Not interested."', r:'"No problem, I’ll let you go. One thing: I’m going to email you the free scan of how you show up on Google. If it looks fine, toss it. If it doesn’t, my number is on it. What’s the best email?"' },
     { l:'"All word of mouth."', r:'"That’s the best kind, and here’s the catch: when somebody gets your name from a friend, the first thing they do is Google you. If a competitor with 60 reviews shows up above you, that referral you already earned just leaked away. We make sure it lands."' },
     { l:'"We have a website / a guy."', r:'"Keep them, this isn’t that. Quick question: is anyone posting to your Google Business Profile every week and answering your reviews? That’s the piece everybody skips, and it’s the piece that decides who wins the map."' },
-    { l:'"I need to think about it."', r:'"Of course. Tell you what, I’ll email you the agreement right now so it’s in front of you, no obligation, and Ty will give you 15 minutes this week to answer anything. If it’s not right, you delete an email. Morning or afternoon for Ty?"' },
+    { l:'"I need to think about it."', r:'"Of course. Tell you what, I’ll email you the agreement right now so it’s in front of you, no obligation, and '+(isOwner()?'I’ll stop by for 15 minutes this week to answer anything':'Ty will give you 15 minutes this week to answer anything')+'. If it’s not right, you delete an email. '+(isOwner()?'Early or late in the week?':'Morning or afternoon for Ty?')+'"' },
     { l:'Gatekeeper answers.', r:'"Hey, it’s '+first+', is the owner around? ... It’s about their Google listing." Short and calm. If pressed: "There’s an issue with how the business shows up when customers search, takes two minutes." Get the owner’s name and best time back.' }
   ];
 }
@@ -1964,7 +2054,7 @@ function fillModal(b, progressTxt){
   var links=[];
   if (b.website) links.push('<a href="'+esc(b.website)+'" target="_blank" rel="noopener">their website</a>');
   if (b.maps) links.push('<a href="'+esc(b.maps)+'" target="_blank" rel="noopener">their Google listing</a>');
-  links.push('<a href="https://www.google.com/search?q='+encodeURIComponent((b.name||'')+' '+(b.town||LISTMETA.city||'')+' FL')+'" target="_blank" rel="noopener">Google them</a>');
+  links.push('<a href="https://www.google.com/search?q='+encodeURIComponent((b.name||'')+' '+(b.town||LISTMETA.city||'')+' '+TERR.state)+'" target="_blank" rel="noopener">Google them</a>');
   links.push('<a href="'+esc(BOOT.auditUrl)+'" target="_blank" rel="noopener">audit tool</a>');
   $('p-links').innerHTML=links.join('');
   $('p-besttime').style.display=LISTMETA.best?'inline-block':'none';
@@ -2105,7 +2195,7 @@ function logOutcome(out){
     LASTLOG={id:r.id,listIndex:wasCur};
     if (PH&&Date.now()<PH.end){ PH.dials++; save('sdr_ph',PH); }
     if (out==='closed'){ chime(); confetti(); toast('🏆 CLOSED. Ty just got the good news.',true); }
-    else if (out==='meeting'){ chime(); confetti(); toast('🎉 Meeting with Ty booked for '+(b.name||'them')+'.',true); }
+    else if (out==='meeting'){ chime(); confetti(); toast('🎉 Meeting '+(isOwner()?'':'with Ty ')+'booked for '+(b.name||'them')+'.',true); }
     else { tick(); toast(out.replace(/_/g,' ')+' logged.',true); }
     refresh();
   }).catch(function(e){ toast(e.message); });
@@ -2259,8 +2349,10 @@ function twInit(){
   twSdk().then(function(){return api('twilio.token');}).then(function(t){twSetup(t.token);twCidFill(t.numbers);}).catch(function(){TW.inited=false;});
 }
 function twCidFill(nums){
-  nums=nums||[];
-  if(nums.length<2){$('twCid').style.display='none';return;}
+  $('twCid').style.display='none';
+  var cid=(BOOT&&BOOT.twilio&&BOOT.twilio.callerId)||(nums&&nums[0])||'';
+  if(cid){ $('twReady').innerHTML='&#128222; dialer ready · '+esc(fmtPhone(cid)); $('twReady').title='You call from '+fmtPhone(cid)+'. Callbacks to it ring here.'; }
+  return;
   var saved='';try{saved=localStorage.getItem('sdr_cid')||'';}catch(e){}
   $('twCid').innerHTML=nums.map(function(n){return '<option value="'+esc(n)+'"'+(n===saved?' selected':'')+'>show '+esc(fmtPhone(n))+'</option>';}).join('');
   $('twCid').style.display='inline-block';
@@ -2289,8 +2381,7 @@ function twDial(phone){
     if(t.minutesLeft<60)toast('Heads up: '+t.minutesLeft+' calling minutes left this month.');
     var dev=twSetup(t.token);TW.inited=true;twCidFill(t.numbers);
     var params={To:'+1'+d2};
-    var cid='';try{cid=localStorage.getItem('sdr_cid')||'';}catch(e){}
-    if(cid)params.Cid=cid;
+    /* caller ID is chosen on the server from the seat that is dialing */
     return dev.connect({params:params});
   }).then(function(conn){
     TW.conn=conn;
@@ -2537,7 +2628,7 @@ function buildCallbackScript(b, d){
     '"Quick question: how are most of your new customers finding you right now?"\n\n'+
     '(Let them talk. Then:)\n\n'+
     '"That\u2019s exactly what we fix. We get local service businesses into those top spots and keep them there, so the calls come to you instead of the guy down the road."\n\n'+
-    '"There are two easy ways to do this. I can get you set up right now. It takes about five minutes and we start this week. Or if you\u2019d like to see it first, I can book you 15 minutes with Ty Burket, our owner. Which works better for you?"';
+    '"There are two easy ways to do this. I can get you set up right now. It takes about five minutes and we start this week. Or if you\u2019d like to see it first, '+(isOwner()?'I can stop by and show you in person':'I can book you 15 minutes with Ty Burket, our owner')+'. Which works better for you?"';
 }
 function popOpen(d){
   if(!d||!d.found) return;
