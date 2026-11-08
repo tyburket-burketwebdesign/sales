@@ -1407,7 +1407,24 @@ function hunt(){
   save('sdr_market_'+TERR.state, $('market').value);
   var btn=$('goBtn'); btn.disabled=true; btn.textContent='Qualifying '+ind.label+'...';
   $('rows').innerHTML='<tr><td colspan="6"><div class="empty">Scanning '+esc(city)+', '+TERR.state+' for '+esc(ind.label.toLowerCase())+' sitting at positions 4 through 12 on the map...</div></td></tr>';
-  api('listbuild',{vertical:ind.q||ind.label,metros:metros,minReviews:3,maxReviews:120,target:TARGET}).then(function(d){
+  /* Small towns run thin, so when one sweep comes up short the hub keeps going into the next neighbouring
+     clusters (up to 3 sweeps, 9 towns) until the list is full. */
+  var mi0 = MARKETS.indexOf($('market').value), rounds = custom ? 1 : 3;
+  var acc = [], seen = {}, skippedAll = 0, notesAll = [], townsUsed = [];
+  function cluster(r){ return [0,1,2].map(function(k){ return MARKETS[(mi0 + r*3 + k) % MARKETS.length]; }); }
+  function sweep(r){
+    var m = r===0 ? metros : cluster(r).map(function(x){return x+' '+TERR.state;}).join(', ');
+    if (r>0) btn.textContent='Short list, widening to '+cluster(r).join(', ')+'...';
+    return api('listbuild',{vertical:ind.q||ind.label,metros:m,minReviews:3,maxReviews:120,target:TARGET}).then(function(d){
+      (custom ? [city] : cluster(r)).forEach(function(t){ townsUsed.push(t); });
+      d.list.forEach(function(b){ if(!seen[b.phone]){ seen[b.phone]=1; acc.push(b); } });
+      skippedAll += d.skipped||0; notesAll = notesAll.concat(d.notes||[]);
+      if (acc.length < TARGET && r+1 < rounds) return sweep(r+1);
+      return { list: acc.slice(0, TARGET), skipped: skippedAll, notes: notesAll };
+    });
+  }
+  sweep(0).then(function(d){
+    if (!custom && townsUsed.length > 3) city = townsUsed[0]+' area ('+townsUsed.length+' towns)';
     LIST = d.list.map(function(b){ b.status=''; b.note=''; return b; });
     LISTMETA = { city:city, industry:ind.label, noun:ind.noun, best:ind.best, date:todayKey(), pro:true };
     save('sdr_list',LIST); save('sdr_listmeta',LISTMETA);
