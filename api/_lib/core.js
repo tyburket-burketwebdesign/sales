@@ -48,6 +48,8 @@ async function ensureSchema() {
   await sql`CREATE TABLE IF NOT EXISTS kv ( k TEXT PRIMARY KEY, v TEXT )`;
   await sql`ALTER TABLE companies ADD COLUMN IF NOT EXISTS alt_phones TEXT DEFAULT ''`;
   await sql`ALTER TABLE calls ADD COLUMN IF NOT EXISTS fup_rep TEXT DEFAULT ''`;
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS territory TEXT DEFAULT ''`;
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS caller_id TEXT DEFAULT ''`;
   await sql`CREATE TABLE IF NOT EXISTS company_notes (
     id SERIAL PRIMARY KEY, phone TEXT, author TEXT, note TEXT DEFAULT '', ts TIMESTAMPTZ DEFAULT now()
   )`;
@@ -112,7 +114,7 @@ async function ensureSchema() {
 
 async function userFromToken(token) {
   if (!token) return null;
-  const rows = await sql`SELECT u.email, u.name, u.role FROM sessions s JOIN users u ON u.email = s.email
+  const rows = await sql`SELECT u.email, u.name, u.role, COALESCE(u.territory,'') AS territory, COALESCE(u.caller_id,'') AS caller_id FROM sessions s JOIN users u ON u.email = s.email
                          WHERE s.token = ${token} AND s.expires > now() AND COALESCE(u.active,1) = 1`;
   return rows[0] || null;
 }
@@ -310,8 +312,24 @@ function twilioReady() {
   return !!(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_API_KEY_SID && process.env.TWILIO_API_KEY_SECRET &&
             process.env.TWILIO_TWIML_APP_SID && process.env.TWILIO_FROM);
 }
+/* Each seat dials from its own number so the owner (Pennsylvania) and the SDR (Florida) can call at the same time.
+ * Owner default: OWNER_FROM, else the original PA line (814) 680-2901. Everyone else: TWILIO_FROM. A seat's caller_id overrides. */
+const OWNER_FROM_DEFAULT = '+18146802901';
+function ownerFrom() { return twE164(process.env.OWNER_FROM || OWNER_FROM_DEFAULT); }
+function territoryFor(u) {
+  const t = String((u && u.territory) || '').toUpperCase();
+  if (t === 'PA' || t === 'FL') return t;
+  return u && u.role === 'owner' ? 'PA' : 'FL';
+}
+function callerFor(u) {
+  const nums = twilioNumbers();
+  const own = twE164((u && u.caller_id) || '');
+  if (own && nums.indexOf(own) > -1) return own;
+  return u && u.role === 'owner' ? ownerFrom() : twE164(process.env.TWILIO_FROM);
+}
 function twilioNumbers() {
-  return [process.env.TWILIO_FROM, process.env.TWILIO_FROM2].filter(Boolean).map(twE164);
+  const list = [process.env.TWILIO_FROM, process.env.TWILIO_FROM2, ownerFrom()].filter(Boolean).map(twE164);
+  return list.filter((x, i) => list.indexOf(x) === i);
 }
 function b64url(buf) {
   return Buffer.from(buf).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
@@ -484,4 +502,4 @@ function seqTemplates(s, repName) {
 
 module.exports = { hashPass, docusealTemplate, LP_FEATURES, LP750_EXTRA, sql, ensureSchema, userFromToken, login, sendMail, placesSearch, scrapeEmails, isChain, geocodeCity, placesBiased, inStormZone, twE164, twilioReady, twilioNumbers, twilioToken, upsertCompany, STAGE_RANK, docusealSend, waveLink, kpiTarget, kpiBonus,
                    PRODUCTS, seqTemplates, auditUrl, normPhone, uid,
-                   sendProspectMail, prospectReplyTo, prospectBcc, SEQ_GAPS };
+                   sendProspectMail, prospectReplyTo, prospectBcc, SEQ_GAPS, territoryFor, callerFor, ownerFrom };
