@@ -96,7 +96,8 @@ module.exports = async function handler(req, res) {
       return ok({ user, products: C.PRODUCTS, today, fups, fourteen, totals: totals[0],
                   deals: myDeals, ledger: myLedger, seqs: mySeqs, seqLog: seqLog, seqGaps: C.SEQ_GAPS,
                   mailInfo: { replyTo: C.prospectReplyTo(), bcc: C.prospectBcc() }, meetings: myMeetings, team, auditUrl: C.auditUrl(),
-                  twilio: { enabled: C.twilioReady(), numbers: C.twilioNumbers() },
+                  twilio: { enabled: C.twilioReady(), numbers: C.twilioNumbers(), callerId: C.callerFor(user) },
+                  territory: C.territoryFor(user),
                   kpi: { target: C.kpiTarget(), bonus: C.kpiBonus(), closedMonth: closedMonth },
                   pipeline: pipeline, waveReady: waveReady,
                   docuseal: !!process.env.DOCUSEAL_API_KEY });
@@ -427,7 +428,7 @@ module.exports = async function handler(req, res) {
       const used = row[0] ? Number(row[0].v) : 0;
       const cap = Number(process.env.TWILIO_CAP_MIN) || 1100;
       if (used >= cap) return err('The monthly calling budget (' + cap + ' min) is used up. It resets on the 1st, or Ty can raise TWILIO_CAP_MIN.');
-      return ok({ token: C.twilioToken(user.email), numbers: C.twilioNumbers(), minutesLeft: cap - used });
+      return ok({ token: C.twilioToken(user.email), numbers: [C.callerFor(user)], callerId: C.callerFor(user), minutesLeft: cap - used });
     }
     if (a === 'twilio.log') {
       const mins = Math.max(1, Math.ceil((Number(P.seconds) || 0) / 60));
@@ -888,11 +889,21 @@ module.exports = async function handler(req, res) {
     }
     if (a === 'user.list') {
       if (!OWNER) return err('Owner only.');
-      const users = await sql`SELECT email, name, role, COALESCE(active,1) AS active, created FROM users ORDER BY created`;
+      const users = (await sql`SELECT email, name, role, COALESCE(active,1) AS active, created, COALESCE(territory,'') AS territory, COALESCE(caller_id,'') AS caller_id FROM users ORDER BY created`)
+        .map(u => Object.assign(u, { territoryEff: C.territoryFor(u), callerEff: C.callerFor(u) }));
       const base2 = 'https://' + (req.headers['x-forwarded-host'] || req.headers.host || 'sales-eta-livid.vercel.app');
       const pend = await sql`SELECT token, email, name, ts FROM invites WHERE used=0 AND ts > now() - interval '14 days' ORDER BY ts DESC`;
       const pending = pend.map(p => ({ email: p.email, name: p.name, ts: p.ts, link: base2 + '/?invite=' + p.token }));
-      return ok({ users, pending });
+      return ok({ users, pending, numbers: C.twilioNumbers() });
+    }
+    if (a === 'user.settings') {
+      if (!OWNER) return err('Owner only.');
+      const em = String(P.email || '').toLowerCase().trim();
+      const terr = ['PA', 'FL', ''].indexOf(String(P.territory || '').toUpperCase()) > -1 ? String(P.territory || '').toUpperCase() : '';
+      let cid = String(P.caller_id || '').trim();
+      if (cid) { cid = C.twE164(cid); if (C.twilioNumbers().indexOf(cid) === -1) return err('That number is not one of your Twilio numbers.'); }
+      await sql`UPDATE users SET territory=${terr}, caller_id=${cid} WHERE email=${em}`;
+      return ok(true);
     }
     if (a === 'user.toggle') {
       if (!OWNER) return err('Owner only.');

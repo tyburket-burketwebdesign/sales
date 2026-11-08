@@ -61,11 +61,15 @@ module.exports = async function handler(req, res) {
       return xml(res, '<Response></Response>');
     }
 
-    /* inbound: caller is a real phone, not one of our browser clients */
+    /* inbound: caller is a real phone, not one of our browser clients.
+       A number that only the owner dials from (the PA line) rings only the owner; any other number rings every seat. */
     if (String(P.From || '').indexOf('client:') !== 0) {
       await C.ensureSchema();
-      const users = await sql`SELECT email FROM users`;
-      const ids = users.map(u => String(u.email).replace(/[^a-zA-Z0-9_]/g, '_'));
+      const all = await sql`SELECT email, role, COALESCE(territory,'') AS territory, COALESCE(caller_id,'') AS caller_id FROM users WHERE COALESCE(active,1)=1`;
+      const dialed = C.twE164(P.To || P.Called || '');
+      const onLine = all.filter(u => C.callerFor(u) === dialed);
+      const ringSet = onLine.length && onLine.every(u => u.role === 'owner') ? onLine : all;
+      const ids = ringSet.map(u => String(u.email).replace(/[^a-zA-Z0-9_]/g, '_'));
       if (!ids.length) return xml(res, '<Response><Say>Thanks for calling Burket Web Design. Please try us again shortly.</Say></Response>');
       const action = '/api/voice?k=' + encodeURIComponent(key) + '&cb=1';
       let dial = '<Response><Dial answerOnBridge="true" timeout="20" action="' + escXml(action) + '" method="POST">';
@@ -74,13 +78,15 @@ module.exports = async function handler(req, res) {
       return xml(res, dial);
     }
 
-    /* outbound: rep dialing from the hub */
+    /* outbound: rep dialing from the hub. Caller ID comes from the seat that is dialing. */
     let from = C.twE164(process.env.TWILIO_FROM);
-    let cid = String(P.Cid || '').replace(/[^\d+]/g, '');
-    if (cid.length === 10) cid = '+1' + cid;
-    if (cid.length === 11 && cid[0] === '1') cid = '+' + cid;
-    const allowed = C.twilioNumbers();
-    if (cid && allowed.indexOf(cid) > -1) from = cid;
+    try {
+      const ident = String(P.From || '').replace(/^client:/, '');
+      await C.ensureSchema();
+      const seats = await sql`SELECT email, role, COALESCE(territory,'') AS territory, COALESCE(caller_id,'') AS caller_id FROM users`;
+      const me = seats.find(u => String(u.email).replace(/[^a-zA-Z0-9_]/g, '_') === ident);
+      if (me) from = C.callerFor(me);
+    } catch (e) { console.log('[voice] seat lookup failed, using TWILIO_FROM', e && e.message); }
     let to = String(P.To || '').replace(/[^\d+]/g, '');
     if (to.length === 10) to = '+1' + to;
     if (to.length === 11 && to[0] === '1') to = '+' + to;
