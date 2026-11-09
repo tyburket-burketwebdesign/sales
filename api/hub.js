@@ -727,7 +727,23 @@ module.exports = async function handler(req, res) {
                   meetStatus, deals, contracts, overdue, reports, wins, kpi: { target: C.kpiTarget(), bonus: C.kpiBonus() } });
     }
 
-    /* ---------------- ASSIGNED LEAD LISTS (owner hands a list to a rep) ---------------- */
+    /* ---------------- CUSTOM LEAD LISTS (owner hands lists to a rep; they live in the Custom Lists tab) ---------------- */
+    async function readLists(em) {
+      const rows = await sql`SELECT k, v FROM kv WHERE k = ${'lists_' + em} OR k = ${'assigned_' + em}`;
+      let lists = [];
+      const main = rows.find(r => r.k === 'lists_' + em);
+      if (main) { try { lists = JSON.parse(main.v) || []; } catch (e) { lists = []; } }
+      const legacy = rows.find(r => r.k === 'assigned_' + em);
+      if (legacy) {                                   // migrate the older single-list format
+        try { const one = JSON.parse(legacy.v); if (one && one.list) { one.id = one.id || C.uid(); lists.unshift(one); } } catch (e) {}
+        await sql`INSERT INTO kv (k, v) VALUES (${'lists_' + em}, ${JSON.stringify(lists)}) ON CONFLICT (k) DO UPDATE SET v = EXCLUDED.v`;
+        await sql`DELETE FROM kv WHERE k = ${'assigned_' + em}`;
+      }
+      return lists;
+    }
+    async function writeLists(em, lists) {
+      await sql`INSERT INTO kv (k, v) VALUES (${'lists_' + em}, ${JSON.stringify(lists)}) ON CONFLICT (k) DO UPDATE SET v = EXCLUDED.v`;
+    }
     if (a === 'leads.assign') {
       if (!OWNER) return err('Owner only.');
       const em = String(P.email || '').toLowerCase().trim();
@@ -740,20 +756,38 @@ module.exports = async function handler(req, res) {
         reviews: b.reviews == null || b.reviews === '' ? -1 : Number(b.reviews) || 0, rating: Number(b.rating) || 0, pos: Number(b.pos) || 0
       })).filter(b => b.phone);
       if (!list.length) return err('No leads with a valid phone number.');
-      const payload = { title: String(P.title || 'Leads from Ty').slice(0, 80), region: String(P.region || '').slice(0, 30), by: user.name, ts: new Date().toISOString(), list };
-      await sql`INSERT INTO kv (k, v) VALUES (${'assigned_' + em}, ${JSON.stringify(payload)}) ON CONFLICT (k) DO UPDATE SET v = EXCLUDED.v`;
-      return ok({ count: list.length });
+      const lists = await readLists(em);
+      const title = String(P.title || 'Leads from Ty').slice(0, 80);
+      const entry = { id: C.uid(), title, region: String(P.region || '').slice(0, 30), by: user.name, ts: new Date().toISOString(), list };
+      const keep = lists.filter(l => l.title !== title);             // re-assigning the same title replaces it
+      keep.unshift(entry);
+      await writeLists(em, keep.slice(0, 20));
+      return ok({ count: list.length, id: entry.id });
     }
-    if (a === 'leads.assigned') {
+    if (a === 'leads.lists') {
       const em = OWNER && P.email ? String(P.email).toLowerCase() : user.email;
-      const row = (await sql`SELECT v FROM kv WHERE k=${'assigned_' + em}`)[0];
-      return ok(row ? JSON.parse(row.v) : null);
+      const lists = await readLists(em);
+      const phones = [].concat.apply([], lists.map(l => l.list.map(b => b.phone)));
+      const last = {};
+      if (phones.length) {
+        (await sql`SELECT DISTINCT ON (phone) phone, outcome, rep, ts FROM calls WHERE phone = ANY(${phones}) ORDER BY phone, ts DESC`)
+          .forEach(r => { last[r.phone] = { outcome: r.outcome, rep: r.rep, ts: r.ts }; });
+      }
+      lists.forEach(l => l.list.forEach(b => { b.last = last[b.phone] || null; }));
+      return ok({ email: em, lists });
     }
-    if (a === 'leads.assigned.clear') {
+    if (a === 'leads.list.delete') {
       const em = OWNER && P.email ? String(P.email).toLowerCase() : user.email;
-      await sql`DELETE FROM kv WHERE k=${'assigned_' + em}`;
+      if (!OWNER) return err('Only Ty can remove a list.');
+      const lists = (await readLists(em)).filter(l => l.id !== P.id);
+      await writeLists(em, lists);
       return ok(true);
     }
+    if (a === 'leads.assigned') {                       // kept for older pages: first list
+      const lists = await readLists(OWNER && P.email ? String(P.email).toLowerCase() : user.email);
+      return ok(lists[0] || null);
+    }
+    if (a === 'leads.assigned.clear') { return ok(true); }
 
     /* ---------------- EXTRA NUMBERS ON A LEAD ---------------- */
     if (a === 'company.alts') {
