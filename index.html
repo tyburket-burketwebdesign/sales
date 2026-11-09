@@ -375,6 +375,7 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--m
       <button class="nv" data-view="dialer"><span class="ic">&#128222;</span>Dialer<span class="pill" id="navDialPill" style="display:none"></span></button>
       <button class="nv" data-view="pipe"><span class="ic">&#128202;</span>Pipeline</button>
       <button class="nv" data-view="meet"><span class="ic">&#129309;</span>Meetings</button>
+      <button class="nv" data-view="lists"><span class="ic">&#128203;</span>Custom Lists<span class="pill" id="navListPill" style="display:none"></span></button>
       <button class="nv" data-view="seq"><span class="ic">&#9993;&#65039;</span>Sequences</button>
       <button class="nv" data-view="past"><span class="ic">&#128337;</span>Past Calls<span class="pill" id="dueBadge" style="display:none"></span></button>
       <div class="navsec">MONEY</div>
@@ -584,6 +585,17 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--m
 
       <div class="view" id="v-play">
         <div id="playWrap"></div>
+      </div>
+
+      <div class="view" id="v-lists">
+        <div class="card">
+          <div class="row" style="align-items:flex-end">
+            <div style="flex:1"><b style="font-size:15px">Custom Lists</b><div class="hint">Lists Ty builds and assigns: new businesses, referrals, special projects. Load one into the dialer or call a lead straight from here. Calls to PA numbers show the 814 line, FL numbers show 239.</div></div>
+            <div id="cl-repwrap" style="display:none"><label>Showing lists for</label><select id="cl-rep" onchange="loadLists()"></select></div>
+            <button class="btn-ghost btn-sm" onclick="loadLists()">&#8635; Refresh</button>
+          </div>
+        </div>
+        <div id="cl-body"></div>
       </div>
 
       <div class="view" id="v-perf">
@@ -1220,7 +1232,8 @@ var TITLES = {
   comm:['Commissions','Your KPI and your money'],
   play:['Playbook','Scripts, comebacks, and the plan'],
   owner:['Command Center','Approvals, payouts, team'],
-  perf:['Rep Performance','Owner only: every call, outcome, and industry']
+  perf:['Rep Performance','Owner only: every call, outcome, and industry'],
+  lists:['Custom Lists','Hand-picked leads from Ty, ready to dial']
 };
 
 /* ================= STATE ================= */
@@ -1401,6 +1414,7 @@ function gotoView(v){
   if (v==='pipe') loadPipeline();
   if (v==='owner'){ refresh(); loadTeam(); loadShiftReports(); asInit(); }
   if (v==='perf'){ anInit(); anLoad(); }
+  if (v==='lists'){ loadLists(); }
   if (v==='dash'||v==='comm'||v==='seq'||v==='meet') refresh();
 }
 document.querySelectorAll('.nv').forEach(function(b){ b.addEventListener('click', function(){ gotoView(b.getAttribute('data-view')); }); });
@@ -2229,6 +2243,7 @@ function logOutcome(out){
     else if (out==='meeting'){ chime(); confetti(); toast('🎉 Meeting '+(isOwner()?'':'with Ty ')+'booked for '+(b.name||'them')+'.',true); }
     else { tick(); toast(out.replace(/_/g,' ')+' logged.',true); }
     refresh();
+    if (b.src==='assigned') checkAssigned();
   }).catch(function(e){ toast(e.message); });
   if (wasCur!=null){
     LIST[wasCur].status=out; LIST[wasCur].note=$('p-note').value.trim();
@@ -2949,38 +2964,87 @@ function localCidFor(to){
   var m=st&&nums.find(function(n){ var x=String(n).replace(/\D/g,'').replace(/^1/,''); return AREA_ST[x.slice(0,3)]===st; });
   return m || (BOOT&&BOOT.twilio&&BOOT.twilio.callerId) || '';
 }
-var ASSIGNED=null;
+var ASSIGNED=null, CLISTS=[], CL_EMAIL='';
 function checkAssigned(){
-  api('leads.assigned').then(function(a){
-    ASSIGNED=a;
-    var el=$('dueTodayBanner');
-    var old=document.getElementById('assignBanner'); if(old) old.remove();
-    if(!a||!a.list||!a.list.length) return;
+  api('leads.lists').then(function(d){
+    CLISTS=d.lists||[];
+    var open=0; CLISTS.forEach(function(l){ l.list.forEach(function(b){ if(!b.last) open++; }); });
+    var pill=$('navListPill'); pill.style.display=open?'inline-block':'none'; pill.textContent=open;
+    ['assignBanner','assignBanner2'].forEach(function(id){ var x=document.getElementById(id); if(x) x.remove(); });
+    if(!open||isOwner()) return;
     var div=document.createElement('div'); div.id='assignBanner';
     div.className='card'; div.style.cssText='margin:0 0 14px;border:2px solid var(--gold);background:#fffbea';
-    div.innerHTML='<div class="row" style="align-items:center"><div style="flex:1"><b>&#128203; '+esc(a.by||'Ty')+' assigned you a list: '+esc(a.title)+'</b><div class="hint">'+a.list.length+' leads'+(a.region?' in '+esc(a.region):'')+'. Calls to these numbers automatically show the local caller ID.</div></div>'+
-      '<button class="btn-go btn-sm" onclick="loadAssigned()">Load into my dialer</button></div>';
-    el.parentNode.insertBefore(div, el);
-    var dv=document.getElementById('v-dialer'); if(dv){ var c2=div.cloneNode(true); c2.id='assignBanner2'; var o2=document.getElementById('assignBanner2'); if(o2) o2.remove(); dv.insertBefore(c2, dv.firstChild); }
+    div.innerHTML='<div class="row" style="align-items:center"><div style="flex:1"><b>&#128203; You have '+open+' uncalled lead'+(open===1?'':'s')+' in Custom Lists</b><div class="hint">'+esc(CLISTS.map(function(l){return l.title;}).join(', '))+'</div></div>'+
+      '<button class="btn-go btn-sm" onclick="gotoView(\'lists\')">Open Custom Lists</button></div>';
+    var el=$('dueTodayBanner'); el.parentNode.insertBefore(div, el);
   }).catch(function(){});
 }
-function loadAssigned(){
-  var a=ASSIGNED; if(!a) return;
-  var open=LIST.filter(function(b){return !b.status;}).length;
-  if(open && !LISTMETA.demo && !confirm('Your current list still has '+open+' uncalled businesses. Replace it with "'+a.title+'"?')) return;
-  LIST=a.list.map(function(b){
-    return { name:b.name, phone:b.phone, town:b.town, addr:b.addr||b.town, website:b.website, rating:b.rating, reviews:b.reviews, pos:b.pos,
-             why:b.why, email:b.email, contact:b.contact, industry:b.industry, industryNoun:(b.industry||'business').split(/[\/(,]/)[0].trim().toLowerCase(),
-             src:'assigned', status:'', note:'' };
-  });
-  LISTMETA={ city:a.title, industry:'', noun:'', best:'', date:todayKey(), pro:true, region:a.region||'' };
-  save('sdr_list',LIST); save('sdr_listmeta',LISTMETA);
-  api('leads.assigned.clear').catch(function(){});
-  ['assignBanner','assignBanner2'].forEach(function(id){ var x=document.getElementById(id); if(x) x.remove(); });
-  ASSIGNED=null;
-  gotoView('dialer'); renderList(); chime();
-  toast(LIST.length+' assigned leads loaded. Hit Start Calling.');
+function loadLists(){
+  var owner=isOwner();
+  if(owner){
+    $('cl-repwrap').style.display='block';
+    if(!$('cl-rep').options.length){
+      return api('user.list').then(function(d){
+        $('cl-rep').innerHTML=(d.users||[]).filter(function(u){return Number(u.active);}).map(function(u){return '<option value="'+esc(u.email)+'"'+(u.role!=='owner'&&/steven/i.test(u.name||'')?' selected':'')+'>'+esc(u.name||u.email)+'</option>';}).join('');
+        loadLists();
+      });
+    }
+  }
+  $('cl-body').innerHTML='<div class="card"><div class="empty">Loading...</div></div>';
+  api('leads.lists', owner?{email:$('cl-rep').value}:{}).then(function(d){
+    CLISTS=d.lists||[]; CL_EMAIL=d.email;
+    if(!CLISTS.length){ $('cl-body').innerHTML='<div class="card"><div class="empty">'+(owner?'No lists for this seat yet. Assign one from Command Center → Assign a Lead List.':'No custom lists yet. When Ty assigns one, it shows up here.')+'</div></div>'; return; }
+    $('cl-body').innerHTML=CLISTS.map(function(l,li){
+      var called=l.list.filter(function(b){return b.last;}).length;
+      var rows=l.list.map(function(b,bi){
+        var st=b.last?statusTag(b.last.outcome)+'<div class="hint">'+esc(fdate(b.last.ts))+' · '+esc(cpWho(b.last.rep))+'</div>':'<span class="tag t-cb">not called</span>';
+        return '<tr><td><button class="btn-green btn-sm" onclick="clCall('+li+','+bi+')">&#128222; Call</button></td>'+
+          '<td style="min-width:240px"><b>'+esc(b.name)+'</b> <span class="hint">'+esc(b.industry||'')+'</span>'+(b.why?'<div class="hint" style="margin-top:3px;line-height:1.45">'+esc(b.why)+'</div>':'')+'</td>'+
+          '<td style="white-space:nowrap">'+esc(fmtPhone(b.phone))+'<div class="hint">'+esc(b.town||'')+'</div></td>'+
+          '<td>'+esc(b.contact||'')+(b.email?'<div class="hint">'+esc(b.email)+'</div>':'')+'</td><td class="num">'+(b.reviews>-1?b.reviews:'none')+'</td><td>'+st+'</td></tr>';
+      }).join('');
+      return '<div class="card" style="margin-top:14px"><div class="row" style="align-items:center"><div style="flex:1"><b style="font-size:15px">'+esc(l.title)+'</b>'+
+        '<div class="hint">'+l.list.length+' leads'+(l.region?' · '+esc(l.region):'')+' · from '+esc(l.by||'Ty')+' · '+esc(fdate(l.ts))+' · <b>'+called+' of '+l.list.length+' called</b></div></div>'+
+        '<button class="btn-go btn-sm" onclick="clLoad('+li+')">Load uncalled into dialer &rarr;</button>'+
+        (owner?'<button class="btn-ghost btn-sm" onclick="clDelete(\''+esc(l.id)+'\')">Remove list</button>':'')+'</div>'+
+        '<div style="overflow-x:auto;margin-top:10px"><table class="an-t"><thead><tr><th></th><th>Business / why call</th><th>Phone / town</th><th>Contact</th><th class="num">Reviews</th><th>Status</th></tr></thead><tbody>'+rows+'</tbody></table></div></div>';
+    }).join('');
+  }).catch(function(e){ $('cl-body').innerHTML='<div class="card"><div class="empty">'+esc(e.message)+'</div></div>'; });
 }
+function clToLead(b){
+  return { name:b.name, phone:b.phone, town:b.town, addr:b.addr||b.town, website:b.website, rating:b.rating, reviews:b.reviews, pos:b.pos,
+           why:b.why, email:b.email, contact:b.contact, industry:b.industry, industryNoun:(b.industry||'business').split(/[\/(,]/)[0].trim().toLowerCase(),
+           src:'assigned', status:'', note:'' };
+}
+function clSetList(l, items){
+  var open=LIST.filter(function(b){return !b.status;}).length;
+  if(open && !LISTMETA.demo && LISTMETA.city!==l.title && !confirm('Your dialer still has '+open+' uncalled businesses. Swap in "'+l.title+'"? (Nothing is lost: already-called numbers stay in Past Calls.)')) return false;
+  LIST=items; LISTMETA={ city:l.title, industry:'', noun:'', best:'', date:todayKey(), pro:true, region:l.region||'' };
+  save('sdr_list',LIST); save('sdr_listmeta',LISTMETA);
+  renderList();
+  return true;
+}
+function clLoad(li){
+  var l=CLISTS[li]; if(!l) return;
+  var items=l.list.filter(function(b){return !b.last;}).map(clToLead);
+  if(!items.length) return toast('Everyone on this list has been called. Check Past Calls for follow-ups.');
+  if(!clSetList(l, items)) return;
+  gotoView('dialer'); chime();
+  toast(items.length+' leads from "'+l.title+'" loaded. Hit Start Calling.');
+}
+function clCall(li, bi){
+  var l=CLISTS[li]; if(!l) return;
+  var items=l.list.map(clToLead);
+  if(LISTMETA.city!==l.title){ if(!clSetList(l, items)) return; }
+  var idx=LIST.findIndex(function(x){return x.phone===l.list[bi].phone;});
+  if(idx<0){ LIST.push(clToLead(l.list[bi])); idx=LIST.length-1; save('sdr_list',LIST); renderList(); }
+  openCall(idx);
+}
+function clDelete(id){
+  if(!confirm('Remove this list from their Custom Lists? Call history stays.')) return;
+  api('leads.list.delete',{email:$('cl-rep').value,id:id}).then(function(){ toast('List removed.'); loadLists(); }).catch(function(e){ toast(e.message); });
+}
+function loadAssigned(){ gotoView('lists'); }
 function asInit(){
   api('user.list').then(function(d){
     $('as-rep').innerHTML=(d.users||[]).filter(function(u){return Number(u.active);}).map(function(u){return '<option value="'+esc(u.email)+'"'+(u.role!=='owner'?' selected':'')+'>'+esc(u.name||u.email)+'</option>';}).join('');
@@ -3005,7 +3069,7 @@ function assignList(){
   if(!list.length) return toast('No rows with a business name and a phone number. Include the header row.');
   $('as-status').textContent='Assigning '+list.length+'...';
   api('leads.assign',{email:$('as-rep').value,title:$('as-title').value.trim()||'Leads from Ty',region:$('as-region').value,list:list})
-    .then(function(r){ $('as-status').innerHTML='<b style="color:var(--green)">'+r.count+' leads assigned. They will see a banner next time the hub loads.</b>'; $('as-rows').value=''; chime(); })
+    .then(function(r){ $('as-status').innerHTML='<b style="color:var(--green)">'+r.count+' leads assigned. They are in that rep\'s Custom Lists tab now (a refresh shows it).</b>'; $('as-rows').value=''; chime(); })
     .catch(function(e){ $('as-status').textContent=e.message; });
 }
 
