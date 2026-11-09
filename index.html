@@ -655,6 +655,17 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--m
           <div class="kpi"><b id="o-annual">$0</b><span>annualized run rate</span></div>
         </div>
         <div class="card">
+          <div class="row"><b style="font-size:15px">Assign a Lead List</b></div>
+          <div class="hint">Paste rows from a spreadsheet (header row included). Columns it reads: Business, Phone, Town, Address, Type, Contact, Email, Website, Reviews, Rating, Why. The rep sees a "Load into my dialer" banner. Calls to PA numbers show your 814 line, FL numbers show 239.</div>
+          <div class="row" style="margin-top:8px;align-items:flex-end">
+            <div><label>Rep</label><select id="as-rep"></select></div>
+            <div style="flex:1;min-width:180px"><label>List name</label><input id="as-title" placeholder="e.g. New PA businesses (Nov)" style="width:100%"></div>
+            <div><label>Region</label><select id="as-region"><option>Pennsylvania</option><option>Florida</option></select></div>
+          </div>
+          <textarea id="as-rows" rows="4" style="width:100%;margin-top:8px" placeholder="Business&#9;Phone&#9;Town&#9;Type&#9;Contact ..."></textarea>
+          <div class="row" style="margin-top:8px"><div class="hint" id="as-status" style="flex:1"></div><button class="btn-go btn-sm" onclick="assignList()">Assign list</button></div>
+        </div>
+        <div class="card">
           <div class="row"><b style="font-size:15px">Shift Reports</b><div style="flex:1"></div><button class="btn-ghost btn-sm" onclick="loadShiftReports()">Refresh</button></div>
           <div class="hint">Every end-of-shift report also lands in your inbox. Tap a report to read the notes.</div>
           <div id="shiftList" style="margin-top:6px"></div>
@@ -1320,6 +1331,7 @@ function boot(){
     $('login').style.display='none'; $('app').style.display='block';
     applyTerritory(d.territory||'FL');
     initControls();
+    checkAssigned();
     if (BOOT.user.role==='owner'){ $('ownerNav').style.display='block'; }
     renderAll();
     twInit();
@@ -1387,7 +1399,7 @@ function gotoView(v){
   $('side').classList.remove('open');
   if (v==='past') loadHistory();
   if (v==='pipe') loadPipeline();
-  if (v==='owner'){ refresh(); loadTeam(); loadShiftReports(); }
+  if (v==='owner'){ refresh(); loadTeam(); loadShiftReports(); asInit(); }
   if (v==='perf'){ anInit(); anLoad(); }
   if (v==='dash'||v==='comm'||v==='seq'||v==='meet') refresh();
 }
@@ -1618,7 +1630,7 @@ function seqPreview(id, step){
 }
 function seqPreviewLead(){
   var b=curBiz(); if(!b) return;
-  seqPreviewOpen({business:b.name, city:b.town||LISTMETA.city||'', industry:LISTMETA.industry||b.industry||'', website:b.website||''}, 1,
+  seqPreviewOpen({business:b.name, city:b.town||LISTMETA.city||'', industry:b.industry||LISTMETA.industry||'', website:b.website||''}, 1,
     'Exactly what '+(b.name||'this business')+' will get if you start the sequence.');
 }
 function seqPreviewOpen(params, step, note){
@@ -1971,13 +1983,15 @@ function buildScript(b){
   var closeAsk='THE CLOSE: "Most owners just say yes right here on the call. I email you the agreement and the secure checkout while we’re talking, you tap twice, and we start on '+biz+' this week. Want me to send it over right now?"';
   var tyFallback= isOwner()
     ? 'IF THEY HESITATE: "Totally fair. I’m local, right here in '+(TERR.state==='PA'?'central PA':'the area')+'. Let me stop by for 15 minutes, pull up your listing on my laptop, and show you exactly what’s leaking. Is early or late in the week better for you?"'
-    : 'IF THEY HESITATE: "Totally fair. Then let’s do this: 15 minutes with Ty Burket, the owner, and he’ll pull up your listing live and show you exactly what’s leaking. Does tomorrow morning or afternoon treat you better?"';
+    : (LISTMETA.region==='Pennsylvania'
+      ? 'IF THEY HESITATE: "Totally fair. Our owner, Ty Burket, is local, right there in central PA. He can stop by for 15 minutes, pull up your listing, and show you exactly what’s leaking. Is early or late in the week better?"'
+      : 'IF THEY HESITATE: "Totally fair. Then let’s do this: 15 minutes with Ty Burket, the owner, and he’ll pull up your listing live and show you exactly what’s leaking. Does tomorrow morning or afternoon treat you better?"');
   var whoAmI = isOwner() ? 'I own Burket Web Design, right here in '+(TERR.state==='PA'?'central PA':'town') : 'I’m with Burket Web Design';
   if (SCRIPT_MODE==='expert'){
     return '"Hi, is this the owner of '+biz+'? ... Hey, this is '+me+'. '+whoAmI+'. Quick question before anything else: when’s the last time you Googled “'+noun+' '+city+'” and looked at where you actually show up? ...\n\n'+
       '(Let them answer. Most say never, or not lately.)\n\n'+
       'That’s why I’m calling. I did it right before I dialed, and honestly, '+theFact+'.\n\n'+
-      'Here’s what that means in dollars: the top three spots on that map get basically every call in '+city+'. Every day you’re not up there, those jobs go to the three names above you. And your gap is fixable, we close it every day for '+TERR.region+' businesses like yours.\n\n'+
+      'Here’s what that means in dollars: the top three spots on that map get basically every call in '+city+'. Every day you’re not up there, those jobs go to the three names above you. And your gap is fixable, we close it every day for '+(LISTMETA.region||TERR.region)+' businesses like yours.\n\n'+
       'The program is called Local Presence, 500 a month flat: your Google profile managed weekly, reviews growing on autopilot, citations, content, even how you show up when people ask AI tools who to hire.\n\n'+
       closeAsk+'\n\n'+tyFallback;
   }
@@ -1991,7 +2005,7 @@ function buildScript(b){
   return '"Hey, is this the owner of '+biz+'? ...\n\n'+
     'I’ll be straight with you: this is a cold call. You can hang up right now, or you can give me one minute and I’ll tell you exactly why I called you and nobody else. ...\n\n'+
     '(They almost always laugh or say go ahead.)\n\n'+
-    'Appreciate it. I’m '+me+'. '+(isOwner()?'I own Burket Web Design here in '+(TERR.state==='PA'?'central PA':'town')+'. We help local':'I’m a sales representative with Burket Web Design. We help '+TERR.region)+' service businesses win the Google map. Before I dialed, I pulled up '+biz+' on Google, and honestly, '+theFact+'.\n\n'+
+    'Appreciate it. I’m '+me+'. '+(isOwner()?'I own Burket Web Design here in '+(TERR.state==='PA'?'central PA':'town')+'. We help local':'I’m a sales representative with Burket Web Design. We help '+(LISTMETA.region||TERR.region))+' service businesses win the Google map. Before I dialed, I pulled up '+biz+' on Google, and honestly, '+theFact+'.\n\n'+
     'When somebody in '+city+' searches for a '+noun+', the top three spots on the map get basically all the calls. We make sure businesses like yours own one of those spots. Our Local Presence program is 500 a month, flat, and it covers everything: your Google profile, reviews on autopilot, citations, content, even how you show up in AI search.\n\n'+
     closeAsk+'\n\n'+tyFallback;
 }
@@ -2053,7 +2067,7 @@ function startCallTimer(){
 }
 function fillModal(b, progressTxt){
   $('p-name').textContent=b.name||fmtPhone(b.phone);
-  $('p-meta').textContent=[(LISTMETA.industry||b.industry||''), b.addr||b.town||''].filter(Boolean).join(' · ');
+  $('p-meta').textContent=[(b.industry||LISTMETA.industry||''), b.addr||b.town||'', (b.contact?'Ask for: '+b.contact:'')].filter(Boolean).join(' · ');
   var gs=[];
   if (b.src==='google'||b.pos){
     gs.push('<div class="gstat"><b>#'+(b.pos||'?')+'</b>Google position</div>');
@@ -2185,7 +2199,7 @@ function logOutcome(out){
   var secs=CALLSTART?Math.floor((Date.now()-CALLSTART)/1000):0;
   var payload={ phone:b.phone, name:b.name, outcome:out, note:$('p-note').value.trim(), secs:secs,
     obj:(out==='not_interested'||out==='callback')?(OBJ_PICK||''):'', flag:$('p-flag').checked,
-    fup:(out==='dnc'?'':($('p-fup').value||null)), city:b.town||LISTMETA.city||'', industry:LISTMETA.industry||b.industry||'',
+    fup:(out==='dnc'?'':($('p-fup').value||null)), city:b.town||LISTMETA.city||'', industry:b.industry||LISTMETA.industry||'',
     website:b.website||'', email:$('cl-email').value.trim()||$('seq-email').value.trim()||b.email||'', rating:b.rating||0,
     reviews:b.reviews==null?-1:b.reviews, pos:b.pos||0, addr:b.addr||'', maps:b.maps||'', src:b.src||'' };
   var wasCur=CUR;
@@ -2274,7 +2288,7 @@ function startSeq(){
   var to=$('seq-email').value.trim();
   if (!to) return toast('Need their email first. Scrape the site or paste one.');
   $('seqBtn').disabled=true;
-  api('seq.start',{phone:b.phone,business:b.name,toEmail:to,industry:LISTMETA.industry||b.industry||'',city:b.town||LISTMETA.city||'',website:b.website||''})
+  api('seq.start',{phone:b.phone,business:b.name,toEmail:to,industry:b.industry||LISTMETA.industry||'',city:b.town||LISTMETA.city||'',website:b.website||''})
     .then(function(){
       chime();
       if (CUR!=null){ LIST[CUR].seqStarted=true; save('sdr_list',LIST); }
@@ -2389,7 +2403,7 @@ function twDial(phone){
   if(TW.conn)return toast('Finish the current call first.');
   TW.to=d2;
   $('cb-num').textContent=fmtPhone(d2);
-  $('cb-status').textContent='Connecting...';
+  $('cb-status').textContent='Connecting from '+fmtPhone(localCidFor(d2))+'...';
   $('cb-timer').textContent='00:00';
   $('cb-inc').style.display='none';$('cb-actions').style.display='flex';
   padReset(); padToggle(load('sdr_pad', false));
@@ -2924,6 +2938,77 @@ function csExport(){
   }).catch(function(e){ toast(e.message); });
 }
 
+
+/* ================= ASSIGNED LEAD LISTS ================= */
+var AREA_ST={};
+['814','582','412','724','878','717','223','570','272','610','484','215','267','445','835'].forEach(function(a){AREA_ST[a]='PA';});
+['239','305','786','645','321','352','386','407','689','561','727','754','772','813','850','863','904','941','954','448','656','324'].forEach(function(a){AREA_ST[a]='FL';});
+function localCidFor(to){
+  var d=String(to||'').replace(/\D/g,'').replace(/^1(?=\d{10}$)/,''), st=AREA_ST[d.slice(0,3)];
+  var nums=(BOOT&&BOOT.twilio&&BOOT.twilio.numbers)||[];
+  var m=st&&nums.find(function(n){ var x=String(n).replace(/\D/g,'').replace(/^1/,''); return AREA_ST[x.slice(0,3)]===st; });
+  return m || (BOOT&&BOOT.twilio&&BOOT.twilio.callerId) || '';
+}
+var ASSIGNED=null;
+function checkAssigned(){
+  api('leads.assigned').then(function(a){
+    ASSIGNED=a;
+    var el=$('dueTodayBanner');
+    var old=document.getElementById('assignBanner'); if(old) old.remove();
+    if(!a||!a.list||!a.list.length) return;
+    var div=document.createElement('div'); div.id='assignBanner';
+    div.className='card'; div.style.cssText='margin:0 0 14px;border:2px solid var(--gold);background:#fffbea';
+    div.innerHTML='<div class="row" style="align-items:center"><div style="flex:1"><b>&#128203; '+esc(a.by||'Ty')+' assigned you a list: '+esc(a.title)+'</b><div class="hint">'+a.list.length+' leads'+(a.region?' in '+esc(a.region):'')+'. Calls to these numbers automatically show the local caller ID.</div></div>'+
+      '<button class="btn-go btn-sm" onclick="loadAssigned()">Load into my dialer</button></div>';
+    el.parentNode.insertBefore(div, el);
+    var dv=document.getElementById('v-dialer'); if(dv){ var c2=div.cloneNode(true); c2.id='assignBanner2'; var o2=document.getElementById('assignBanner2'); if(o2) o2.remove(); dv.insertBefore(c2, dv.firstChild); }
+  }).catch(function(){});
+}
+function loadAssigned(){
+  var a=ASSIGNED; if(!a) return;
+  var open=LIST.filter(function(b){return !b.status;}).length;
+  if(open && !LISTMETA.demo && !confirm('Your current list still has '+open+' uncalled businesses. Replace it with "'+a.title+'"?')) return;
+  LIST=a.list.map(function(b){
+    return { name:b.name, phone:b.phone, town:b.town, addr:b.addr||b.town, website:b.website, rating:b.rating, reviews:b.reviews, pos:b.pos,
+             why:b.why, email:b.email, contact:b.contact, industry:b.industry, industryNoun:(b.industry||'business').split(/[\/(,]/)[0].trim().toLowerCase(),
+             src:'assigned', status:'', note:'' };
+  });
+  LISTMETA={ city:a.title, industry:'', noun:'', best:'', date:todayKey(), pro:true, region:a.region||'' };
+  save('sdr_list',LIST); save('sdr_listmeta',LISTMETA);
+  api('leads.assigned.clear').catch(function(){});
+  ['assignBanner','assignBanner2'].forEach(function(id){ var x=document.getElementById(id); if(x) x.remove(); });
+  ASSIGNED=null;
+  gotoView('dialer'); renderList(); chime();
+  toast(LIST.length+' assigned leads loaded. Hit Start Calling.');
+}
+function asInit(){
+  api('user.list').then(function(d){
+    $('as-rep').innerHTML=(d.users||[]).filter(function(u){return Number(u.active);}).map(function(u){return '<option value="'+esc(u.email)+'"'+(u.role!=='owner'?' selected':'')+'>'+esc(u.name||u.email)+'</option>';}).join('');
+  }).catch(function(){});
+}
+function parseRows(txt){
+  var lines=String(txt||'').split(/\r?\n/).filter(function(l){return l.trim();});
+  if(lines.length<2) return [];
+  var sep=lines[0].indexOf('\t')>-1?'\t':',';
+  var split=function(l){ if(sep==='\t') return l.split('\t'); var out=[],cur='',q=false; for(var i=0;i<l.length;i++){var ch=l[i]; if(ch==='"'){q=!q;continue;} if(ch===','&&!q){out.push(cur);cur='';continue;} cur+=ch;} out.push(cur); return out; };
+  var h=split(lines[0]).map(function(x){return x.trim().toLowerCase();});
+  var col=function(names){ for(var i=0;i<h.length;i++){ for(var k=0;k<names.length;k++){ if(h[i].indexOf(names[k])===0) return i; } } return -1; };
+  var ix={name:col(['business','name']),phone:col(['phone']),town:col(['town','city']),addr:col(['address']),industry:col(['type','industry']),
+          contact:col(['who','contact','owner']),email:col(['email']),website:col(['website','web']),reviews:col(['google reviews','reviews']),rating:col(['google rating','rating']),why:col(['why','note'])};
+  return lines.slice(1).map(function(l){ var c=split(l), g=function(k){return ix[k]>-1?String(c[ix[k]]||'').trim():'';};
+    return {name:g('name'),phone:g('phone'),town:g('town'),addr:g('addr'),industry:g('industry'),contact:g('contact'),email:g('email'),website:g('website'),
+            reviews:(/^\d+/.test(g('reviews'))?parseInt(g('reviews'),10):''),rating:parseFloat(g('rating'))||0,why:g('why')}; })
+    .filter(function(b){return b.name&&String(b.phone).replace(/\D/g,'').length>=10;});
+}
+function assignList(){
+  var list=parseRows($('as-rows').value);
+  if(!list.length) return toast('No rows with a business name and a phone number. Include the header row.');
+  $('as-status').textContent='Assigning '+list.length+'...';
+  api('leads.assign',{email:$('as-rep').value,title:$('as-title').value.trim()||'Leads from Ty',region:$('as-region').value,list:list})
+    .then(function(r){ $('as-status').innerHTML='<b style="color:var(--green)">'+r.count+' leads assigned. They will see a banner next time the hub loads.</b>'; $('as-rows').value=''; chime(); })
+    .catch(function(e){ $('as-status').textContent=e.message; });
+}
+
 /* ================= MANUAL DIAL (extra numbers on a lead) ================= */
 var MD_ALTS=[], MD_FOR='';
 function mdClean(v){ var d=String(v||'').replace(/\D/g,''); if(d.length===11&&d[0]==='1') d=d.slice(1); return d.length===10?d:''; }
@@ -2967,7 +3052,7 @@ function mdSave(quiet){
     if(!quiet) toast('Saved to this lead (demo).'); return;
   }
   api('company.altphone',{phone:b.phone,alt:n,label:label,name:b.name,website:b.website,city:b.town||LISTMETA.city||'',
-      industry:LISTMETA.industry||b.industry||'',rating:b.rating,reviews:b.reviews,pos:b.pos,addr:b.addr,maps:b.maps})
+      industry:b.industry||LISTMETA.industry||'',rating:b.rating,reviews:b.reviews,pos:b.pos,addr:b.addr,maps:b.maps})
     .then(function(a){ MD_ALTS=a||[]; mdRender(); $('md-num').value=''; $('md-lbl').value='';
       toast((quiet?'Dialing, and ':'')+'saved '+fmtPhone(n)+' to '+(b.name||'this lead')+'. If they call back from it, their record pops up.'); })
     .catch(function(e){ toast(e.message); });
