@@ -327,6 +327,19 @@ function callerFor(u) {
   if (own && nums.indexOf(own) > -1) return own;
   return u && u.role === 'owner' ? ownerFrom() : twE164(process.env.TWILIO_FROM);
 }
+/* Local presence: when a seat dials into a state where we own a number, show that state's number. */
+const AREA_STATE = {};
+['814','582','412','724','878','717','223','570','272','610','484','215','267','445','835'].forEach(a => AREA_STATE[a] = 'PA');
+['239','305','786','645','321','352','386','407','689','561','727','754','772','813','850','863','904','941','954','448','656','324'].forEach(a => AREA_STATE[a] = 'FL');
+function stateOfNumber(n) { const d = String(n || '').replace(/\D/g, '').replace(/^1(?=\d{10}$)/, ''); return AREA_STATE[d.slice(0, 3)] || ''; }
+function localCallerFor(u, to) {
+  const st = stateOfNumber(to);
+  if (st) {
+    const match = twilioNumbers().find(n => stateOfNumber(n) === st);
+    if (match) return match;
+  }
+  return callerFor(u);
+}
 function twilioNumbers() {
   const list = [process.env.TWILIO_FROM, process.env.TWILIO_FROM2, ownerFrom()].filter(Boolean).map(twE164);
   return list.filter((x, i) => list.indexOf(x) === i);
@@ -502,4 +515,5 @@ function seqTemplates(s, repName) {
 
 module.exports = { hashPass, docusealTemplate, LP_FEATURES, LP750_EXTRA, sql, ensureSchema, userFromToken, login, sendMail, placesSearch, scrapeEmails, isChain, geocodeCity, placesBiased, inStormZone, twE164, twilioReady, twilioNumbers, twilioToken, upsertCompany, STAGE_RANK, docusealSend, waveLink, kpiTarget, kpiBonus,
                    PRODUCTS, seqTemplates, auditUrl, normPhone, uid,
-                   sendProspectMail, prospectReplyTo, prospectBcc, SEQ_GAPS, territoryFor, callerFor, ownerFrom };
+                   sendProspectMail, prospectReplyTo, prospectBcc, SEQ_GAPS, territoryFor, callerFor, ownerFrom,
+                   localCallerFor, stateOfNumber };
