@@ -727,6 +727,34 @@ module.exports = async function handler(req, res) {
                   meetStatus, deals, contracts, overdue, reports, wins, kpi: { target: C.kpiTarget(), bonus: C.kpiBonus() } });
     }
 
+    /* ---------------- ASSIGNED LEAD LISTS (owner hands a list to a rep) ---------------- */
+    if (a === 'leads.assign') {
+      if (!OWNER) return err('Owner only.');
+      const em = String(P.email || '').toLowerCase().trim();
+      const seat = (await sql`SELECT email FROM users WHERE email=${em}`)[0];
+      if (!seat) return err('No seat with that email.');
+      const list = (Array.isArray(P.list) ? P.list : []).map(b => ({
+        name: String(b.name || '').slice(0, 120), phone: C.normPhone(b.phone), town: String(b.town || '').slice(0, 60),
+        addr: String(b.addr || '').slice(0, 160), industry: String(b.industry || '').slice(0, 80), contact: String(b.contact || '').slice(0, 80),
+        email: String(b.email || '').slice(0, 120), website: String(b.website || '').slice(0, 200), why: String(b.why || '').slice(0, 300),
+        reviews: b.reviews == null || b.reviews === '' ? -1 : Number(b.reviews) || 0, rating: Number(b.rating) || 0, pos: Number(b.pos) || 0
+      })).filter(b => b.phone);
+      if (!list.length) return err('No leads with a valid phone number.');
+      const payload = { title: String(P.title || 'Leads from Ty').slice(0, 80), region: String(P.region || '').slice(0, 30), by: user.name, ts: new Date().toISOString(), list };
+      await sql`INSERT INTO kv (k, v) VALUES (${'assigned_' + em}, ${JSON.stringify(payload)}) ON CONFLICT (k) DO UPDATE SET v = EXCLUDED.v`;
+      return ok({ count: list.length });
+    }
+    if (a === 'leads.assigned') {
+      const em = OWNER && P.email ? String(P.email).toLowerCase() : user.email;
+      const row = (await sql`SELECT v FROM kv WHERE k=${'assigned_' + em}`)[0];
+      return ok(row ? JSON.parse(row.v) : null);
+    }
+    if (a === 'leads.assigned.clear') {
+      const em = OWNER && P.email ? String(P.email).toLowerCase() : user.email;
+      await sql`DELETE FROM kv WHERE k=${'assigned_' + em}`;
+      return ok(true);
+    }
+
     /* ---------------- EXTRA NUMBERS ON A LEAD ---------------- */
     if (a === 'company.alts') {
       const phone = C.normPhone(P.phone);

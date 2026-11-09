@@ -68,7 +68,13 @@ module.exports = async function handler(req, res) {
       const all = await sql`SELECT email, role, COALESCE(territory,'') AS territory, COALESCE(caller_id,'') AS caller_id FROM users WHERE COALESCE(active,1)=1`;
       const dialed = C.twE164(P.To || P.Called || '');
       const onLine = all.filter(u => C.callerFor(u) === dialed);
-      const ringSet = onLine.length && onLine.every(u => u.role === 'owner') ? onLine : all;
+      let ringSet = onLine.length && onLine.every(u => u.role === 'owner') ? onLine : all;
+      /* a prospect calling back reaches the rep who called them, even on the owner's line */
+      try {
+        const caller = String(P.From || '').replace(/\D/g, '').replace(/^1(?=\d{10}$)/, '');
+        const last = (await sql`SELECT rep FROM calls WHERE phone=${caller} ORDER BY ts DESC LIMIT 1`)[0];
+        if (last) { const r = all.find(u => u.email === last.rep); if (r && ringSet.indexOf(r) === -1) ringSet = ringSet.concat([r]); }
+      } catch (e) {}
       const ids = ringSet.map(u => String(u.email).replace(/[^a-zA-Z0-9_]/g, '_'));
       if (!ids.length) return xml(res, '<Response><Say>Thanks for calling Burket Web Design. Please try us again shortly.</Say></Response>');
       const action = '/api/voice?k=' + encodeURIComponent(key) + '&cb=1';
@@ -85,7 +91,7 @@ module.exports = async function handler(req, res) {
       await C.ensureSchema();
       const seats = await sql`SELECT email, role, COALESCE(territory,'') AS territory, COALESCE(caller_id,'') AS caller_id FROM users`;
       const me = seats.find(u => String(u.email).replace(/[^a-zA-Z0-9_]/g, '_') === ident);
-      if (me) from = C.callerFor(me);
+      if (me) from = C.localCallerFor(me, P.To);
     } catch (e) { console.log('[voice] seat lookup failed, using TWILIO_FROM', e && e.message); }
     let to = String(P.To || '').replace(/[^\d+]/g, '');
     if (to.length === 10) to = '+1' + to;
