@@ -51,6 +51,7 @@ async function ensureSchema() {
     vm_url TEXT DEFAULT '', vm_secs INT DEFAULT 0, done_by TEXT DEFAULT '', done_ts TIMESTAMPTZ, ts TIMESTAMPTZ DEFAULT now()
   )`;
   await sql`CREATE INDEX IF NOT EXISTS idx_inbound_ts ON inbound (ts)`;
+  await sql`CREATE TABLE IF NOT EXISTS lp_check ( phone TEXT PRIMARY KEY, platforms TEXT DEFAULT '', none BOOLEAN DEFAULT false, rep TEXT DEFAULT '', ts TIMESTAMPTZ DEFAULT now() )`;
   await sql`ALTER TABLE companies ADD COLUMN IF NOT EXISTS alt_phones TEXT DEFAULT ''`;
   await sql`ALTER TABLE calls ADD COLUMN IF NOT EXISTS fup_rep TEXT DEFAULT ''`;
   await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS territory TEXT DEFAULT ''`;

@@ -526,6 +526,7 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--m
             <label style="display:flex;align-items:center;gap:4px;font-size:12px;margin:0"><input type="checkbox" id="pipeStale" onchange="pipeRender()" style="width:auto"> Stale only</label>
             <div style="flex:1"></div><span class="hint" id="pipeTotals"></span>
             <button class="btn-ghost btn-sm" id="pipeCsv" style="display:none" onclick="pipeCsv()">&#11015; CSV</button></div>
+          <div class="hint" id="pipeLoss" style="margin-top:6px"></div>
           <div id="board" style="margin-top:12px"></div>
         </div>
       </div>
@@ -759,6 +760,11 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--m
           </div>
           <p class="hint">They get a branded email with a one-time link, create their own password, and land on their dashboard ready to dial. No env vars, no deploys.</p>
           <div id="teamList" style="margin-top:10px"></div>
+        </div>
+        <div class="card">
+          <div class="row"><b style="font-size:15px">&#129309; Clients &amp; MRR</b><div style="flex:1"></div><span class="hint" id="clientsSum"></span></div>
+          <div class="hint">Every paying monthly client. Mark one churned when they cancel so MRR and recurring commissions stay accurate. A referral nudge shows once they have been with us 30 days.</div>
+          <div id="clientsList" style="margin-top:8px"></div>
         </div>
         <div class="card">
           <div class="row"><b style="font-size:15px">Deal Approvals</b></div>
@@ -1848,8 +1854,28 @@ function renderComm(){
 }
 
 /* ================= OWNER ================= */
+function clientsLoad(){
+  if(!isOwner()) return;
+  api('clients.list').then(function(rows){
+    var reps={}; ((BOOT.team&&BOOT.team.reps)||[]).forEach(function(r){reps[r.email]=r.name||r.email;});
+    var tot=rows.reduce(function(a,r){return a+Number(r.monthly||0);},0);
+    $('clientsSum').textContent=rows.length+' client'+(rows.length===1?'':'s')+' · '+money(tot)+'/mo';
+    $('clientsList').innerHTML=rows.length?'<div style="overflow-x:auto"><table><thead><tr><th>Client</th><th>Monthly</th><th class="hidem">Rep</th><th>With us</th><th></th></tr></thead><tbody>'+rows.map(function(r){
+      var days=Math.floor((Date.now()-new Date(r.start).getTime())/864e5);
+      return '<tr><td><b'+(r.phone?' style="cursor:pointer;color:var(--blue)" onclick="openCompany(\''+r.phone+'\')"':'')+'>'+esc(r.business)+'</b><div class="hint">'+esc(r.product||'')+'</div></td>'+
+        '<td>'+money(r.monthly)+'</td><td class="hidem">'+esc(reps[r.rep]||r.rep)+'</td>'+
+        '<td>'+(days<30?days+' days':Math.floor(days/30)+' mo')+(days>=30&&days<120?' <span class="tag t-gold" title="Happy clients refer. Ask who else they know who needs more calls.">ask for referral</span>':'')+'</td>'+
+        '<td><button class="btn-ghost btn-sm" onclick="clientChurn('+r.id+',\''+esc(String(r.business).replace(/'/g,''))+'\')">Mark churned</button></td></tr>';
+    }).join('')+'</tbody></table></div>':'<div class="empty">No active monthly clients on the books.</div>';
+  }).catch(function(){});
+}
+function clientChurn(id,name){
+  if(!confirm('Mark '+name+' as churned? They come off MRR and recurring commissions stop from here on.')) return;
+  api('deal.cancel',{id:id}).then(function(){ toast(name+' marked churned.'); refresh(); clientsLoad(); }).catch(function(e){toast(e.message);});
+}
 function renderOwner(){
   var t=BOOT.team; if(!t)return;
+  clientsLoad();
   $('o-mrr').textContent=money(t.mrr||0)+'/mo';
   $('o-onetime').textContent=money(t.onetime||0);
   $('o-annual').textContent=money(Number(t.mrr||0)*12+Number(t.onetime||0));
@@ -1996,11 +2022,16 @@ function pipeRender(){
           var dd=pipeDays(cm);
           return '<div class="pcard stage-'+s+'" draggable="true" ondragstart="pipeDrag(event,\''+cm.phone+'\',\''+s+'\')" ondragend="this.classList.remove(\'dragging\')" onclick="openCompany(\''+cm.phone+'\')"><b>'+esc(cm.name||fmtPhone(cm.phone))+'</b>'+
             '<div class="sub2">'+esc((cm.city||'')+(cm.industry?' · '+cm.industry:''))+'</div>'+
-            '<div class="sub2" style="margin-top:3px">'+(pipeIsStale(cm)?'<span class="tag" style="background:#fde8e8;color:#b42318">stale '+dd+'d</span>':(s!=='won'&&s!=='lost'?dd+'d since last touch':''))+'</div></div>';
+            '<div class="sub2" style="margin-top:3px">'+(pipeIsStale(cm)?'<span class="tag" style="background:#fde8e8;color:#b42318">stale '+dd+'d</span>':(s!=='won'&&s!=='lost'?dd+'d since last touch':''))+
+            (s==='lost'&&cm.lost_reason?'<div style="font-style:italic">'+esc(cm.lost_reason)+'</div>':'')+
+            (s==='lost'&&dd>=90?'<span class="tag t-gold">&#8635; win-back due</span>':'')+'</div></div>';
         }).join('')+'</div>';
     }).join('');
     var won=by.won.length, act=rows.length-won-by.lost.length, stale=rows.filter(pipeIsStale).length;
     $('pipeTotals').textContent = act+' active · '+won+' won · '+by.lost.length+' lost'+(stale?' · '+stale+' stale':'');
+    var rs={}; by.lost.forEach(function(c){ var k=String(c.lost_reason||'').trim().toLowerCase(); if(k) rs[k]=(rs[k]||0)+1; });
+    var top=Object.keys(rs).sort(function(a,b){return rs[b]-rs[a];}).slice(0,4);
+    $('pipeLoss').innerHTML=top.length?'<b>Why we lose:</b> '+top.map(function(k){return esc(k)+' ('+rs[k]+')';}).join(' · '):'';
 }
 var PIPE_DRAG=null;
 function pipeDrag(e, phone, from){ PIPE_DRAG={phone:phone,from:from}; e.dataTransfer.effectAllowed='move'; try{e.dataTransfer.setData('text/plain',phone);}catch(x){} e.target.classList.add('dragging'); }
@@ -2012,7 +2043,8 @@ function pipeDrop(e, col){
   var reason='';
   if(to==='lost'){ reason=prompt('Why did we lose them? (one line, it feeds the report)'); if(reason===null) return; }
   var card=document.querySelector('.pcard.dragging'); if(card){ card.classList.remove('dragging'); col.appendChild(card); }
-  api('company.stage',{phone:d.phone,stage:to,reason:reason||''}).then(function(){ toast('Moved to '+STAGE_LBL[to]+'.'); loadPipeline(); })
+  var nm=((PIPE||[]).find(function(c){return c.phone===d.phone;})||{}).name;
+  api('company.stage',{phone:d.phone,stage:to,reason:reason||''}).then(function(r){ toast('Moved to '+STAGE_LBL[to]+'.'); loadPipeline(); churnCheck(r, nm); })
     .catch(function(err){ toast(err.message); loadPipeline(); });
 }
 function openCompany(phone){
@@ -2045,11 +2077,18 @@ function openCompany(phone){
     $('compmodal').classList.add('show');
   }).catch(function(e){toast(e.message);});
 }
+function churnCheck(r, name){
+  var ds=(r&&r.activeDeals)||[]; if(!ds.length||!isOwner()) return;
+  var m=ds.reduce(function(a,d){return a+Number(d.monthly||0);},0);
+  if(confirm((name||'This business')+' is still on the books as a paying client ('+money(m)+'/mo).\n\nMark them churned? That takes them off MRR and stops recurring commissions from here on. Commissions already earned stay.')){
+    Promise.all(ds.map(function(d){return api('deal.cancel',{id:d.id});})).then(function(){ toast('Marked churned. MRR updated.'); refresh(); clientsLoad(); });
+  }
+}
 function cpStage(){
   var st=$('cp-stage').value;
   var reason='';
   if (st==='lost'){ reason=prompt('Why did we lose them? (one line, it feeds the report)')||''; }
-  api('company.stage',{phone:CURCOMP.phone,stage:st,reason:reason}).then(function(){ toast('Moved to '+STAGE_LBL[st]+'.'); loadPipeline(); }).catch(function(e){toast(e.message);});
+  api('company.stage',{phone:CURCOMP.phone,stage:st,reason:reason}).then(function(r){ toast('Moved to '+STAGE_LBL[st]+'.'); loadPipeline(); churnCheck(r, CURCOMP.name); }).catch(function(e){toast(e.message);});
 }
 function cpDelete(){
   if (!confirm('Delete '+(CURCOMP.name||fmtPhone(CURCOMP.phone))+' from the pipeline? The company card goes, call history stays.')) return;
@@ -3295,6 +3334,12 @@ function OA_LIB(b){
      ['IF THEY ENGAGE','"Perfect. That’s the kind of customer we put you in front of. The challenge I hear with '+prog+' is the same lead goes to five companies..." (Back to the elevator pitch.)'],
      ['SECOND SHOT','"That’s fair. It’s $500 to $1,250 a month, month to month. How does that compare with what you spend on '+prog+' each month? And roughly how much profit does a typical '+job+' bring in? I can show you what customers see on Google and where your competitors show up. Are you near a computer now, or is later today better?"']],
     n:'Always say the real number when asked. Before the walkthrough this is a normal question, not a price objection, so never make them chase it.'},
+   {id:'cheaper', m:'close', l:'"Someone quoted me cheaper" / "I found a cheaper company"', s:[
+     ['FIRST SHOT','"Totally fair to shop around. Can I ask what they are including for that price? A lot of cheaper quotes are a one-time setup, or posting and hoping, with nobody watching your rankings or your calls after month one."'],
+     ['ISOLATE','"If the price were the same, which one would you pick, and why?" (If they pick us, the gap is just budget. If they pick them, find out what they value.)'],
+     ['SECOND SHOT','"Here is how I would look at it: one '+job+' covers us for months. We are month to month, so we have to earn it every 30 days. If you want, start with the $500 plan and judge us on the calls you get, not on what we say."'],
+     ['LAST TRY','"If you go with them, that is okay. Do me one favor: in 60 days look at how many calls came from Google. If it is not where you want it, call me and we will pick it up from there." (Set a 60-day follow-up.)']],
+    n:'Never trash the competitor and never discount on the spot. Ask Ty before offering anything off. Log the reason as "price / competitor" so the report tracks it.'},
    {id:'what', m:'cold', l:'"Just tell me what you do"', s:[
      ['FIRST SHOT','"Of course. We help local '+seg+' show up on Google so people searching for a '+String(LISTMETA.noun||'contractor')+' in '+city+' find and call you directly, instead of relying on shared-lead platforms. Are you happy with the quality of leads from '+prog+', or do you run into price shoppers?"'],
      ['IF THEY ENGAGE','Listen, then connect it to the pitch: "Out of every 10 leads you buy, how many turn into a job?"'],
@@ -3382,7 +3427,7 @@ function lChecks(b,i){
     var on=(b.onP||[]).indexOf(p)>-1;
     var q='"'+String(b.name||'').replace(/"/g,'')+'" site:'+LP3S[p];
     return '<span class="lchk'+(on?' on':'')+'"><a target="_blank" href="https://www.google.com/search?q='+encodeURIComponent(q)+'">'+p+'</a><button title="Mark as on '+p+'" onclick="lMark('+i+',\''+p+'\')">'+(on?'&#10003;':'+')+'</button></span>';
-  }).join(' ');
+  }).join(' ')+(b.verified?'':' <button class="btn-ghost btn-sm" style="padding:2px 8px;font-size:11px" title="Not on any of them. Remove and never show again." onclick="lNone('+i+')">&#10005; None</button>');
 }
 function lMark(i,p){
   var b=LIST[i]; if(!b) return;
@@ -3394,7 +3439,14 @@ function lMark(i,p){
   var keep=LIST[i];
   LIST.sort(function(a,c){ return (c.verified?2:c.badge?1:0)-(a.verified?2:a.badge?1:0); });
   save('sdr_list',LIST); renderList(); lRender();
-  if(keep.verified) toast(keep.name+' marked on '+keep.onP.join(' + ')+'.');
+  api('listing.mark',{phone:keep.phone,platforms:keep.onP}).catch(function(){});
+  if(keep.verified) toast(keep.name+' marked on '+keep.onP.join(' + ')+'. Saved for the whole team.');
+}
+function lNone(i){
+  var b=LIST[i]; if(!b) return;
+  api('listing.mark',{phone:b.phone,platforms:[],none:true}).catch(function(){});
+  LIST.splice(i,1); save('sdr_list',LIST); renderList(); lRender();
+  toast(b.name+' removed. It will not come back in Listing Calls.');
 }
 function lStart(){
   for (var i=0;i<LIST.length;i++){ if(!LIST[i].status && LIST[i].verified) return openCall(i); }

@@ -186,6 +186,15 @@ module.exports = async function handler(req, res) {
     }
 
     /* ---------------- LISTING CALLS: businesses buying shared leads ---------------- */
+    if (a === 'listing.mark') {
+      const phone = C.normPhone(P.phone);
+      if (!phone) return err('Bad phone.');
+      const plats = (Array.isArray(P.platforms) ? P.platforms : []).map(String).filter(x => ['Thumbtack', 'Angi', 'HomeAdvisor'].includes(x)).join(',');
+      const none = !!P.none;
+      await sql`INSERT INTO lp_check (phone, platforms, none, rep, ts) VALUES (${phone}, ${plats}, ${none}, ${user.email}, now())
+        ON CONFLICT (phone) DO UPDATE SET platforms=${plats}, none=${none}, rep=${user.email}, ts=now()`;
+      return ok(true);
+    }
     if (a === 'listing.verify') {
       // Leads Ty or Steven confirmed by hand on the platform itself. Each line: a profile URL, or "Business name | town".
       const platform = String(P.platform || 'Thumbtack');
@@ -257,8 +266,11 @@ module.exports = async function handler(req, res) {
       if (phones.length) {
         (await sql`SELECT DISTINCT phone FROM calls WHERE phone = ANY(${phones})`).forEach(r => known[r.phone] = true);
         (await sql`SELECT phone FROM dnc WHERE phone = ANY(${phones})`).forEach(r => known[r.phone] = true);
+        (await sql`SELECT phone FROM lp_check WHERE none AND phone = ANY(${phones})`).forEach(r => known[r.phone] = true);
       }
       const fresh = cands.filter(b => !known[b.phone]).slice(0, 45);
+      const marks = {};
+      if (fresh.length) (await sql`SELECT phone, platforms FROM lp_check WHERE NOT none AND platforms <> '' AND phone = ANY(${fresh.map(b => b.phone)})`).forEach(r => marks[r.phone] = r.platforms.split(','));
       const out = [];
       for (let i = 0; i < fresh.length; i += 15) {
         const batch = fresh.slice(i, i + 15);
@@ -272,6 +284,7 @@ module.exports = async function handler(req, res) {
                      evidence: has ? 'Badge on their site: ' + (d.evidence || d.platforms.join(', ')) : '' });
         });
       }
+      out.forEach(b => { const m = marks[b.phone]; if (m) { b.onP = m; b.verified = true; b.platform = m[0]; b.platforms = m; b.evidence = 'Profile found on ' + m.join(' + '); } });
       return ok({ list: await C.cleanLeads(sql, out, vertical), scanned: fresh.length, skipped: cands.length - fresh.length, notes });
     }
 
@@ -441,6 +454,13 @@ module.exports = async function handler(req, res) {
       await sql`UPDATE deals SET status='cancelled', cancelled_ts=now() WHERE id=${Number(P.id)}`;
       return ok(true);
     }
+    if (a === 'clients.list') {
+      if (!OWNER) return err('Owner only.');
+      const rows = await sql`SELECT d.id, d.rep, d.business, d.product, d.monthly, d.kind, COALESCE(d.reviewed_ts, d.ts) AS start, c.phone
+        FROM deals d LEFT JOIN companies c ON lower(c.name)=lower(d.business)
+        WHERE d.status='approved' AND d.kind='recurring' AND d.cancelled_ts IS NULL ORDER BY COALESCE(d.reviewed_ts, d.ts) DESC`;
+      return ok(rows);
+    }
     if (a === 'ledger.payAll') {
       if (!OWNER) return err('Owner only.');
       await sql`UPDATE ledger SET status='paid', paid_ts=now() WHERE status='earned' AND rep=${P.rep || ''}`;
@@ -596,7 +616,13 @@ module.exports = async function handler(req, res) {
       const allowed = ['new', 'contacted', 'engaged', 'meeting', 'proposal', 'contract', 'won', 'lost'];
       if (allowed.indexOf(P.stage) === -1) return err('Bad stage.');
       await sql`UPDATE companies SET stage=${P.stage}, lost_reason=${P.stage === 'lost' ? (P.reason || '') : ''}, updated=now() WHERE phone=${phone}`;
-      return ok(true);
+      let activeDeals = [];
+      if (P.stage === 'lost') {
+        await sql`INSERT INTO company_notes (phone, author, note) VALUES (${phone}, ${user.email}, ${'Moved to Lost' + (P.reason ? ': ' + P.reason : '')})`;
+        const comp = (await sql`SELECT name FROM companies WHERE phone=${phone}`)[0];
+        if (comp && comp.name) activeDeals = await sql`SELECT id, monthly, rep FROM deals WHERE lower(business)=lower(${comp.name}) AND status='approved' AND cancelled_ts IS NULL`;
+      }
+      return ok({ activeDeals });
     }
     if (a === 'company.credit') {
       if (!OWNER) return err('Owner only.');
