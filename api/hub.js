@@ -593,7 +593,8 @@ module.exports = async function handler(req, res) {
       if (a === 'crm.billing.run') {
         const rows = await sql`SELECT c.id, c.name, c.mrr, c.email,
             (SELECT count(*)::int FROM invoices i WHERE i.client_id=c.id AND date_trunc('month', i.issued) = date_trunc('month', ${D(P.month) || new Date().toISOString().slice(0, 10)}::date)) AS logged,
-            (SELECT COALESCE(sum(r.amount),0)::numeric FROM ref_partners p JOIN ref_credits r ON r.partner_id=p.id WHERE lower(p.company)=lower(c.name)) AS credit
+            (SELECT COALESCE(sum(r.amount),0)::numeric FROM ref_partners p JOIN ref_credits r ON r.partner_id=p.id WHERE lower(p.company)=lower(c.name)) AS credit,
+            (SELECT to_char(max(i.issued),'YYYY-MM-DD') FROM invoices i WHERE i.client_id=c.id AND i.recurring_id <> '' AND i.issued > current_date - 45) AS rec_last
           FROM clients c WHERE c.status IN ('active','onboarding') AND c.mrr > 0 ORDER BY c.name`;
         return ok(rows);
       }
