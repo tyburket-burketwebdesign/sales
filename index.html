@@ -717,13 +717,14 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--m
         </div>
         <div class="card">
           <b style="font-size:15px">&#128197; This month's billing run</b>
-          <div class="hint">Create each invoice in Wave as usual, then click Log Wave invoice so the CRM tracks it. Referral credits are taken off automatically; add a negative "Referral credit" line in Wave for the same amount.</div>
+          <div class="hint">Create each invoice in Wave as usual. The Wave sync pulls it in every morning (or hit Sync now); Log Wave invoice is only needed if you want it here right away. Referral credits are taken off automatically; add a negative "Referral credit" line in Wave for the same amount.</div>
           <div id="bl-run" style="margin-top:8px;overflow-x:auto"></div>
         </div>
         <div class="card">
+          <div class="row" style="align-items:center;margin-bottom:8px;gap:8px;background:var(--chip,#f3f6f9);border-radius:10px;padding:8px 10px"><b>&#128260; Wave sync</b><span class="hint" id="wv-st">checking...</span><div style="flex:1"></div><button class="btn-blue btn-sm" id="wv-go" onclick="waveSync()">Sync now</button></div>
           <div class="row" style="align-items:center"><b style="font-size:15px">&#129534; Invoices</b><div style="flex:1"></div>
             <select id="bl-f" onchange="blRender()" style="max-width:150px"><option value="open">Open</option><option value="overdue">Overdue</option><option value="paid">Paid</option><option value="all">All</option></select></div>
-          <div class="hint">When Wave shows a payment, click Mark paid here. Log one-off invoices from the client's page.</div>
+          <div class="hint">Payments in Wave show up here on the next sync. Mark paid is still here for anything paid outside Wave.</div>
           <div id="bl-list" style="margin-top:8px"></div>
         </div>
       </div>
@@ -2231,7 +2232,20 @@ function blLoad(){
     CRM.invoices=r[0]; CRM.run=r[1]; CRM.clients=r[2]; blRender();
   }).catch(function(e){toast(e.message);});
 }
-function blRender(){
+function waveStatus(){
+  api('crm.wave.status').then(function(d){
+    var l=d.last;
+    $('wv-st').innerHTML=!d.connected?'Not connected (WAVE_TOKEN missing in Vercel).':l?('Last sync '+fdate(l.at)+' '+new Date(l.at).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'})+' · '+l.invoices+' invoices · runs every morning'):'Connected. Click Sync now for the first import.';
+  }).catch(function(){});
+}
+function waveSync(){
+  var b=$('wv-go'); b.disabled=true; b.textContent='Syncing...';
+  api('crm.wave.sync').then(function(r){
+    toast('Wave ('+r.business+'): '+r.invoices+' invoices synced'+(r.newClients?', '+r.newClients+' new clients':'')+(r.paidNow?', '+r.paidNow+' newly paid':'')+'.');
+    CRM.clients=[]; blLoad();
+  }).catch(function(e){ alert(e.message); }).finally(function(){ b.disabled=false; b.textContent='Sync now'; });
+}
+function blRender(){ waveStatus();
   var inv=CRM.invoices, t0=today10(), f=$('bl-f').value;
   var open=inv.filter(function(i){return i.status==='open';}), od=open.filter(function(i){return i.due_s<t0;});
   var mStart=t0.slice(0,8)+'01', paidM=inv.filter(function(i){return i.status==='paid'&&i.paid_s>=mStart;});

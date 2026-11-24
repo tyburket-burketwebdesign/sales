@@ -8,6 +8,9 @@
   "functions": {
     "api/hub.js": {
       "maxDuration": 60
+    },
+    "api/cron.js": {
+      "maxDuration": 60
     }
   },
   "rewrites": [
