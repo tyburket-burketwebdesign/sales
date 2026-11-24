@@ -301,6 +301,14 @@ module.exports = async function handler(req, res) {
         return ok({ connected: !!process.env.WAVE_TOKEN, last: last ? JSON.parse(last) : null });
       }
       if (a === 'crm.wave.sync') return ok(await C.waveSync(sql));
+      if (a === 'crm.wave.introspect') {
+        const out = {};
+        for (const n of (Array.isArray(P.names) ? P.names : []).slice(0, 12)) {
+          const d = await C.waveGql('query($n: String!) { __type(name: $n) { kind enumValues { name } inputFields { name type { name kind ofType { name kind ofType { name kind ofType { name } } } } } fields { name args { name type { name kind ofType { name } } } type { name kind ofType { name kind ofType { name } } } } } }', { n: String(n) });
+          out[n] = d.__type;
+        }
+        return ok(out);
+      }
       if (a === 'crm.clients') return ok(await clientRows());
       if (a === 'crm.client.get') {
         const id = Number(P.id) || 0;
@@ -1180,6 +1188,7 @@ module.exports = async function handler(req, res) {
     }
 
     if (a === 'company.delete') {
+      if (!OWNER) return err('Owner only.');
       const phone = C.normPhone(P.phone);
       if (!phone) return err('Bad phone.');
       await sql`DELETE FROM companies WHERE phone=${phone}`;
