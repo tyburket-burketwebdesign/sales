@@ -301,19 +301,6 @@ module.exports = async function handler(req, res) {
         return ok({ connected: !!process.env.WAVE_TOKEN, last: last ? JSON.parse(last) : null });
       }
       if (a === 'crm.wave.sync') return ok(await C.waveSync(sql));
-      if (a === 'crm.wave.schema') {
-        const d = await C.waveGql('query { __type(name: "Business") { fields { name args { name } type { name kind ofType { name } } } } }');
-        return ok(d.__type.fields.map(f => f.name + ':' + (f.type.name || (f.type.ofType && f.type.ofType.name) || f.type.kind)));
-      }
-      if (a === 'crm.wave.peek') {
-        const { biz } = await C.waveBusiness(sql);
-        const d = await C.waveGql('query($id: ID!) { business(id: $id) { invoices(page: 1, pageSize: 5) { edges { node { invoiceNumber status customer { name } source { __typename } } } } } }', { id: biz.id });
-        return ok(d);
-      }
-      if (a === 'crm.wave.type') {
-        const d = await C.waveGql('query($n: String!) { __type(name: $n) { kind possibleTypes { name } fields { name type { name kind ofType { name kind ofType { name } } } } enumValues { name } } }', { n: String(P.name || '') });
-        return ok(d.__type);
-      }
       if (a === 'crm.clients') return ok(await clientRows());
       if (a === 'crm.client.get') {
         const id = Number(P.id) || 0;
@@ -347,7 +334,10 @@ module.exports = async function handler(req, res) {
           if (P.template) await applyTpl(id, P.template, user.email);
         }
         if (prev && prev.status !== f.status) await sql`INSERT INTO client_log (client_id, author, note) VALUES (${id}, ${user.email}, ${'Status: ' + prev.status + ' → ' + f.status})`;
-        if (prev && Number(prev.mrr) !== f.mrr) await sql`INSERT INTO client_log (client_id, author, note) VALUES (${id}, ${user.email}, ${'MRR: $' + Number(prev.mrr) + ' → $' + f.mrr})`;
+        if (prev && Number(prev.mrr) !== f.mrr) {
+          await sql`UPDATE clients SET mrr_manual=true WHERE id=${id}`;
+          await sql`INSERT INTO client_log (client_id, author, note) VALUES (${id}, ${user.email}, ${'MRR set by hand: $' + Number(prev.mrr) + ' → $' + f.mrr + ' (Wave sync will no longer change it)'})`;
+        }
         let cancelled = 0;
         if (f.status === 'churned' && (!prev || prev.status !== 'churned')) {
           const ds = await sql`UPDATE deals SET status='cancelled', cancelled_ts=now() WHERE lower(business)=lower(${name}) AND status='approved' AND cancelled_ts IS NULL RETURNING id`;
