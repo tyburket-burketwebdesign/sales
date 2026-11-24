@@ -305,8 +305,13 @@ module.exports = async function handler(req, res) {
         const d = await C.waveGql('query { __type(name: "Business") { fields { name args { name } type { name kind ofType { name } } } } }');
         return ok(d.__type.fields.map(f => f.name + ':' + (f.type.name || (f.type.ofType && f.type.ofType.name) || f.type.kind)));
       }
+      if (a === 'crm.wave.peek') {
+        const { biz } = await C.waveBusiness(sql);
+        const d = await C.waveGql('query($id: ID!) { business(id: $id) { invoices(page: 1, pageSize: 5) { edges { node { invoiceNumber status customer { name } source { __typename } } } } } }', { id: biz.id });
+        return ok(d);
+      }
       if (a === 'crm.wave.type') {
-        const d = await C.waveGql('query($n: String!) { __type(name: $n) { fields { name type { name kind ofType { name kind ofType { name } } } } enumValues { name } } }', { n: String(P.name || '') });
+        const d = await C.waveGql('query($n: String!) { __type(name: $n) { kind possibleTypes { name } fields { name type { name kind ofType { name kind ofType { name } } } } enumValues { name } } }', { n: String(P.name || '') });
         return ok(d.__type);
       }
       if (a === 'crm.clients') return ok(await clientRows());
