@@ -349,7 +349,11 @@ module.exports = async function handler(req, res) {
         const prevSnap = await sql`SELECT kind, sum(balance)::numeric AS b FROM acct_snap WHERE day = (SELECT max(day) FROM acct_snap WHERE day < ${mStart}) GROUP BY kind`;
         const prev = Object.fromEntries(prevSnap.map(r => [r.kind, Number(r.b)]));
         const mtd = prevSnap.length ? { income: life.income - (prev.income || 0), cogs: life.cogs - (prev.cogs || 0), opex: life.opex - (prev.opex || 0) } : null;
-        const ytd = base && base.year === today.slice(0, 4) ? { income: life.income - base.income, cogs: life.cogs - base.cogs, opex: life.opex - base.opex } : null;
+        let ytd = base && base.year === today.slice(0, 4) ? { income: life.income - base.income, cogs: life.cogs - base.cogs, opex: life.opex - base.opex } : null;
+        if (!ytd) {   /* new year: the last snapshot of last year is the opening balance */
+          const ys = await sql`SELECT kind, sum(balance)::numeric AS b FROM acct_snap WHERE day = (SELECT max(day) FROM acct_snap WHERE day < ${today.slice(0, 4) + '-01-01'}) GROUP BY kind`;
+          if (ys.length) { const y = Object.fromEntries(ys.map(r => [r.kind, Number(r.b)])); ytd = { income: life.income - (y.income || 0), cogs: life.cogs - (y.cogs || 0), opex: life.opex - (y.opex || 0) }; }
+        }
         const since = base ? accts.filter(x => x.kind === 'income').map(x => ({ name: x.name, v: x.balance - ((base.accts || {})[x.id] || 0) })).filter(x => Math.abs(x.v) > 0.005) : [];
         const firstSnap = ((await sql`SELECT to_char(min(day),'YYYY-MM-DD') AS d FROM acct_snap`)[0] || {}).d;
         return ok({ ytd, mtd, life, base: base ? { set: base.set, year: base.year } : null, firstSnap, since,
