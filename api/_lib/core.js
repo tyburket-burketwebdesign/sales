@@ -64,6 +64,20 @@ async function ensureSchema() {
   await sql`CREATE TABLE IF NOT EXISTS ref_credits (
     id SERIAL PRIMARY KEY, partner_id INT, referral_id INT, amount NUMERIC, note TEXT DEFAULT '', author TEXT DEFAULT '', ts TIMESTAMPTZ DEFAULT now()
   )`;
+  await sql`CREATE TABLE IF NOT EXISTS clients (
+    id SERIAL PRIMARY KEY, name TEXT, contact TEXT DEFAULT '', email TEXT DEFAULT '', phone TEXT DEFAULT '', website TEXT DEFAULT '',
+    package TEXT DEFAULT '', mrr NUMERIC DEFAULT 0, start_date DATE, term_months INT DEFAULT 6, renewal_date DATE, status TEXT DEFAULT 'active',
+    health TEXT DEFAULT 'auto', rep TEXT DEFAULT '', notes TEXT DEFAULT '', links TEXT DEFAULT '', created TIMESTAMPTZ DEFAULT now(), updated TIMESTAMPTZ DEFAULT now()
+  )`;
+  await sql`CREATE TABLE IF NOT EXISTS invoices (
+    id SERIAL PRIMARY KEY, client_id INT, number TEXT DEFAULT '', amount NUMERIC DEFAULT 0, issued DATE, due DATE, status TEXT DEFAULT 'open',
+    paid_date DATE, note TEXT DEFAULT '', created TIMESTAMPTZ DEFAULT now()
+  )`;
+  await sql`CREATE TABLE IF NOT EXISTS tasks (
+    id SERIAL PRIMARY KEY, client_id INT, title TEXT, due DATE, assignee TEXT DEFAULT '', status TEXT DEFAULT 'open', recurring TEXT DEFAULT '',
+    note TEXT DEFAULT '', created_by TEXT DEFAULT '', done_by TEXT DEFAULT '', done_ts TIMESTAMPTZ, created TIMESTAMPTZ DEFAULT now()
+  )`;
+  await sql`CREATE TABLE IF NOT EXISTS client_log ( id SERIAL PRIMARY KEY, client_id INT, author TEXT DEFAULT '', note TEXT DEFAULT '', ts TIMESTAMPTZ DEFAULT now() )`;
   await sql`CREATE TABLE IF NOT EXISTS lp_check ( phone TEXT PRIMARY KEY, platforms TEXT DEFAULT '', none BOOLEAN DEFAULT false, rep TEXT DEFAULT '', ts TIMESTAMPTZ DEFAULT now() )`;
   await sql`ALTER TABLE companies ADD COLUMN IF NOT EXISTS alt_phones TEXT DEFAULT ''`;
   await sql`ALTER TABLE calls ADD COLUMN IF NOT EXISTS fup_rep TEXT DEFAULT ''`;
