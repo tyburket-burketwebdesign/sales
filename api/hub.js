@@ -217,6 +217,197 @@ module.exports = async function handler(req, res) {
     }
 
     /* ---------------- LISTING CALLS: businesses buying shared leads ---------------- */
+    /* ================= PLATFORM: search, notifications, deal values (all seats) ================= */
+    const audit = (act, target, detail) => sql`INSERT INTO audit (who, act, target, detail) VALUES (${user.email}, ${act}, ${String(target || '').slice(0, 200)}, ${String(detail || '').slice(0, 500)})`.catch(() => {});
+    if (a === 'search') {
+      const q = String(P.q || '').trim(); if (q.length < 2) return ok({ companies: [], clients: [], invoices: [] });
+      const like = '%' + q.toLowerCase() + '%', digits = q.replace(/\D/g, '');
+      const companies = await sql`SELECT phone, name, city, industry, stage, rep FROM companies
+        WHERE lower(name) LIKE ${like} OR lower(city) LIKE ${like} OR (${digits.length >= 3} AND phone LIKE ${'%' + digits + '%'}) ORDER BY updated DESC LIMIT 8`;
+      let clients = [], invoices = [];
+      if (OWNER) {
+        clients = await sql`SELECT id, name, status, mrr FROM clients WHERE lower(name) LIKE ${like} OR lower(contact) LIKE ${like} OR lower(email) LIKE ${like} ORDER BY name LIMIT 6`;
+        invoices = await sql`SELECT i.id, i.number, i.amount, i.status, i.client_id, c.name AS client FROM invoices i JOIN clients c ON c.id=i.client_id
+          WHERE i.number LIKE ${'%' + q + '%'} OR lower(c.name) LIKE ${like} ORDER BY i.issued DESC NULLS LAST LIMIT 6`;
+      }
+      return ok({ companies, clients, invoices });
+    }
+    if (a === 'notify') {
+      const items = [];
+      const missed = await sql`SELECT count(*)::int AS n FROM inbound WHERE status='missed' AND (${OWNER} OR rep='' OR rep=${user.email})`;
+      if (missed[0].n) items.push({ k: 'missed', icon: '📞', text: missed[0].n + ' missed call' + (missed[0].n === 1 ? '' : 's') + ' to return', view: 'dialer', tone: 'red' });
+      const fups = await sql`SELECT count(DISTINCT phone)::int AS n FROM calls WHERE (CASE WHEN COALESCE(fup_rep,'') <> '' THEN fup_rep ELSE rep END)=${user.email} AND fup IS NOT NULL AND fup <= CURRENT_DATE AND fup_done=false`;
+      if (fups[0].n) items.push({ k: 'fups', icon: '🔁', text: fups[0].n + ' follow-up' + (fups[0].n === 1 ? '' : 's') + ' due', view: 'past', tone: 'gold' });
+      const tk = await sql`SELECT count(*)::int AS n FROM tasks WHERE status='open' AND due <= CURRENT_DATE AND (${OWNER} OR assignee=${user.email})`;
+      if (tk[0].n) items.push({ k: 'tasks', icon: '✅', text: tk[0].n + ' task' + (tk[0].n === 1 ? '' : 's') + ' due or late', view: 'tasks', tone: 'gold' });
+      if (OWNER) {
+        const pend = (await sql`SELECT count(*)::int AS n FROM deals WHERE status='pending'`)[0].n;
+        if (pend) items.push({ k: 'deals', icon: '⏳', text: pend + ' deal' + (pend === 1 ? '' : 's') + ' waiting for approval', view: 'owner', tone: 'gold' });
+        const od = (await sql`SELECT count(*)::int AS n, COALESCE(sum(amount_due),0)::numeric AS v FROM invoices WHERE status='open' AND due < CURRENT_DATE`)[0];
+        if (od.n) items.push({ k: 'overdue', icon: '🧾', text: od.n + ' overdue invoice' + (od.n === 1 ? '' : 's') + ' ($' + Number(od.v).toLocaleString() + ')', view: 'billing', tone: 'red' });
+        const paid = await sql`SELECT c.name, i.amount FROM invoices i JOIN clients c ON c.id=i.client_id WHERE i.status='paid' AND i.paid_date >= CURRENT_DATE - 3 ORDER BY i.paid_date DESC LIMIT 5`;
+        paid.forEach(p => items.push({ k: 'paid', icon: '💵', text: p.name + ' paid $' + Number(p.amount).toLocaleString(), view: 'billing', tone: 'green' }));
+        const refs = (await sql`SELECT count(*)::int AS n FROM referrals WHERE status='submitted'`)[0].n;
+        if (refs) items.push({ k: 'refs', icon: '🤝', text: refs + ' new referral' + (refs === 1 ? '' : 's'), view: 'refer', tone: 'green' });
+        const drafts = (await sql`SELECT count(*)::int AS n FROM invoices WHERE status='draft'`)[0].n;
+        if (drafts) items.push({ k: 'drafts', icon: '📝', text: drafts + ' Wave draft invoice' + (drafts === 1 ? '' : 's') + ' not sent yet', view: 'billing', tone: 'gold' });
+      }
+      return ok(items);
+    }
+    if (a === 'company.value') {
+      const phone = C.normPhone(P.phone);
+      const cur = (await sql`SELECT rep FROM companies WHERE phone=${phone}`)[0];
+      if (!cur) return err('Company not found.');
+      if (!OWNER && cur.rep && cur.rep !== user.email) return err('Only the rep working this account can set its value.');
+      await sql`UPDATE companies SET value=${Number(String(P.value || 0).replace(/[^\d.]/g, '')) || 0}, updated=now() WHERE phone=${phone}`;
+      return ok(true);
+    }
+
+    /* ================= OWNER: settings, audit, reports, activity, Wave write ================= */
+    if (a.indexOf('own.') === 0 || a.indexOf('wave.') === 0) {
+      if (!OWNER) { audit('blocked', a); return err('Owner only.'); }
+      const getSettings = async () => { try { return JSON.parse(((await sql`SELECT v FROM kv WHERE k='settings'`)[0] || {}).v || '{}'); } catch (e) { return {}; } };
+      if (a === 'own.settings') return ok(await getSettings());
+      if (a === 'own.settings.save') {
+        const cur = await getSettings(); const nx = Object.assign(cur, P.settings || {});
+        await sql`INSERT INTO kv (k, v) VALUES ('settings', ${JSON.stringify(nx)}) ON CONFLICT (k) DO UPDATE SET v=${JSON.stringify(nx)}`;
+        audit('settings.save', '', Object.keys(P.settings || {}).join(','));
+        return ok(nx);
+      }
+      if (a === 'own.audit') return ok(await sql`SELECT a.*, u.name FROM audit a LEFT JOIN users u ON u.email=a.who ORDER BY a.ts DESC LIMIT 300`);
+      if (a === 'own.team') {
+        return ok(await sql`SELECT u.email, u.name, u.role, COALESCE(u.active,1) AS active,
+          (SELECT max(ts) FROM calls c WHERE c.rep=u.email) AS last_call,
+          (SELECT count(*)::int FROM calls c WHERE c.rep=u.email AND c.ts > now() - interval '30 days') AS calls30
+          FROM users u ORDER BY u.role DESC, u.name`);
+      }
+      if (a === 'own.role') {
+        const em = String(P.email || '').toLowerCase(), role = P.role === 'owner' ? 'owner' : 'sdr';
+        if (em === user.email && role !== 'owner') return err('You cannot remove your own owner access.');
+        await sql`UPDATE users SET role=${role} WHERE email=${em}`; audit('role', em, role);
+        return ok(true);
+      }
+      if (a === 'own.reports') {
+        const rev = await sql`SELECT to_char(date_trunc('month', paid_date),'YYYY-MM') AS m, sum(amount)::numeric AS v, count(*)::int AS n FROM invoices
+          WHERE status='paid' AND paid_date >= date_trunc('month', now()) - interval '11 months' GROUP BY 1 ORDER BY 1`;
+        const byClient = await sql`SELECT c.id, c.name, c.status, c.mrr, COALESCE(sum(i.amount) FILTER (WHERE i.status='paid'),0)::numeric AS ltv,
+            COALESCE(sum(i.amount) FILTER (WHERE i.status='paid' AND i.paid_date >= date_trunc('year', now())),0)::numeric AS ytd,
+            ROUND(AVG(i.paid_date - i.issued) FILTER (WHERE i.status='paid'))::int AS days_to_pay
+          FROM clients c LEFT JOIN invoices i ON i.client_id=c.id GROUP BY c.id ORDER BY ltv DESC`;
+        const aging = (await sql`SELECT
+            COALESCE(sum(amount_due) FILTER (WHERE due >= CURRENT_DATE),0)::numeric AS current,
+            COALESCE(sum(amount_due) FILTER (WHERE CURRENT_DATE - due BETWEEN 1 AND 30),0)::numeric AS d30,
+            COALESCE(sum(amount_due) FILTER (WHERE CURRENT_DATE - due BETWEEN 31 AND 60),0)::numeric AS d60,
+            COALESCE(sum(amount_due) FILTER (WHERE CURRENT_DATE - due BETWEEN 61 AND 90),0)::numeric AS d90,
+            COALESCE(sum(amount_due) FILTER (WHERE CURRENT_DATE - due > 90),0)::numeric AS d90p
+          FROM invoices WHERE status='open'`)[0];
+        const funnel = (await sql`SELECT count(*)::int AS dials,
+            count(*) FILTER (WHERE outcome IN ('callback','meeting','closed','not_interested','gatekeeper'))::int AS convos,
+            count(*) FILTER (WHERE outcome='meeting')::int AS meetings, count(*) FILTER (WHERE outcome='closed')::int AS closed
+          FROM calls WHERE ts > now() - interval '30 days'`)[0];
+        const won30 = (await sql`SELECT count(*)::int AS n FROM deals WHERE status='approved' AND reviewed_ts > now() - interval '30 days'`)[0].n;
+        const reps = await sql`SELECT u.name, u.email, count(c.id)::int AS dials,
+            count(c.id) FILTER (WHERE c.outcome IN ('callback','meeting','closed','not_interested','gatekeeper'))::int AS convos,
+            count(c.id) FILTER (WHERE c.outcome='meeting')::int AS meetings,
+            (SELECT count(*)::int FROM deals d WHERE d.rep=u.email AND d.status='approved' AND d.reviewed_ts > now() - interval '30 days') AS won
+          FROM users u LEFT JOIN calls c ON c.rep=u.email AND c.ts > now() - interval '30 days' WHERE COALESCE(u.active,1)=1 GROUP BY u.name, u.email ORDER BY dials DESC`;
+        const growth = await sql`SELECT to_char(date_trunc('month', start_date),'YYYY-MM') AS m, count(*)::int AS n FROM clients WHERE start_date >= date_trunc('month', now()) - interval '11 months' GROUP BY 1 ORDER BY 1`;
+        const churn = await sql`SELECT c.name, max(l.ts) AS ts FROM clients c JOIN client_log l ON l.client_id=c.id AND (l.note LIKE 'Status:%churned' OR l.note LIKE 'Marked churned%') WHERE c.status='churned' GROUP BY c.name ORDER BY 2 DESC LIMIT 12`;
+        const lost = await sql`SELECT lower(trim(lost_reason)) AS r, count(*)::int AS n FROM companies WHERE stage='lost' AND lost_reason <> '' GROUP BY 1 ORDER BY 2 DESC LIMIT 8`;
+        const pipe = await sql`SELECT stage, count(*)::int AS n, COALESCE(sum(value),0)::numeric AS v FROM companies GROUP BY stage`;
+        return ok({ rev, byClient, aging, funnel, won30, reps, growth, churn, lost, pipe });
+      }
+      if (a === 'own.activity') {
+        const rows = await sql`(SELECT 'call' AS k, c.ts, COALESCE(u.name, c.rep) AS who, c.name || ': ' || replace(c.outcome,'_',' ') AS text, NULL::int AS client_id, c.phone FROM calls c LEFT JOIN users u ON u.email=c.rep ORDER BY c.ts DESC LIMIT 25)
+          UNION ALL (SELECT 'client', l.ts, COALESCE(u.name, l.author), c.name || ': ' || l.note, c.id, NULL FROM client_log l JOIN clients c ON c.id=l.client_id LEFT JOIN users u ON u.email=l.author ORDER BY l.ts DESC LIMIT 25)
+          UNION ALL (SELECT 'deal', d.ts, COALESCE(u.name, d.rep), 'Deal ' || d.status || ': ' || d.business || ' ($' || d.amount || ')', NULL, NULL FROM deals d LEFT JOIN users u ON u.email=d.rep ORDER BY d.ts DESC LIMIT 10)
+          UNION ALL (SELECT 'referral', r.ts, p.company, 'Referral: ' || r.business, NULL, NULL FROM referrals r LEFT JOIN ref_partners p ON p.id=r.partner_id ORDER BY r.ts DESC LIMIT 10)
+          ORDER BY 2 DESC LIMIT 60`;
+        return ok(rows);
+      }
+
+      /* ---- Wave: two-way ---- */
+      if (a === 'wave.meta') { const m = await C.waveMeta(sql); m.settings = await getSettings(); return ok(m); }
+      if (a === 'wave.customer.ensure') {
+        const c = (await sql`SELECT * FROM clients WHERE id=${Number(P.client_id) || 0}`)[0];
+        if (!c) return err('Client not found.');
+        if (c.wave_id) return ok({ wave_id: c.wave_id, created: false });
+        const cu = await C.waveCustomerCreate(sql, c);
+        await sql`UPDATE clients SET wave_id=${cu.id} WHERE id=${c.id}`;
+        await sql`INSERT INTO client_log (client_id, author, note) VALUES (${c.id}, ${user.email}, 'Created as a customer in Wave')`;
+        audit('wave.customer', c.name);
+        return ok({ wave_id: cu.id, created: true });
+      }
+      if (a === 'wave.invoice.create') {
+        const c = (await sql`SELECT * FROM clients WHERE id=${Number(P.client_id) || 0}`)[0];
+        if (!c) return err('Pick the client.');
+        const items = (Array.isArray(P.items) ? P.items : []).filter(i => i.productId && Number(i.unitPrice) >= 0 && Number(i.quantity) > 0);
+        if (!items.length) return err('Add at least one line item.');
+        let custId = c.wave_id;
+        if (!custId) { custId = (await C.waveCustomerCreate(sql, c)).id; await sql`UPDATE clients SET wave_id=${custId} WHERE id=${c.id}`; }
+        const discount = Math.max(0, Number(P.discount) || 0);
+        let inv = await C.waveInvoiceCreate(sql, { customerId: custId, items, discount, discountName: P.discountName, invoiceDate: P.invoiceDate, dueDate: P.dueDate, memo: P.memo, title: P.title });
+        let sent = false;
+        if (P.send) {
+          if (!/@/.test(String(P.to || ''))) return err('Add the email address to send it to.');
+          await C.waveInvoiceApprove(inv.id);
+          inv = await C.waveInvoiceSend({ invoiceId: inv.id, to: P.to, subject: P.subject, message: P.message, ccMyself: P.ccMyself });
+          sent = true;
+          if (P.to && !c.email) await sql`UPDATE clients SET email=${P.to} WHERE id=${c.id}`;
+        }
+        const lid = await C.waveUpsertInvoice(sql, inv, c.id);
+        if (sent) await sql`UPDATE invoices SET sent_ts=now() WHERE id=${lid}`;
+        if (discount > 0 && P.useCredit) {
+          const p = (await sql`SELECT id FROM ref_partners WHERE lower(company)=lower(${c.name})`)[0];
+          if (p) await sql`INSERT INTO ref_credits (partner_id, amount, note, author) VALUES (${p.id}, ${-discount}, ${'Applied on Wave invoice #' + (inv.invoiceNumber || '')}, ${user.email})`;
+        }
+        await sql`INSERT INTO client_log (client_id, author, note) VALUES (${c.id}, ${user.email}, ${(sent ? 'Invoice sent from Wave' : 'Invoice saved as a Wave draft') + ': #' + (inv.invoiceNumber || '') + ' $' + Number(inv.total.value) + (sent ? ' to ' + P.to : '')})`;
+        audit(sent ? 'wave.invoice.send' : 'wave.invoice.draft', c.name, '#' + (inv.invoiceNumber || '') + ' $' + Number(inv.total.value));
+        return ok({ id: lid, number: inv.invoiceNumber, total: Number(inv.total.value), sent, viewUrl: inv.viewUrl });
+      }
+      if (a === 'wave.invoice.send') {
+        const r = (await sql`SELECT i.*, c.email AS cemail, c.name AS cname FROM invoices i JOIN clients c ON c.id=i.client_id WHERE i.id=${Number(P.id) || 0}`)[0];
+        if (!r || !r.wave_id) return err('This invoice is not linked to Wave.');
+        const to = String(P.to || r.cemail || '');
+        if (!/@/.test(to)) return err('No email on file for ' + r.cname + '.');
+        if (r.wave_status === 'DRAFT' || r.wave_status === 'SAVED' || r.status === 'draft') await C.waveInvoiceApprove(r.wave_id);
+        const inv = await C.waveInvoiceSend({ invoiceId: r.wave_id, to, subject: P.subject, message: P.message, ccMyself: P.ccMyself });
+        await C.waveUpsertInvoice(sql, inv, r.client_id);
+        await sql`UPDATE invoices SET sent_ts=now() WHERE id=${r.id}`;
+        await sql`INSERT INTO client_log (client_id, author, note) VALUES (${r.client_id}, ${user.email}, ${(P.reminder ? 'Payment reminder sent' : 'Invoice sent') + ': #' + r.number + ' to ' + to})`;
+        audit(P.reminder ? 'wave.reminder' : 'wave.invoice.send', r.cname, '#' + r.number);
+        return ok(true);
+      }
+      if (a === 'wave.invoice.pay') {
+        const r = (await sql`SELECT i.*, c.name AS cname FROM invoices i JOIN clients c ON c.id=i.client_id WHERE i.id=${Number(P.id) || 0}`)[0];
+        if (!r || !r.wave_id) return err('This invoice is not linked to Wave.');
+        const amt = Number(P.amount) || Number(r.amount_due) || Number(r.amount);
+        await C.wavePaymentCreate({ invoiceId: r.wave_id, accountId: P.accountId, amount: amt, date: String(P.date || '').slice(0, 10) || new Date().toISOString().slice(0, 10), method: P.method, memo: P.memo });
+        const inv = await C.waveInvoiceGet(sql, r.wave_id);
+        if (inv) await C.waveUpsertInvoice(sql, inv, r.client_id);
+        await sql`INSERT INTO client_log (client_id, author, note) VALUES (${r.client_id}, ${user.email}, ${'Payment recorded in Wave: $' + amt + ' on #' + r.number})`;
+        audit('wave.payment', r.cname, '#' + r.number + ' $' + amt);
+        return ok(true);
+      }
+      if (a === 'wave.invoice.delete') {
+        const r = (await sql`SELECT * FROM invoices WHERE id=${Number(P.id) || 0}`)[0];
+        if (!r) return err('Invoice not found.');
+        if (r.wave_id) {
+          if (!['DRAFT', 'SAVED'].includes(r.wave_status) && r.status !== 'draft') return err('Only drafts can be deleted from here. Void sent invoices in Wave.');
+          await C.waveInvoiceDelete(r.wave_id);
+        }
+        await sql`DELETE FROM invoices WHERE id=${r.id}`; audit('wave.invoice.delete', '#' + r.number);
+        return ok(true);
+      }
+      if (a === 'wave.refresh') {
+        const r = (await sql`SELECT * FROM invoices WHERE id=${Number(P.id) || 0}`)[0];
+        if (!r || !r.wave_id) return err('Not linked to Wave.');
+        const inv = await C.waveInvoiceGet(sql, r.wave_id); if (inv) await C.waveUpsertInvoice(sql, inv, r.client_id);
+        return ok(true);
+      }
+      return err('Unknown owner action.');
+    }
+
     /* ================= CRM: clients, billing, tasks, HQ ================= */
     if (a.indexOf('crm.') === 0) {
       const D = v => (v ? String(v).slice(0, 10) : null);
@@ -301,14 +492,6 @@ module.exports = async function handler(req, res) {
         return ok({ connected: !!process.env.WAVE_TOKEN, last: last ? JSON.parse(last) : null });
       }
       if (a === 'crm.wave.sync') return ok(await C.waveSync(sql));
-      if (a === 'crm.wave.introspect') {
-        const out = {};
-        for (const n of (Array.isArray(P.names) ? P.names : []).slice(0, 12)) {
-          const d = await C.waveGql('query($n: String!) { __type(name: $n) { kind enumValues { name } inputFields { name type { name kind ofType { name kind ofType { name kind ofType { name } } } } } fields { name args { name type { name kind ofType { name } } } type { name kind ofType { name kind ofType { name } } } } } }', { n: String(n) });
-          out[n] = d.__type;
-        }
-        return ok(out);
-      }
       if (a === 'crm.clients') return ok(await clientRows());
       if (a === 'crm.client.get') {
         const id = Number(P.id) || 0;
@@ -371,6 +554,7 @@ module.exports = async function handler(req, res) {
         return ok(true);
       }
       if (a === 'crm.client.delete') {
+        sql`INSERT INTO audit (who, act, target) VALUES (${user.email}, 'client.delete', ${String(P.id||'')})`.catch(()=>{});
         const id = Number(P.id) || 0;
         await sql`DELETE FROM tasks WHERE client_id=${id}`; await sql`DELETE FROM invoices WHERE client_id=${id}`; await sql`DELETE FROM client_log WHERE client_id=${id}`;
         await sql`DELETE FROM clients WHERE id=${id}`;
@@ -821,6 +1005,7 @@ module.exports = async function handler(req, res) {
     }
     if (a === 'deal.review') {
       if (!OWNER) return err('Owner only.');
+      sql`INSERT INTO audit (who, act, target, detail) VALUES (${user.email}, 'deal.review', ${String(P.id||'')}, ${P.approve?'approved':'denied'})`.catch(()=>{});
       const d = (await sql`SELECT * FROM deals WHERE id=${Number(P.id)}`)[0];
       if (!d || d.status !== 'pending') return err('Deal not found or already reviewed.');
       const st = P.approve ? 'approved' : 'denied';
@@ -1189,6 +1374,7 @@ module.exports = async function handler(req, res) {
 
     if (a === 'company.delete') {
       if (!OWNER) return err('Owner only.');
+      sql`INSERT INTO audit (who, act, target) VALUES (${user.email}, 'company.delete', ${String(P.phone||'')})`.catch(()=>{});
       const phone = C.normPhone(P.phone);
       if (!phone) return err('Bad phone.');
       await sql`DELETE FROM companies WHERE phone=${phone}`;
