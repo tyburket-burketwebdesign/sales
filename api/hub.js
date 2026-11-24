@@ -301,6 +301,14 @@ module.exports = async function handler(req, res) {
         return ok({ connected: !!process.env.WAVE_TOKEN, last: last ? JSON.parse(last) : null });
       }
       if (a === 'crm.wave.sync') return ok(await C.waveSync(sql));
+      if (a === 'crm.wave.schema') {
+        const d = await C.waveGql('query { __type(name: "Business") { fields { name args { name } type { name kind ofType { name } } } } }');
+        return ok(d.__type.fields.map(f => f.name + ':' + (f.type.name || (f.type.ofType && f.type.ofType.name) || f.type.kind)));
+      }
+      if (a === 'crm.wave.type') {
+        const d = await C.waveGql('query($n: String!) { __type(name: $n) { fields { name type { name kind ofType { name kind ofType { name } } } } enumValues { name } } }', { n: String(P.name || '') });
+        return ok(d.__type);
+      }
       if (a === 'crm.clients') return ok(await clientRows());
       if (a === 'crm.client.get') {
         const id = Number(P.id) || 0;
