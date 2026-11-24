@@ -755,12 +755,13 @@ table th{font-size:11px;letter-spacing:.4px}
 
       <div class="view" id="v-hq">
         <div class="g4" style="margin-bottom:14px">
-          <div class="kpi"><b id="hq-mrr">$0</b><span>revenue billed this month · <span id="hq-revsub"></span></span></div>
+          <div class="kpi"><b id="hq-mrr">$0</b><span>income this year (Wave P&amp;L) · <span id="hq-revsub"></span></span></div>
           <div class="kpi"><b id="hq-cli">0</b><span>current clients</span></div>
           <div class="kpi"><b id="hq-cash">$0</b><span>collected this month · <span id="hq-cashlm"></span></span></div>
           <div class="kpi"><b id="hq-ar">$0</b><span>open invoices · <span id="hq-od"></span></span></div>
         </div>
         <div class="card" style="font-size:14px" id="hq-alerts"></div>
+        <div class="card" id="hq-pnl"></div>
         <div class="card" id="hq-goals" style="display:none"></div>
         <div class="g2" style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
           <div class="card"><b style="font-size:15px">&#128176; Cash collected (6 months)</b><div id="hq-chart" style="margin-top:10px"></div></div>
@@ -828,7 +829,7 @@ table th{font-size:11px;letter-spacing:.4px}
       <div class="view" id="v-reports">
         <div class="row" style="margin-bottom:10px;gap:8px"><span class="hint">Numbers come from Wave invoices, the CRM and every logged call.</span><div style="flex:1"></div><button class="btn-ghost btn-sm" onclick="rpCsv()">&#11015; Client revenue CSV</button><button class="btn-ghost btn-sm" onclick="rpLoad()">&#8635; Refresh</button></div>
         <div class="g4" style="margin-bottom:14px">
-          <div class="kpi"><b id="rp-ytd">$0</b><span>total revenue billed this year · <span id="rp-ytdc"></span></span></div>
+          <div class="kpi"><b id="rp-ytd">$0</b><span>income this year (Wave P&amp;L) · <span id="rp-ytdc"></span></span></div>
           <div class="kpi"><b id="rp-avg">$0</b><span>avg total revenue per month (12 mo)</span></div>
           <div class="kpi"><b id="rp-dtp">-</b><span>avg days to get paid</span></div>
           <div class="kpi"><b id="rp-fc">$0</b><span>weighted pipeline forecast</span></div>
@@ -856,6 +857,8 @@ table th{font-size:11px;letter-spacing:.4px}
               <button class="btn-blue btn-sm" onclick="stSave('goals')">Save</button></div></div>
           <div class="card"><b style="font-size:15px">&#128260; Wave connection</b><div id="st-wave" class="hint" style="margin-top:6px">Checking...</div>
             <div class="row" style="margin-top:8px;gap:6px"><button class="btn-blue btn-sm" onclick="waveSync()">Sync now</button></div>
+            <div style="margin-top:10px"><b>P&amp;L match</b><div class="hint">If Business HQ ever drifts from Wave's Profit &amp; Loss (Accrual, Jan 1 to today), type Wave's three numbers here once and it re-locks.</div>
+            <div class="row" style="gap:6px;margin-top:6px;align-items:flex-end"><div><label>Income</label><input id="st-pi" style="max-width:110px"></div><div><label>Cost of goods</label><input id="st-pc" style="max-width:110px"></div><div><label>Operating exp.</label><input id="st-po" style="max-width:110px"></div><button class="btn-ghost btn-sm" onclick="pnlCal()">Match Wave</button></div></div>
             <div class="hint" style="margin-top:8px;line-height:1.6">For instant updates when a client pays, add a webhook in Wave's Developer Portal (your BWD CRM app &rarr; Webhooks) pointing to <code id="st-hook">https://crm.burketwebdesign.com/api/wave-hook?k=...</code> using the same key as the Twilio webhook. Without it, the CRM still re-syncs every 10 minutes while you use it, and every morning.</div></div>
           <div class="card" style="grid-column:span 2"><b style="font-size:15px">&#129534; Invoice defaults</b><div class="hint">Used when you create invoices from the CRM. Invoices are created and emailed by Wave, from your Wave business.</div>
             <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px">
@@ -2234,7 +2237,7 @@ function repName(e){ var r=((BOOT.team&&BOOT.team.reps)||[]).find(function(x){re
 /* ---------- HQ ---------- */
 function hqLoad(){
   api('crm.hq').then(function(d){
-    hqExtras(d); var bm=Number(d.billed.m)||0, br=Number(d.billed.m_rec)||0; $('hq-mrr').textContent=money(bm); $('hq-revsub').textContent=money(br)+' recurring · '+money(bm-br)+' one-time · last month '+money(d.billed.lm)+' · '+money(d.mrr)+' MRR'; $('hq-cli').textContent=d.clients+(d.onboarding?' ('+d.onboarding+' onboarding)':'');
+    hqExtras(d); pnlLoad(d); $('hq-cli').textContent=d.clients+(d.onboarding?' ('+d.onboarding+' onboarding)':'');
     $('hq-cash').textContent=money(d.cash.m); $('hq-cashlm').textContent='last month '+money(d.cash.lm);
     $('hq-ar').textContent=money(d.cash.ar); $('hq-od').innerHTML=Number(d.cash.overdue)>0?'<b style="color:var(--red)">'+money(d.cash.overdue)+' overdue</b>':'nothing overdue';
     var mx=Math.max.apply(null,(d.months||[]).map(function(m){return Number(m.v);}).concat([1]));
@@ -2664,7 +2667,7 @@ function rpLoad(){
     var ytd=d.rev.filter(function(r){return r.m.slice(0,4)===String(new Date().getFullYear());}).reduce(function(a,r){return a+Number(r.v);},0);
     var yr=String(new Date().getFullYear()), cm=today10().slice(0,7);
     var byr=d.billedM.filter(function(r){return r.m.slice(0,4)===yr;}), bytd=byr.reduce(function(a,r){return a+Number(r.v);},0), brec=byr.reduce(function(a,r){return a+Number(r.rec);},0);
-    $('rp-ytd').textContent=money(bytd); $('rp-ytdc').textContent=money(ytd)+' collected';
+    $('rp-ytd').textContent='...'; api('wave.pnl').then(function(p){ $('rp-ytd').textContent=p.ytd?money(Math.round(p.ytd.income)):money(bytd); $('rp-ytdc').textContent=money(bytd)+' invoiced · '+money(ytd)+' collected'; }).catch(function(){ $('rp-ytd').textContent=money(bytd); });
     var full=d.billedM.filter(function(r){return r.m<cm;}); $('rp-avg').textContent=full.length?money(Math.round(full.reduce(function(a,r){return a+Number(r.v);},0)/full.length)):'$0';
     $('rp-billed').innerHTML=bars(d.billedM,mlab,'v',money)+'<div class="hint" style="margin-top:6px">This year: '+money(brec)+' recurring · '+money(bytd-brec)+' one-time</div>';
     var dd=d.byClient.filter(function(c){return c.days_to_pay!=null;}); $('rp-dtp').textContent=dd.length?Math.round(dd.reduce(function(a,c){return a+c.days_to_pay;},0)/dd.length)+' days':'-';
@@ -2726,6 +2729,37 @@ function hqExtras(d){
     var IC={call:'&#128222;',client:'&#128188;',deal:'&#129309;',referral:'&#127873;'};
     $('hq-act').innerHTML=rows.map(function(r){ return '<div class="row" style="gap:8px;padding:6px 0;border-bottom:1px solid var(--line);flex-wrap:nowrap"><span>'+(IC[r.k]||'')+'</span><div style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(r.client_id?'<a href="#" onclick="clOpen('+r.client_id+');return false">':r.phone?'<a href="#" onclick="openCompany(\''+r.phone+'\');return false">':'')+esc(r.text)+(r.client_id||r.phone?'</a>':'')+'</div><span class="hint" style="white-space:nowrap">'+esc(String(r.who||'').split(' ')[0])+' · '+fdate(r.ts)+'</span></div>'; }).join('')||'<div class="hint">No activity yet.</div>';
   });
+}
+
+
+/* ================= P&L straight from Wave's ledger ================= */
+function pnlLoad(d){
+  $('hq-mrr').textContent='...';
+  api('wave.pnl').then(function(p){
+    var y=p.ytd, m=p.mtd;
+    if(y){
+      var net=y.income-y.cogs-y.opex;
+      $('hq-mrr').textContent=money(Math.round(y.income));
+      $('hq-revsub').textContent=money(Math.round(net))+' net profit · '+money(d.mrr)+' MRR';
+      $('hq-pnl').innerHTML='<div class="row" style="justify-content:space-between"><b style="font-size:15px">&#128202; Profit &amp; Loss, '+new Date().getFullYear()+' to date</b><span class="hint">from Wave’s books (accrual), updates every sync</span></div>'+
+        '<div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:center;font-size:24px;font-weight:800;margin:14px 0 6px">'+
+        '<div style="text-align:center"><div class="hint" style="font-size:11px">INCOME</div>'+money(y.income)+'</div><span>-</span>'+
+        '<div style="text-align:center"><div class="hint" style="font-size:11px">COST OF GOODS</div>'+money(y.cogs)+'</div><span>-</span>'+
+        '<div style="text-align:center"><div class="hint" style="font-size:11px">OPERATING EXPENSES</div>'+money(y.opex)+'</div><span>=</span>'+
+        '<div style="text-align:center;color:var(--green)"><div class="hint" style="font-size:11px">NET PROFIT</div>'+money(net)+'</div></div>'+
+        '<div class="hint" style="text-align:center">'+(m?('This month: '+money(m.income)+' income · '+money(m.income-m.cogs-m.opex)+' net · '):'')+'Margin '+(y.income?Math.round(net/y.income*100):0)+'% · Invoices billed this year '+money(d.billed.ytd)+' (the rest of income was booked in Wave without an invoice)</div>'+
+        (p.incomeAccts.length?'<details style="margin-top:8px"><summary class="hint" style="cursor:pointer">Income accounts (all time)</summary>'+p.incomeAccts.map(function(a){return '<div class="row" style="justify-content:space-between;padding:3px 0"><span>'+esc(a.name)+'</span><b>'+money(a.life)+'</b></div>';}).join('')+'</details>':'');
+    } else {
+      $('hq-mrr').textContent=money(d.billed.ytd); $('hq-revsub').textContent='invoiced this year';
+      $('hq-pnl').innerHTML='<b>&#128202; Profit &amp; Loss</b><div class="hint">Match it to Wave once in Settings &rarr; Wave connection to show income, expenses and net profit here.</div>';
+    }
+  }).catch(function(e){ $('hq-mrr').textContent=money(d.billed.ytd); $('hq-revsub').textContent='invoiced this year'; $('hq-pnl').innerHTML='<div class="hint">P&amp;L unavailable: '+esc(e.message)+'</div>'; });
+}
+function pnlCal(){
+  var b={calibrate:true,income:Number(String($('st-pi').value).replace(/[^\d.]/g,'')),cogs:Number(String($('st-pc').value).replace(/[^\d.]/g,'')),opex:Number(String($('st-po').value).replace(/[^\d.]/g,''))};
+  if(!b.income) return toast('Enter Wave’s income number.');
+  if(!confirm('Lock the CRM to Wave: income '+money(b.income)+', cost of goods '+money(b.cogs)+', operating expenses '+money(b.opex)+' for this year to date?')) return;
+  api('wave.pnl',b).then(function(){ toast('Locked to Wave. HQ now matches your P&L.'); }).catch(function(e){ alert(e.message); });
 }
 
 /* ================= REFERRAL PROGRAM ================= */
