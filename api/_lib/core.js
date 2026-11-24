@@ -728,13 +728,14 @@ async function waveSync(sqlFn) {
     /* only bring in customers billed in the last 60 days: that is a paying client */
     const ri = recInfo(cu.id);
     const recent = (byCust[cu.id] || []).filter(i => day(i.invoiceDate) >= ago(60));
-    if (!ri.live && (ri.had || !recent.length)) continue;
+    if (!(byCust[cu.id] || []).length) continue;                 /* never billed: not a client */
+    const isCurrent = ri.live || (!ri.had && recent.length);
     const mrr = ri.mrr;
     const first = (byCust[cu.id] || []).map(i => day(i.invoiceDate)).sort()[0];
     const id = (await sqlFn`INSERT INTO clients (name, contact, email, phone, mrr, start_date, term_months, status, wave_id)
       VALUES (${nm}, ${((cu.firstName || '') + ' ' + (cu.lastName || '')).trim()}, ${cu.email || ''}, ${normPhone(cu.phone || cu.mobile) || ''}, ${mrr},
-              ${first || day(cu.createdAt)}, 0, 'active', ${cu.id}) RETURNING id`)[0].id;
-    await sqlFn`INSERT INTO client_log (client_id, author, note) VALUES (${id}, 'wave', ${'Imported from Wave' + (mrr ? ' (MRR from Wave recurring invoices: $' + mrr + ')' : '')})`;
+              ${first || day(cu.createdAt)}, 0, ${isCurrent ? 'active' : 'past'}, ${cu.id}) RETURNING id`)[0].id;
+    await sqlFn`INSERT INTO client_log (client_id, author, note) VALUES (${id}, 'wave', ${'Imported from Wave' + (isCurrent ? '' : ' as a past customer (no current billing)') + (mrr ? ' (MRR from Wave recurring invoices: $' + mrr + ')' : '')})`;
     byWave[cu.id] = { id, name: nm, wave_id: cu.id }; out.newClients++;
   }
 
@@ -748,6 +749,9 @@ async function waveSync(sqlFn) {
       await sqlFn`INSERT INTO client_log (client_id, author, note) VALUES (${c.id}, 'wave', ${'Marked churned: no recurring invoice in Wave since ' + ri.last})`;
       await sqlFn`UPDATE deals SET status='cancelled', cancelled_ts=now() WHERE lower(business)=lower(${c.name}) AND status='approved' AND cancelled_ts IS NULL`;
       out.churned++;
+    } else if (ri.live && (c.status === 'past' || c.status === 'churned')) {
+      await sqlFn`UPDATE clients SET status='active', mrr=${c.mrr_manual ? c.mrr : ri.mrr}, updated=now() WHERE id=${c.id}`;
+      await sqlFn`INSERT INTO client_log (client_id, author, note) VALUES (${c.id}, 'wave', 'Back on recurring billing in Wave: marked active')`;
     } else if (ri.live && !c.mrr_manual && Number(c.mrr) !== ri.mrr) {
       await sqlFn`UPDATE clients SET mrr=${ri.mrr}, updated=now() WHERE id=${c.id}`;
       await sqlFn`INSERT INTO client_log (client_id, author, note) VALUES (${c.id}, 'wave', ${'MRR synced from Wave recurring invoice: $' + Number(c.mrr) + ' → $' + ri.mrr})`;
