@@ -81,6 +81,8 @@ async function ensureSchema() {
   await sql`ALTER TABLE invoices ADD COLUMN IF NOT EXISTS wave_id TEXT DEFAULT ''`;
   await sql`ALTER TABLE invoices ADD COLUMN IF NOT EXISTS amount_due NUMERIC DEFAULT 0`;
   await sql`ALTER TABLE invoices ADD COLUMN IF NOT EXISTS wave_status TEXT DEFAULT ''`;
+  await sql`ALTER TABLE invoices ADD COLUMN IF NOT EXISTS recurring_id TEXT DEFAULT ''`;
+  await sql`ALTER TABLE clients ADD COLUMN IF NOT EXISTS mrr_manual BOOLEAN DEFAULT false`;
   await sql`CREATE TABLE IF NOT EXISTS client_log ( id SERIAL PRIMARY KEY, client_id INT, author TEXT DEFAULT '', note TEXT DEFAULT '', ts TIMESTAMPTZ DEFAULT now() )`;
   await sql`CREATE TABLE IF NOT EXISTS lp_check ( phone TEXT PRIMARY KEY, platforms TEXT DEFAULT '', none BOOLEAN DEFAULT false, rep TEXT DEFAULT '', ts TIMESTAMPTZ DEFAULT now() )`;
   await sql`ALTER TABLE companies ADD COLUMN IF NOT EXISTS alt_phones TEXT DEFAULT ''`;
@@ -684,7 +686,7 @@ async function waveSync(sqlFn) {
   }
   for (let p = 1; p <= 30; p++) {
     const d = await waveGql(`query($id: ID!, $p: Int!) { business(id: $id) { invoices(page: $p, pageSize: 100) { pageInfo { totalPages }
-      edges { node { id invoiceNumber invoiceDate dueDate status modifiedAt customer { id name } total { value } amountDue { value } } } } } }`, { id: biz.id, p });
+      edges { node { id invoiceNumber invoiceDate dueDate status modifiedAt customer { id name } total { value } amountDue { value } source { __typename ... on RecurringInvoice { id } } payments { paymentDate } } } } } }`, { id: biz.id, p });
     const c = d.business.invoices; c.edges.forEach(e => invoices.push(e.node));
     if (p >= (c.pageInfo.totalPages || 1)) break;
   }
@@ -694,6 +696,15 @@ async function waveSync(sqlFn) {
   const sent = invoices.filter(i => !['DRAFT', 'SAVED'].includes(i.status));
   const byCust = {};
   sent.forEach(i => { const k = i.customer && i.customer.id; if (k) (byCust[k] = byCust[k] || []).push(i); });
+  const paidOn = i => { const ps = (i.payments || []).map(p => day(p.paymentDate)).filter(Boolean).sort(); return ps.length ? ps[ps.length - 1] : day(i.modifiedAt); };
+  const recId = i => (i.source && i.source.__typename === 'RecurringInvoice' && i.source.id) || '';
+  /* recurring schedules per customer: a schedule is live if it produced an invoice in the last 45 days */
+  const rec = {};
+  sent.forEach(i => { const r = recId(i), k = i.customer && i.customer.id; if (!r || !k) return;
+    rec[k] = rec[k] || {}; const cur = rec[k][r]; if (!cur || String(i.invoiceDate) > String(cur.invoiceDate)) rec[k][r] = i; });
+  const recInfo = k => { const s = Object.values(rec[k] || {}); const live = s.filter(i => day(i.invoiceDate) >= ago(45));
+    return { had: s.length > 0, live: live.length, mrr: live.reduce((a, i) => a + (Number(i.total.value) || 0), 0), last: s.map(i => day(i.invoiceDate)).sort().pop() }; };
+  out.churned = 0; out.mrrUpdated = 0;
 
   /* link or create clients */
   const clients = await sqlFn`SELECT id, name, wave_id, mrr FROM clients`;
@@ -708,16 +719,33 @@ async function waveSync(sqlFn) {
     }
     if (c) continue;
     /* only bring in customers billed in the last 60 days: that is a paying client */
-    const recent = (byCust[cu.id] || []).filter(i => day(i.invoiceDate) >= ago(60)).sort((a, b) => String(b.invoiceDate).localeCompare(String(a.invoiceDate)));
-    if (!recent.length) continue;
-    const months = new Set((byCust[cu.id] || []).filter(i => day(i.invoiceDate) >= ago(100)).map(i => String(i.invoiceDate).slice(0, 7)));
-    const mrr = months.size >= 2 ? Number(recent[0].total.value) || 0 : 0;
+    const ri = recInfo(cu.id);
+    const recent = (byCust[cu.id] || []).filter(i => day(i.invoiceDate) >= ago(60));
+    if (!ri.live && (ri.had || !recent.length)) continue;
+    const mrr = ri.mrr;
     const first = (byCust[cu.id] || []).map(i => day(i.invoiceDate)).sort()[0];
     const id = (await sqlFn`INSERT INTO clients (name, contact, email, phone, mrr, start_date, term_months, status, wave_id)
       VALUES (${nm}, ${((cu.firstName || '') + ' ' + (cu.lastName || '')).trim()}, ${cu.email || ''}, ${normPhone(cu.phone || cu.mobile) || ''}, ${mrr},
               ${first || day(cu.createdAt)}, 0, 'active', ${cu.id}) RETURNING id`)[0].id;
-    await sqlFn`INSERT INTO client_log (client_id, author, note) VALUES (${id}, 'wave', ${'Imported from Wave' + (mrr ? ' (MRR set from recent invoices: $' + mrr + ')' : '')})`;
+    await sqlFn`INSERT INTO client_log (client_id, author, note) VALUES (${id}, 'wave', ${'Imported from Wave' + (mrr ? ' (MRR from Wave recurring invoices: $' + mrr + ')' : '')})`;
     byWave[cu.id] = { id, name: nm, wave_id: cu.id }; out.newClients++;
+  }
+
+  /* existing linked clients: keep MRR and status in step with Wave recurring invoices */
+  const linkedRows = await sqlFn`SELECT id, name, wave_id, mrr, status, mrr_manual FROM clients WHERE wave_id <> ''`;
+  for (const c of linkedRows) {
+    const ri = recInfo(c.wave_id);
+    if (!ri.had) continue;                                   /* one-off billing only: leave it to Ty */
+    if (!ri.live && (c.status === 'active' || c.status === 'onboarding')) {
+      await sqlFn`UPDATE clients SET status='churned', updated=now() WHERE id=${c.id}`;
+      await sqlFn`INSERT INTO client_log (client_id, author, note) VALUES (${c.id}, 'wave', ${'Marked churned: no recurring invoice in Wave since ' + ri.last})`;
+      await sqlFn`UPDATE deals SET status='cancelled', cancelled_ts=now() WHERE lower(business)=lower(${c.name}) AND status='approved' AND cancelled_ts IS NULL`;
+      out.churned++;
+    } else if (ri.live && !c.mrr_manual && Number(c.mrr) !== ri.mrr) {
+      await sqlFn`UPDATE clients SET mrr=${ri.mrr}, updated=now() WHERE id=${c.id}`;
+      await sqlFn`INSERT INTO client_log (client_id, author, note) VALUES (${c.id}, 'wave', ${'MRR synced from Wave recurring invoice: $' + Number(c.mrr) + ' → $' + ri.mrr})`;
+      out.mrrUpdated++;
+    }
   }
 
   /* invoices */
@@ -731,16 +759,17 @@ async function waveSync(sqlFn) {
       const nowPaid = paid && prev.status !== 'paid';
       await sqlFn`UPDATE invoices SET client_id=${c.id}, number=${i.invoiceNumber || ''}, amount=${amt}, amount_due=${due}, issued=${day(i.invoiceDate)}, due=${day(i.dueDate)},
         status=${paid ? 'paid' : 'open'}, wave_status=${i.status} WHERE id=${prev.id}`;
-      if (nowPaid) await sqlFn`UPDATE invoices SET paid_date=${day(i.modifiedAt)} WHERE id=${prev.id}`;
+      if (paid) await sqlFn`UPDATE invoices SET paid_date=${paidOn(i)} WHERE id=${prev.id}`;
+      await sqlFn`UPDATE invoices SET recurring_id=${recId(i)} WHERE id=${prev.id}`;
       if (!paid) await sqlFn`UPDATE invoices SET paid_date=NULL WHERE id=${prev.id}`;
       if (nowPaid) { out.paidNow++; await sqlFn`INSERT INTO client_log (client_id, author, note) VALUES (${c.id}, 'wave', ${'Paid in Wave: invoice #' + (i.invoiceNumber || '') + ' $' + amt})`; }
     } else {
       /* a manual entry for the same invoice number takes the Wave link instead of duplicating */
       const man = i.invoiceNumber ? (await sqlFn`SELECT id FROM invoices WHERE client_id=${c.id} AND number=${String(i.invoiceNumber)} AND (wave_id IS NULL OR wave_id='')`)[0] : null;
       if (man) await sqlFn`UPDATE invoices SET wave_id=${i.id}, amount=${amt}, amount_due=${due}, issued=${day(i.invoiceDate)}, due=${day(i.dueDate)}, status=${paid ? 'paid' : 'open'}, wave_status=${i.status},
-          paid_date=${paid ? day(i.modifiedAt) : null} WHERE id=${man.id}`;
-      else await sqlFn`INSERT INTO invoices (client_id, number, amount, amount_due, issued, due, status, wave_status, paid_date, wave_id, note)
-        VALUES (${c.id}, ${i.invoiceNumber || ''}, ${amt}, ${due}, ${day(i.invoiceDate)}, ${day(i.dueDate)}, ${paid ? 'paid' : 'open'}, ${i.status}, ${paid ? day(i.modifiedAt) : null}, ${i.id}, 'From Wave')`;
+          paid_date=${paid ? paidOn(i) : null}, recurring_id=${recId(i)} WHERE id=${man.id}`;
+      else await sqlFn`INSERT INTO invoices (client_id, number, amount, amount_due, issued, due, status, wave_status, paid_date, wave_id, recurring_id, note)
+        VALUES (${c.id}, ${i.invoiceNumber || ''}, ${amt}, ${due}, ${day(i.invoiceDate)}, ${day(i.dueDate)}, ${paid ? 'paid' : 'open'}, ${i.status}, ${paid ? paidOn(i) : null}, ${i.id}, ${recId(i)}, ${recId(i) ? 'Wave recurring' : 'From Wave'})`;
     }
     out.invoices++;
   }
