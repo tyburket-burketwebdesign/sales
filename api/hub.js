@@ -232,7 +232,7 @@ module.exports = async function handler(req, res) {
         const referrals = await sql`SELECT r.*, p.company AS partner FROM referrals r LEFT JOIN ref_partners p ON p.id=r.partner_id ORDER BY r.ts DESC LIMIT 300`;
         const credits = await sql`SELECT c.*, p.company AS partner FROM ref_credits c LEFT JOIN ref_partners p ON p.id=c.partner_id ORDER BY c.ts DESC LIMIT 200`;
         const tpl = process.env.DOCUSEAL_TEMPLATE_REFERRAL || ((await sql`SELECT v FROM kv WHERE k='ref_template'`)[0] || {}).v || '';
-        return ok({ partners, referrals, credits, template: tpl, base });
+        return ok({ partners, referrals, credits, template: tpl, base, linkBase: /\/\/refer\./.test(base) ? base + '/' : base + '/refer.html?c=' });
       }
       if (a === 'ref.enrolled') {
         return ok((await sql`SELECT lower(company) AS c FROM ref_partners WHERE status <> 'archived'`).map(r => r.c));
@@ -289,7 +289,7 @@ module.exports = async function handler(req, res) {
         const p = (await sql`SELECT * FROM ref_partners WHERE id=${Number(P.id) || 0}`)[0];
         if (!p) return err('Partner not found.');
         if (!/@/.test(p.email)) return err('Add an email for ' + p.company + ' first.');
-        const link = base + '/refer.html?c=' + p.code, first = String(p.contact || '').split(' ')[0] || 'there';
+        const link = (/\/\/refer\./.test(base) ? base + '/' : base + '/refer.html?c=') + p.code, first = String(p.contact || '').split(' ')[0] || 'there';
         const html = '<p>Hi ' + first + ',</p>' +
           '<p>Thank you for being a Burket Web Design client. A lot of our best clients come from people like you, so we started a referral program to say thanks.</p>' +
           '<p><b>Here is how it works:</b> when a business you send our way signs up for a monthly plan and pays their first invoice, you get a credit on your next invoice equal to their first month. That is $500 to $1,250 off, depending on their plan. Website projects earn 10% of the project, up to $500. There is no limit.</p>' +
