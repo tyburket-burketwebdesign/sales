@@ -51,6 +51,19 @@ async function ensureSchema() {
     vm_url TEXT DEFAULT '', vm_secs INT DEFAULT 0, done_by TEXT DEFAULT '', done_ts TIMESTAMPTZ, ts TIMESTAMPTZ DEFAULT now()
   )`;
   await sql`CREATE INDEX IF NOT EXISTS idx_inbound_ts ON inbound (ts)`;
+  await sql`CREATE TABLE IF NOT EXISTS ref_partners (
+    id SERIAL PRIMARY KEY, company TEXT, contact TEXT DEFAULT '', email TEXT DEFAULT '', phone TEXT DEFAULT '', code TEXT UNIQUE,
+    status TEXT DEFAULT 'active', agreement TEXT DEFAULT 'none', docuseal_id TEXT DEFAULT '', pdf_url TEXT DEFAULT '',
+    invited_ts TIMESTAMPTZ, signed_ts TIMESTAMPTZ, ts TIMESTAMPTZ DEFAULT now()
+  )`;
+  await sql`CREATE TABLE IF NOT EXISTS referrals (
+    id SERIAL PRIMARY KEY, partner_id INT, business TEXT, contact TEXT DEFAULT '', phone TEXT DEFAULT '', email TEXT DEFAULT '',
+    note TEXT DEFAULT '', status TEXT DEFAULT 'submitted', source TEXT DEFAULT 'hub', kind TEXT DEFAULT '', amount NUMERIC DEFAULT 0,
+    credit NUMERIC DEFAULT 0, ts TIMESTAMPTZ DEFAULT now(), updated TIMESTAMPTZ DEFAULT now()
+  )`;
+  await sql`CREATE TABLE IF NOT EXISTS ref_credits (
+    id SERIAL PRIMARY KEY, partner_id INT, referral_id INT, amount NUMERIC, note TEXT DEFAULT '', author TEXT DEFAULT '', ts TIMESTAMPTZ DEFAULT now()
+  )`;
   await sql`CREATE TABLE IF NOT EXISTS lp_check ( phone TEXT PRIMARY KEY, platforms TEXT DEFAULT '', none BOOLEAN DEFAULT false, rep TEXT DEFAULT '', ts TIMESTAMPTZ DEFAULT now() )`;
   await sql`ALTER TABLE companies ADD COLUMN IF NOT EXISTS alt_phones TEXT DEFAULT ''`;
   await sql`ALTER TABLE calls ADD COLUMN IF NOT EXISTS fup_rep TEXT DEFAULT ''`;
