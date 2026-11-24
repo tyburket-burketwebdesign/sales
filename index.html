@@ -2241,7 +2241,7 @@ function waveStatus(){
 function waveSync(){
   var b=$('wv-go'); b.disabled=true; b.textContent='Syncing...';
   api('crm.wave.sync').then(function(r){
-    toast('Wave ('+r.business+'): '+r.invoices+' invoices synced'+(r.newClients?', '+r.newClients+' new clients':'')+(r.paidNow?', '+r.paidNow+' newly paid':'')+'.');
+    toast('Wave ('+r.business+'): '+r.invoices+' invoices synced'+(r.newClients?', '+r.newClients+' new clients':'')+(r.paidNow?', '+r.paidNow+' newly paid':'')+(r.mrrUpdated?', '+r.mrrUpdated+' MRR updates':'')+(r.churned?', '+r.churned+' marked churned (recurring stopped)':'')+'.');
     CRM.clients=[]; blLoad();
   }).catch(function(e){ alert(e.message); }).finally(function(){ b.disabled=false; b.textContent='Sync now'; });
 }
