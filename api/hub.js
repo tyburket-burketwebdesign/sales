@@ -296,6 +296,11 @@ module.exports = async function handler(req, res) {
       }
       if (a === 'crm.templates') return ok(Object.keys(TPL).map(k => ({ key: k, label: TPL[k].label, n: TPL[k].items.length })));
 
+      if (a === 'crm.wave.status') {
+        const last = ((await sql`SELECT v FROM kv WHERE k='wave_last_sync'`)[0] || {}).v;
+        return ok({ connected: !!process.env.WAVE_TOKEN, last: last ? JSON.parse(last) : null });
+      }
+      if (a === 'crm.wave.sync') return ok(await C.waveSync(sql));
       if (a === 'crm.clients') return ok(await clientRows());
       if (a === 'crm.client.get') {
         const id = Number(P.id) || 0;

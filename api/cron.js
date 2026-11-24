@@ -122,6 +122,9 @@ module.exports = async function handler(req, res) {
       } catch (e) { out.errors.push('statements: ' + e.message); }
     }
 
+    /* ---- 6b. pull customers and invoices from Wave ---- */
+    if (process.env.WAVE_TOKEN) { try { out.wave = await C.waveSync(sql); } catch (e) { out.errors.push('wave: ' + e.message); } }
+
     /* ---- 7. CRM morning digest for the owner: overdue invoices, tasks due, renewals ---- */
     try {
       const inv = await sql`SELECT i.number, i.amount, c.name, (current_date - i.due) AS days FROM invoices i JOIN clients c ON c.id=i.client_id WHERE i.status='open' AND i.due < current_date ORDER BY i.due`;
