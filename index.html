@@ -175,6 +175,7 @@ tr.done{opacity:.45}
 .oa-shot .tg{display:inline-block;font-size:10.5px;font-weight:800;letter-spacing:.05em;border-radius:99px;padding:2px 8px;margin-bottom:3px;background:var(--chip);color:var(--blue)}
 .oa-shot .tg.g{background:#fff4c2;color:#7a5b00}
 .oa-note{font-size:12px;color:var(--muted);margin-top:6px;border-left:3px solid var(--teal);padding-left:8px}
+.lp-ver{display:inline-block;font-size:11px;font-weight:800;border-radius:99px;padding:2px 9px;background:#dcfce7;color:#166534}
 .lp-badge{display:inline-block;font-size:11px;font-weight:800;border-radius:99px;padding:2px 9px;background:#fff4c2;color:#7a5b00;margin-left:4px}
 @media(max-width:700px){.oa-steps{grid-template-columns:1fr}}
 .obj{background:var(--bg);border-radius:10px;padding:10px 12px;margin-top:8px;font-size:13px;line-height:1.55;cursor:pointer}
@@ -615,7 +616,18 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--m
             <div style="flex:1;min-width:110px"><label id="l-customLbl">Or any town</label><input id="l-custom" placeholder="any town"></div>
             <button class="btn-go" id="l-go" onclick="lHunt()">Find lead buyers &rarr;</button>
           </div>
-          <div class="hint" id="l-hint" style="margin-top:6px">Scanning takes 20 to 60 seconds: the hub opens each website and looks for the badge. It sweeps up to 12 nearby towns until it has 20.</div>
+          <div class="hint" id="l-hint" style="margin-top:6px">Quick scan: the hub opens each website and looks for a platform badge. Fast, but it only finds the ones who advertise it, so these show as <b>Badge</b>, not <b>Verified</b>.</div>
+        </div>
+        <div class="card" style="margin-top:14px;border:2px solid var(--green)">
+          <b style="font-size:15px">&#9989; Verified lead buyers</b>
+          <div class="hint" style="margin-top:4px;line-height:1.6">The sure way. Every pro listed on these platforms pays for leads, so we pull straight from the platform. <b>1.</b> Open a platform search below (it opens a Google search of that platform for your industry and town). <b>2.</b> Open the pro profiles, copy each profile link. <b>3.</b> Paste the links here, one per line (or type <i>Business name | Town</i>). The hub finds the Google listing and phone and adds them to your list marked <b>Verified</b>.</div>
+          <div class="row" style="margin-top:10px;gap:6px" id="l-search"></div>
+          <div class="row" style="align-items:flex-end;margin-top:10px">
+            <div><label>Platform</label><select id="l-vplat"><option>Thumbtack</option><option>Angi</option><option>HomeAdvisor</option></select></div>
+            <div style="flex:1;min-width:220px"><label>Profile links or names</label><textarea id="l-vlines" rows="4" placeholder="https://www.thumbtack.com/fl/tampa/pavers/...&#10;https://www.angi.com/companylist/us/fl/tampa/...htm&#10;Sunshine Pavers | Brandon FL"></textarea></div>
+            <button class="btn-green" id="l-vgo" onclick="lVerify()">Add verified &rarr;</button>
+          </div>
+          <div class="hint" id="l-vmiss" style="margin-top:6px"></div>
         </div>
         <div class="card" style="margin-top:14px">
           <div class="row">
@@ -3241,7 +3253,7 @@ function lInit(){
     mk.value=$('market').value||MARKETS[0]; ind.value=$('industry').value||'0';
     $('l-customLbl').textContent='Or any town ('+TERR.state+')';
   }
-  lRender();
+  lRender(); lSearchLinks(); $('l-market').onchange=$('l-industry').onchange=$('l-custom').oninput=lSearchLinks;
   $('l-oa').innerHTML=oaRender(LIST[0]&&isListing(LIST[0])?LIST[0]:{platform:'HomeAdvisor'},OA_M);
 }
 function lRender(){
@@ -3253,10 +3265,40 @@ function lRender(){
   $('l-start').style.display=(L.length&&called<L.length)?'inline-block':'none';
   $('l-rows').innerHTML=L.length?L.map(function(b,i){
     return '<tr class="biz'+(b.status?' done':'')+'" onclick="openCall('+i+')"><td style="color:var(--muted2)">'+(i+1)+'</td>'+
-      '<td><b>'+esc(b.name)+'</b><div class="hint">'+esc(b.evidence||'')+'</div></td>'+
+      '<td><b>'+esc(b.name)+'</b>'+(b.verified?' <span class="lp-ver">&#10003; Verified</span>':' <span class="lp-badge" style="background:#eef2f6;color:#5b6b7b">Badge</span>')+'<div class="hint">'+esc(b.evidence||'')+(b.profile?' · <a href="'+esc(b.profile)+'" target="_blank" onclick="event.stopPropagation()">profile</a>':'')+'</div></td>'+
       '<td>'+(b.platforms||[b.platform]).map(function(x){return '<span class="lp-badge">'+esc(x)+'</span>';}).join('')+'</td>'+
       '<td class="phone">'+esc(fmtPhone(b.phone))+'</td><td class="hidem">'+gCell(b)+'</td><td>'+statusTag(b.status)+'</td></tr>';
   }).join(''):'<tr><td colspan="6"><div class="empty">'+(LIST.length&&!on?'Your dialer has a regular list loaded. Building here swaps in a lead-buyer list (already-called numbers stay in Past Calls).':'Pick a market and industry, then hit Find lead buyers.')+'</div></td></tr>';
+}
+function lSearchLinks(){
+  var town=($('l-custom').value.trim()||$('l-market').value)+' '+TERR.state, ind=INDUSTRIES[Number($('l-industry').value)]||{label:''};
+  var t=ind.label.toLowerCase();
+  var Q=[['Thumbtack','site:thumbtack.com '+t+' '+town],['Angi','site:angi.com/companylist '+t+' '+town],['HomeAdvisor','site:homeadvisor.com/rated '+t+' '+town]];
+  $('l-search').innerHTML=Q.map(function(q){ return '<a class="btn-ghost btn-sm" target="_blank" href="https://www.google.com/search?q='+encodeURIComponent(q[1])+'">Search '+q[0]+' &#8599;</a>'; }).join('');
+}
+function lVerify(){
+  var lines=$('l-vlines').value.trim(); if(!lines) return toast('Paste at least one profile link or name.');
+  var plat=$('l-vplat').value, town=($('l-custom').value.trim()||$('l-market').value)+' '+TERR.state, ind=INDUSTRIES[Number($('l-industry').value)];
+  var btn=$('l-vgo'); btn.disabled=true; btn.textContent='Matching...'; $('l-vmiss').textContent='';
+  api('listing.verify',{platform:plat,metro:town,lines:lines}).then(function(d){
+    if(LISTMETA.mode!=='listing'){
+      var open=LIST.filter(function(b){return !b.status;}).length;
+      if(open && !LISTMETA.demo && !confirm('Your dialer still has '+open+' uncalled businesses. Swap in the verified list?')) return;
+      LIST=[]; LISTMETA={ city:town, industry:ind.label, noun:ind.noun, best:ind.best, date:todayKey(), pro:true, mode:'listing' };
+    }
+    var have={}; LIST.forEach(function(b){have[b.phone]=b;});
+    var added=0;
+    d.list.forEach(function(b){
+      if(have[b.phone]){ have[b.phone].verified=true; have[b.phone].platform=plat; have[b.phone].platforms=[plat]; have[b.phone].evidence=b.evidence; have[b.phone].profile=b.profile; return; }
+      b.industry=ind.label; b.status=''; b.note=''; LIST.unshift(b); added++;
+    });
+    LIST.sort(function(a,b){ return (b.verified?1:0)-(a.verified?1:0); });
+    save('sdr_list',LIST); save('sdr_listmeta',LISTMETA); renderList(); lRender();
+    $('l-vlines').value=(d.missed||[]).length?'':'';
+    $('l-vmiss').innerHTML=(d.missed||[]).length?'<b>Could not match '+d.missed.length+':</b> '+esc(d.missed.join('; '))+'. Try <i>Business name | Town</i> for those.':'';
+    if(d.list.length){ chime(); toast(added+' verified lead buyer'+(added===1?'':'s')+' added.'); }
+  }).catch(function(e){ toast(e.message); })
+    .finally(function(){ btn.disabled=false; btn.innerHTML='Add verified &rarr;'; });
 }
 function lStart(){
   for (var i=0;i<LIST.length;i++){ if(!LIST[i].status) return openCall(i); }

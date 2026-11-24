@@ -186,6 +186,53 @@ module.exports = async function handler(req, res) {
     }
 
     /* ---------------- LISTING CALLS: businesses buying shared leads ---------------- */
+    if (a === 'listing.verify') {
+      // Leads Ty or Steven confirmed by hand on the platform itself. Each line: a profile URL, or "Business name | town".
+      const platform = String(P.platform || 'Thumbtack');
+      const metro = String(P.metro || '').trim();
+      const lines = String(P.lines || '').split(/\n+/).map(s => s.trim()).filter(Boolean).slice(0, 40);
+      if (!lines.length) return err('Paste at least one profile link or business name.');
+      const toks = s => String(s || '').toLowerCase().replace(/&/g, ' and ').replace(/[^a-z0-9 ]+/g, ' ').split(/\s+/)
+        .filter(w => w.length > 1 && !['llc', 'inc', 'co', 'the', 'and', 'of', 'company', 'corp', 'reviews', 'service', 'services'].includes(w));
+      const fromUrl = u => {
+        let m;
+        if ((m = u.match(/angi\.com\/companylist\/us\/([a-z]{2})\/([^\/]+)\/([^\/?#]+?)(?:-reviews)?-\d+\.htm/i))) return { name: m[3].replace(/-/g, ' '), town: m[2].replace(/-/g, ' ') + ' ' + m[1].toUpperCase() };
+        if ((m = u.match(/homeadvisor\.com\/rated\.([^.\/?#]+)\.\d+/i))) return { name: m[1].replace(/([a-z])([A-Z])/g, '$1 $2').replace(/-/g, ' '), town: '' };
+        if ((m = u.match(/thumbtack\.com\/([a-z]{2})\/([^\/]+)\/[^\/]+\/([^\/?#]+)/i))) return { name: m[3].replace(/-/g, ' '), town: m[2].replace(/-/g, ' ') + ' ' + m[1].toUpperCase() };
+        return null;
+      };
+      let loc = null; if (metro) { try { loc = await C.geocodeCity(metro); } catch (e) {} }
+      const found = [], missed = [];
+      for (const line of lines) {
+        const isUrl = /^https?:\/\//i.test(line);
+        let q = isUrl ? fromUrl(line) : { name: line.split('|')[0].trim(), town: (line.split('|')[1] || '').trim() };
+        if (!q || !q.name) { missed.push(line + ' (could not read a business name from that link)'); continue; }
+        const town = q.town || metro;
+        let res = [];
+        try {
+          const l2 = town && town !== metro ? await C.geocodeCity(town).catch(() => loc) : loc;
+          res = l2 ? await C.placesBiased(q.name + (town ? ' ' + town : ''), l2.lat, l2.lng, 60000) : await C.placesSearch(q.name + ' ' + town);
+        } catch (e) { missed.push(line + ' (' + e.message + ')'); continue; }
+        const want = toks(q.name);
+        let best = null, bestScore = 0;
+        for (const b of res.slice(0, 8)) {
+          const have = new Set(toks(b.name));
+          const hit = want.filter(w => have.has(w) || have.has(w.replace(/s$/, ''))).length;
+          const score = want.length ? hit / want.length : 0;
+          if (score > bestScore && C.normPhone(b.phone)) { best = b; bestScore = score; }
+        }
+        if (!best || bestScore < 0.6) { missed.push(q.name + (town ? ', ' + town : '') + ' (no confident Google match)'); continue; }
+        found.push({ name: best.name, phone: C.normPhone(best.phone), website: best.website || '', rating: best.rating, reviews: best.reviews,
+          addr: best.addr, maps: best.maps, town: town, src: 'listing', platform, platforms: [platform], verified: true,
+          profile: isUrl ? line : '', why: 'Verified on ' + platform,
+          evidence: 'Verified on ' + platform + (isUrl ? ' (profile linked)' : '') });
+      }
+      const phones = found.map(b => b.phone); const dnc = {};
+      if (phones.length) (await sql`SELECT phone FROM dnc WHERE phone = ANY(${phones})`).forEach(r => dnc[r.phone] = true);
+      const seen = {};
+      const list = found.filter(b => !dnc[b.phone] && !seen[b.phone] && (seen[b.phone] = true));
+      return ok({ list, missed });
+    }
     if (a === 'listing.build') {
       const vertical = String(P.vertical || '').trim();
       if (!vertical) return err('Pick an industry first.');
@@ -222,7 +269,7 @@ module.exports = async function handler(req, res) {
           if (!d.platforms.length) return;
           out.push({ name: b.name, phone: b.phone, website: b.website, rating: b.rating, reviews: b.reviews, pos: b.pos,
                      addr: b.addr, maps: b.maps, town: b.town, src: 'listing', platform: d.platforms[0], platforms: d.platforms,
-                     why: 'Uses ' + d.platforms.join(' + '), evidence: d.evidence });
+                     why: 'Uses ' + d.platforms.join(' + '), verified: false, evidence: 'Badge on their site: ' + (d.evidence || d.platforms.join(', ')) });
         });
       }
       return ok({ list: await C.cleanLeads(sql, out, vertical), scanned: fresh.length, skipped: cands.length - fresh.length, notes });
