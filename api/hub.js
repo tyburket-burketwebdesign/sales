@@ -98,6 +98,7 @@ module.exports = async function handler(req, res) {
                   mailInfo: { replyTo: C.prospectReplyTo(), bcc: C.prospectBcc() }, meetings: myMeetings, team, auditUrl: C.auditUrl(),
                   twilio: { enabled: C.twilioReady(), numbers: C.twilioNumbers(), callerId: C.callerFor(user) },
                   territory: C.territoryFor(user),
+                  planMonth: ((await sql`SELECT v FROM kv WHERE k='plan_month'`)[0] || {}).v || 'auto',
                   kpi: { target: C.kpiTarget(), bonus: C.kpiBonus(), closedMonth: closedMonth },
                   pipeline: pipeline, waveReady: waveReady,
                   docuseal: !!process.env.DOCUSEAL_API_KEY });
@@ -180,8 +181,51 @@ module.exports = async function handler(req, res) {
         (await sql`SELECT DISTINCT phone FROM calls WHERE phone = ANY(${phones})`).forEach(r => known[r.phone] = true);
         (await sql`SELECT phone FROM dnc WHERE phone = ANY(${phones})`).forEach(r => known[r.phone] = true);
       }
-      const fresh = out.filter(b => !known[b.phone]).slice(0, target);
+      const fresh = (await C.cleanLeads(sql, out.filter(b => !known[b.phone]), vertical)).slice(0, target);
       return ok({ list: fresh, skipped: out.length - fresh.length, notes: notes });
+    }
+
+    /* ---------------- LISTING CALLS: businesses buying shared leads ---------------- */
+    if (a === 'listing.build') {
+      const vertical = String(P.vertical || '').trim();
+      if (!vertical) return err('Pick an industry first.');
+      const metros = (Array.isArray(P.metros) ? P.metros : String(P.metros || '').split(','))
+        .map(x => String(x).trim()).filter(Boolean).slice(0, 3);
+      if (!metros.length) return err('Pick a market first.');
+      const seen = {}, cands = [], notes = [];
+      for (const metro of metros) {
+        let loc, results;
+        try { loc = await C.geocodeCity(metro); } catch (e) { notes.push(metro + ': ' + e.message); continue; }
+        try { results = await C.placesBiased(vertical + ' in ' + metro, loc.lat, loc.lng, 35000); }
+        catch (e) { notes.push(metro + ': ' + e.message); continue; }
+        for (const b of results) {
+          if (b.status !== 'OPERATIONAL' || !b.id || seen[b.id]) continue;
+          seen[b.id] = true;
+          const np = C.normPhone(b.phone);
+          if (!np || !b.website || C.isChain(b.name)) continue;
+          if (b.reviews > 400) continue;                       // big shops run their own marketing department
+          cands.push(Object.assign({}, b, { phone: np, town: metro }));
+        }
+      }
+      const phones = cands.map(b => b.phone); const known = {};
+      if (phones.length) {
+        (await sql`SELECT DISTINCT phone FROM calls WHERE phone = ANY(${phones})`).forEach(r => known[r.phone] = true);
+        (await sql`SELECT phone FROM dnc WHERE phone = ANY(${phones})`).forEach(r => known[r.phone] = true);
+      }
+      const fresh = cands.filter(b => !known[b.phone]).slice(0, 45);
+      const out = [];
+      for (let i = 0; i < fresh.length; i += 15) {
+        const batch = fresh.slice(i, i + 15);
+        const res = await Promise.all(batch.map(b => C.detectLeadPlatforms(b.website).catch(() => ({ platforms: [] }))));
+        batch.forEach((b, k) => {
+          const d = res[k];
+          if (!d.platforms.length) return;
+          out.push({ name: b.name, phone: b.phone, website: b.website, rating: b.rating, reviews: b.reviews, pos: b.pos,
+                     addr: b.addr, maps: b.maps, town: b.town, src: 'listing', platform: d.platforms[0], platforms: d.platforms,
+                     why: 'Uses ' + d.platforms.join(' + '), evidence: d.evidence });
+        });
+      }
+      return ok({ list: await C.cleanLeads(sql, out, vertical), scanned: fresh.length, skipped: cands.length - fresh.length, notes });
     }
 
     /* ---------------- CALL LOGGING ---------------- */
@@ -504,6 +548,30 @@ module.exports = async function handler(req, res) {
       if (allowed.indexOf(P.stage) === -1) return err('Bad stage.');
       await sql`UPDATE companies SET stage=${P.stage}, lost_reason=${P.stage === 'lost' ? (P.reason || '') : ''}, updated=now() WHERE phone=${phone}`;
       return ok(true);
+    }
+    if (a === 'company.rename') {
+      const phone = C.normPhone(P.phone);
+      const name = String(P.name || '').trim().slice(0, 120);
+      if (!phone || !name) return err('Need the phone and the new name.');
+      const cur = (await sql`SELECT name FROM companies WHERE phone=${phone}`)[0];
+      if (cur) await sql`UPDATE companies SET name=${name}, updated=now() WHERE phone=${phone}`;
+      else await C.upsertCompany({ phone, name, website: P.website || '', city: P.city || '', industry: P.industry || '', rep: user.email }, 'new');
+      await sql`UPDATE calls SET name=${name} WHERE phone=${phone}`;
+      await sql`UPDATE meetings SET business=${name} WHERE phone=${phone}`;
+      await sql`UPDATE seqs SET business=${name} WHERE phone=${phone}`;
+      if (cur && cur.name && cur.name !== name)
+        await sql`INSERT INTO company_notes (phone, author, note) VALUES (${phone}, ${user.email}, ${'Renamed from "' + cur.name + '" to "' + name + '"'})`;
+      return ok({ name });
+    }
+    if (a === 'plan.month') {
+      if (P.set != null) {
+        if (!OWNER) return err('Owner only.');
+        const v = ['auto', 'nov', 'dec'].indexOf(P.set) > -1 ? P.set : 'auto';
+        await sql`INSERT INTO kv (k, v) VALUES ('plan_month', ${v}) ON CONFLICT (k) DO UPDATE SET v = EXCLUDED.v`;
+        return ok(v);
+      }
+      const r = (await sql`SELECT v FROM kv WHERE k='plan_month'`)[0];
+      return ok(r ? r.v : 'auto');
     }
     if (a === 'company.save') {
       const phone = C.normPhone(P.phone);

@@ -160,6 +160,20 @@ tr.done{opacity:.45}
 [data-dark] .weblinks a{color:var(--teal)}
 .script{background:var(--script-bg);border:1px solid var(--script-line);border-radius:12px;padding:14px 16px;font-size:14.5px;line-height:1.75;white-space:pre-wrap;margin-top:10px}
 .vm{background:var(--vm-bg);border-color:var(--vm-line)}
+.oa-bar{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
+.oa-bar button{font-size:12.5px;padding:6px 11px}
+.oa-bar button.on{background:var(--navy);color:#fff}
+.oa-steps{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:8px 0}
+.oa-steps div{background:var(--bg);border-radius:10px;padding:8px 10px;font-size:12px;line-height:1.45;border-top:3px solid var(--gold)}
+.oa-steps b{display:block;color:var(--navy);font-size:12px;letter-spacing:.04em}
+.oa-card{border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-top:8px;background:var(--card)}
+.oa-card h4{margin:0 0 6px;font-size:14px;color:var(--navy)}
+.oa-shot{margin-top:7px;font-size:13px;line-height:1.55}
+.oa-shot .tg{display:inline-block;font-size:10.5px;font-weight:800;letter-spacing:.05em;border-radius:99px;padding:2px 8px;margin-bottom:3px;background:var(--chip);color:var(--blue)}
+.oa-shot .tg.g{background:#fff4c2;color:#7a5b00}
+.oa-note{font-size:12px;color:var(--muted);margin-top:6px;border-left:3px solid var(--teal);padding-left:8px}
+.lp-badge{display:inline-block;font-size:11px;font-weight:800;border-radius:99px;padding:2px 9px;background:#fff4c2;color:#7a5b00;margin-left:4px}
+@media(max-width:700px){.oa-steps{grid-template-columns:1fr}}
 .obj{background:var(--bg);border-radius:10px;padding:10px 12px;margin-top:8px;font-size:13px;line-height:1.55;cursor:pointer}
 .obj:hover{background:var(--hover)}
 .obj b{color:var(--blue)}
@@ -373,6 +387,8 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--m
       <div class="navsec">WORK</div>
       <button class="nv on" data-view="dash"><span class="ic">&#127968;</span>Dashboard</button>
       <button class="nv" data-view="dialer"><span class="ic">&#128222;</span>Dialer<span class="pill" id="navDialPill" style="display:none"></span></button>
+      <button class="nv" data-view="listing"><span class="ic">&#127991;&#65039;</span>Listing Calls</button>
+      <button class="nv" data-view="dec"><span class="ic">&#127876;</span>December Plan<span class="pill" id="navDecPill" style="display:none">LIVE</span></button>
       <button class="nv" data-view="pipe"><span class="ic">&#128202;</span>Pipeline</button>
       <button class="nv" data-view="meet"><span class="ic">&#129309;</span>Meetings</button>
       <button class="nv" data-view="lists"><span class="ic">&#128203;</span>Custom Lists<span class="pill" id="navListPill" style="display:none"></span></button>
@@ -428,7 +444,7 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--m
           <h2 id="heroHi">Welcome back</h2>
           <div class="sub" id="planLine"></div>
           <div class="row" style="margin-top:14px">
-            <button class="btn-go" onclick="gotoView('dialer');setTimeout(hunt,50)">&#9889; Build Today's 25 &amp; Dial</button>
+            <button class="btn-go" onclick="goToday()">&#9889; Build Today's 25 &amp; Dial</button>
             <button class="btn-ghost" style="background:rgba(255,255,255,.12);color:#fff" onclick="gotoView('play')">&#128218; Open the Playbook</button>
             <button class="btn-ghost" style="background:rgba(124,58,237,.35);color:#fff" onclick="enterDemo()">&#127891; Demo / Training</button>
             <button class="btn-ghost" style="background:rgba(255,255,255,.12);color:#fff" onclick="openMorning()">&#9728;&#65039; Morning Start</button>
@@ -587,6 +603,47 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--m
         <div id="playWrap"></div>
       </div>
 
+      <div class="view" id="v-dec">
+        <div class="card">
+          <div class="row" style="align-items:center">
+            <div style="flex:1"><b style="font-size:15px">&#127876; December Plan</b>
+              <div class="hint" id="dec-status"></div></div>
+            <div id="dec-ctl"></div>
+          </div>
+        </div>
+        <div id="dec-body"></div>
+      </div>
+
+      <div class="view" id="v-listing">
+        <div class="card">
+          <b style="font-size:15px">&#127991;&#65039; Listing Calls</b>
+          <div class="hint" style="margin-top:4px;line-height:1.6">Only businesses already paying for shared leads on <b>HomeAdvisor, Angi, Thumbtack</b> or similar. They already spend money to get customers, they already hate shared leads, and the opener is built around that pain. The hub scans each business's Google listing and website for a lead-platform badge or profile, and only keeps the ones that show one.</div>
+          <div class="row" style="align-items:flex-end;margin-top:10px">
+            <div><label>Market</label><select id="l-market"></select></div>
+            <div><label>Industry</label><select id="l-industry"></select></div>
+            <div style="flex:1;min-width:110px"><label id="l-customLbl">Or any town</label><input id="l-custom" placeholder="any town"></div>
+            <button class="btn-go" id="l-go" onclick="lHunt()">Find lead buyers &rarr;</button>
+          </div>
+          <div class="hint" id="l-hint" style="margin-top:6px">Scanning takes 20 to 60 seconds: the hub opens each website and looks for the badge. It sweeps up to 12 nearby towns until it has 20.</div>
+        </div>
+        <div class="card" style="margin-top:14px">
+          <div class="row">
+            <b style="font-size:15px" id="l-title">Lead-buyer list</b>
+            <div style="flex:1"></div>
+            <span style="font-size:13px;font-weight:700;color:var(--muted)" id="l-bar">0 / 0</span>
+            <button class="btn-green" id="l-start" style="display:none" onclick="lStart()">&#9654; Start Calling</button>
+          </div>
+          <div style="overflow-x:auto;margin-top:8px"><table>
+            <thead><tr><th style="width:26px">#</th><th>Business</th><th>Lead program</th><th>Phone</th><th class="hidem">Google</th><th>Status</th></tr></thead>
+            <tbody id="l-rows"></tbody></table></div>
+        </div>
+        <div class="card" style="margin-top:14px">
+          <b style="font-size:15px">&#129517; Objection Assistant</b>
+          <div class="hint">Every objection has a first shot and a second shot. Cold-call objections earn the walkthrough; close objections get isolated as product or price.</div>
+          <div id="l-oa"></div>
+        </div>
+      </div>
+
       <div class="view" id="v-lists">
         <div class="card">
           <div class="row" style="align-items:flex-end">
@@ -741,8 +798,9 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--m
     <div class="head">
       <div class="row" style="flex-wrap:nowrap">
         <div style="flex:1;min-width:0">
-          <h2 id="p-name">Business</h2>
+          <h2 id="p-name" style="display:inline">Business</h2> <button class="btn-ghost btn-sm" onclick="renameBiz()" title="Fix the business name" style="background:rgba(255,255,255,.12);color:#fff;padding:3px 9px;vertical-align:middle">&#9998; Rename</button>
           <div class="sub" id="p-meta"></div>
+          <div id="p-namecheck" style="display:none;margin-top:8px;background:rgba(254,200,20,.16);border:1px solid rgba(254,200,20,.5);border-radius:10px;padding:7px 10px;font-size:12.5px;color:#fff;line-height:1.5"></div>
         </div>
         <button class="btn-ghost btn-sm" onclick="closeCall()" style="background:rgba(255,255,255,.12);color:#fff;flex:none">&#10005;</button>
       </div>
@@ -822,6 +880,7 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--m
         <button id="sp-straight" onclick="setScriptMode('straight')">Straight Shooter</button>
         <button id="sp-expert" onclick="setScriptMode('expert')">Local Expert</button>
         <button id="sp-gatekeeper" onclick="setScriptMode('gatekeeper')">Gatekeeper Breaker</button>
+        <select id="lp-prog" style="display:none;max-width:150px;font-size:12px" onchange="lSetProgram(this.value)" title="Lead program they use"></select>
         <button class="btn-ghost btn-sm" onclick="copyTxt($('p-script').textContent,'Script copied.')" style="margin-left:auto">Copy</button>
       </div>
       <div class="script" id="p-script" style="margin-top:0"></div>
@@ -1013,7 +1072,7 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--m
       <button class="btn-ghost" onclick="closeMorning()">Not yet</button>
       <div style="flex:1"></div>
       <button class="btn-blue" id="ms-fupBtn" style="display:none" onclick="closeMorning();gotoView('dialer');openFup(0)">Start with follow-ups</button>
-      <button class="btn-go" onclick="closeMorning();gotoView('dialer');setTimeout(hunt,50)">&#9889; Build today's list &amp; dial</button>
+      <button class="btn-go" onclick="closeMorning();goToday()">&#9889; Build today's list &amp; dial</button>
     </div>
   </div>
 </div>
@@ -1138,6 +1197,17 @@ var GAMEPLAN_WEEKS = [
 ];
 function localKey(){ var d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
 function todayPlan(){ return GAMEPLAN[localKey()] || null; }
+function goToday(){
+  var p=todayPlan();
+  if(p&&p.mode==='listing'){
+    gotoView('listing');
+    setTimeout(function(){
+      if(MARKETS.indexOf(p.mkt)>-1) $('l-market').value=p.mkt;
+      var i=INDUSTRIES.findIndex(function(x){return x.label===p.ind;}); if(i>-1) $('l-industry').value=String(i);
+      lHunt();
+    },80);
+  } else { gotoView('dialer'); setTimeout(hunt,50); }
+}
 
 /* ================= TERRITORIES ================= *
  * FL: Steven's Southwest Florida plan above.  PA: Ty's home turf, central Pennsylvania.
@@ -1202,10 +1272,89 @@ var PA_WEEKS = [
     why:'Owners check out by Wednesday. Clear every callback and drop-by first, then dial chimney, garage door, and heating companies early in the morning.' }
 ];
 var PA_SET = { state:'PA', region:'Pennsylvania', markets:PA_MARKETS, industries:PA_INDUSTRIES, plan:PA_PLAN, weeks:PA_WEEKS };
+/* ================= DECEMBER PLAN =================
+ * Built around Listing Calls (businesses already paying HomeAdvisor / Angi / Thumbtack) plus the regular map-gap lists.
+ * mode 'listing' = the day's list comes from Listing Calls; 'standard' = the regular Build Today's list. */
+var DEC_FL = {
+  '2026-12-01': { ind:'Roofers',               mkt:'Tampa',          wk:0, mode:'listing' },
+  '2026-12-02': { ind:'HVAC / AC Repair',      mkt:'Fort Myers',     wk:0, mode:'listing' },
+  '2026-12-03': { ind:'Plumbers',              mkt:'Sarasota',       wk:0, mode:'listing' },
+  '2026-12-04': { ind:'Paver & Concrete',      mkt:'Lakeland',       wk:0, mode:'listing' },
+  '2026-12-07': { ind:'Screen Enclosures',     mkt:'Tampa',          wk:1, mode:'listing' },
+  '2026-12-08': { ind:'Roofers',               mkt:'Kissimmee',      wk:1, mode:'listing' },
+  '2026-12-09': { ind:'Pressure Washing',      mkt:'Sarasota',       wk:1, mode:'standard' },
+  '2026-12-10': { ind:'HVAC / AC Repair',      mkt:'Daytona Beach',  wk:1, mode:'listing' },
+  '2026-12-11': { ind:'Pest Control',          mkt:'Cape Coral',     wk:1, mode:'listing' },
+  '2026-12-14': { ind:'Plumbers',              mkt:'Melbourne',      wk:2, mode:'listing' },
+  '2026-12-15': { ind:'Electricians',          mkt:'Tampa',          wk:2, mode:'listing' },
+  '2026-12-16': { ind:'Pool Resurfacing',      mkt:'Kissimmee',      wk:2, mode:'standard' },
+  '2026-12-17': { ind:'Roofers',               mkt:'Daytona Beach',  wk:2, mode:'listing' },
+  '2026-12-18': { ind:'Paver & Concrete',      mkt:'Melbourne',      wk:2, mode:'listing' },
+  '2026-12-21': { ind:'HVAC / AC Repair',      mkt:'Gainesville',    wk:3, mode:'listing' },
+  '2026-12-22': { ind:'Plumbers',              mkt:'Bonita Springs', wk:3, mode:'listing' },
+  '2026-12-23': { ind:'Screen Enclosures',     mkt:'Port Charlotte', wk:3, mode:'standard' },
+  '2026-12-28': { ind:'Roofers',               mkt:'Brandon',        wk:4, mode:'listing' },
+  '2026-12-29': { ind:'HVAC / AC Repair',      mkt:'Sanford',        wk:4, mode:'listing' },
+  '2026-12-30': { ind:'Paver & Concrete',      mkt:'Port St. Lucie', wk:4, mode:'listing' }
+};
+var DEC_FL_WEEKS = [
+  { label:'Dec week 1 (Dec 1 to 4)', focus:'Listing Calls: roofers, HVAC, plumbers and pavers paying for HomeAdvisor and Angi',
+    why:'These owners already spend money every month on shared leads and hate them. Open with their lead program, ask how many of every 10 leads become jobs, and book the walkthrough.' },
+  { label:'Dec week 2 (Dec 7 to 11)', focus:'Listing Calls in Tampa, Kissimmee, Daytona and Cape Coral, one regular list day',
+    why:'Same play in new metros. Wednesday is a regular map-gap list so follow-ups and fresh dials stay balanced.' },
+  { label:'Dec week 3 (Dec 14 to 18)', focus:'Listing Calls on the east coast plus pool resurfacing',
+    why:'Last full selling week before the holidays. Push for walkthroughs this week and for January start dates.' },
+  { label:'Holiday week (Dec 21 to 23)', focus:'Follow-ups first, then light Listing Calls',
+    why:'Owners are winding down. Clear every callback and pitch a January 1 start: "Lock the rate now, we launch the first week of January."' },
+  { label:'Year-end (Dec 28 to 30)', focus:'Book January',
+    why:'Owners plan the new year this week. Every walkthrough booked now is a January customer. Off Dec 24, 25 and 31.' }
+];
+var DEC_PA = {
+  '2026-12-01': { ind:'Heating & Furnace (HVAC)',  mkt:'State College', wk:0, mode:'listing' },
+  '2026-12-02': { ind:'Plumbers',                  mkt:'Altoona',       wk:0, mode:'listing' },
+  '2026-12-03': { ind:'Roofers',                   mkt:'Johnstown',     wk:0, mode:'listing' },
+  '2026-12-04': { ind:'Snow Plowing & Landscaping',mkt:'Altoona',       wk:0, mode:'standard' },
+  '2026-12-07': { ind:'Heating & Furnace (HVAC)',  mkt:'Bedford',       wk:1, mode:'listing' },
+  '2026-12-08': { ind:'Electricians & Generators', mkt:'Johnstown',     wk:1, mode:'listing' },
+  '2026-12-09': { ind:'Accountants & Tax Prep',    mkt:'State College', wk:1, mode:'standard' },
+  '2026-12-10': { ind:'Plumbers',                  mkt:'Indiana',       wk:1, mode:'listing' },
+  '2026-12-11': { ind:'Kitchen & Bath Remodelers', mkt:'Altoona',       wk:1, mode:'listing' },
+  '2026-12-14': { ind:'Roofers',                   mkt:'Somerset',      wk:2, mode:'listing' },
+  '2026-12-15': { ind:'Heating & Furnace (HVAC)',  mkt:'Lewistown',     wk:2, mode:'listing' },
+  '2026-12-16': { ind:'Chimney & Fireplace',       mkt:'Tyrone',        wk:2, mode:'standard' },
+  '2026-12-17': { ind:'Garage Doors',              mkt:'Johnstown',     wk:2, mode:'listing' },
+  '2026-12-18': { ind:'Accountants & Tax Prep',    mkt:'Johnstown',     wk:2, mode:'standard' },
+  '2026-12-21': { ind:'Plumbers',                  mkt:'Latrobe',       wk:3, mode:'listing' },
+  '2026-12-22': { ind:'Heating & Furnace (HVAC)',  mkt:'DuBois',        wk:3, mode:'listing' },
+  '2026-12-23': { ind:'Septic Services',           mkt:'Bedford',       wk:3, mode:'standard' },
+  '2026-12-28': { ind:'Roofers',                   mkt:'Chambersburg',  wk:4, mode:'listing' },
+  '2026-12-29': { ind:'Kitchen & Bath Remodelers', mkt:'State College', wk:4, mode:'listing' },
+  '2026-12-30': { ind:'Accountants & Tax Prep',    mkt:'Indiana',       wk:4, mode:'standard' }
+};
+var DEC_PA_WEEKS = [
+  { label:'PA Dec week 1 (Dec 1 to 4)', focus:'Listing Calls: heating, plumbing and roofing companies on HomeAdvisor and Angi',
+    why:'Winter emergencies mean these owners are buying the most shared leads right now and feeling the most waste. Friday: snow plow companies before the first big storm.' },
+  { label:'PA Dec week 2 (Dec 7 to 11)', focus:'Listing Calls plus tax offices',
+    why:'Generators and remodelers book winter work now. Tax offices need to rank before January; offer to stop by in person.' },
+  { label:'PA Dec week 3 (Dec 14 to 18)', focus:'Listing Calls in Somerset, Lewistown and Johnstown',
+    why:'Last full week. Push for walkthroughs and January start dates.' },
+  { label:'PA holiday week (Dec 21 to 23)', focus:'Follow-ups first, then light lists',
+    why:'Clear callbacks and drop-bys. Pitch a January 1 start with the rate locked now.' },
+  { label:'PA year-end (Dec 28 to 30)', focus:'Book January',
+    why:'Owners plan the new year this week. Off Dec 24, 25 and 31.' }
+];
+var NOV_FL=GAMEPLAN, NOV_FL_WEEKS=GAMEPLAN_WEEKS;
+function planMonth(){
+  var pm=(BOOT&&BOOT.planMonth)||'auto';
+  if(pm==='dec') return 'dec'; if(pm==='nov') return 'nov';
+  return localKey()>='2026-12-01'?'dec':'nov';
+}
+
 var TERR = FL_SET;
 function applyTerritory(t){
   TERR = t==='PA' ? PA_SET : FL_SET;
   MARKETS = TERR.markets; INDUSTRIES = TERR.industries; GAMEPLAN = TERR.plan; GAMEPLAN_WEEKS = TERR.weeks;
+  if (planMonth()==='dec'){ GAMEPLAN = t==='PA'?DEC_PA:DEC_FL; GAMEPLAN_WEEKS = t==='PA'?DEC_PA_WEEKS:DEC_FL_WEEKS; }
 }
 function isOwner(){ return !!(BOOT && BOOT.user && BOOT.user.role==='owner'); }
 var QUOTES = [
@@ -1233,7 +1382,9 @@ var TITLES = {
   play:['Playbook','Scripts, comebacks, and the plan'],
   owner:['Command Center','Approvals, payouts, team'],
   perf:['Rep Performance','Owner only: every call, outcome, and industry'],
-  lists:['Custom Lists','Hand-picked leads from Ty, ready to dial']
+  lists:['Custom Lists','Hand-picked leads from Ty, ready to dial'],
+  listing:['Listing Calls','Businesses paying for HomeAdvisor, Angi and Thumbtack leads'],
+  dec:['December Plan','The December playbook, ready to switch on']
 };
 
 /* ================= STATE ================= */
@@ -1387,7 +1538,7 @@ function initControls(){
   TODAY_PLAN = { ind: sug.label, best: sug.best, sweep: sweep, week: plan ? GAMEPLAN_WEEKS[plan.wk] : null };
   if (plan){
     var wk = GAMEPLAN_WEEKS[plan.wk];
-    $('planLine').textContent = wk.label + ' game plan · today: ' + sug.label + ' in ' + sweep + ' · best window ' + sug.best;
+    $('planLine').textContent = wk.label + ' game plan · today: ' + (plan.mode==='listing'?'Listing Calls, ':'') + sug.label + ' in ' + sweep + ' · best window ' + sug.best;
     $('suggestHint').textContent = 'Game plan: ' + wk.why + ' Best window for ' + sug.label.toLowerCase() + ': ' + sug.best + '.';
   } else {
     $('planLine').textContent = new Date().toLocaleDateString(undefined,{weekday:'long',month:'short',day:'numeric'}) + ' · today’s play: ' + sug.label + ' in ' + sweep + ' · best window ' + sug.best;
@@ -1415,6 +1566,8 @@ function gotoView(v){
   if (v==='owner'){ refresh(); loadTeam(); loadShiftReports(); asInit(); }
   if (v==='perf'){ anInit(); anLoad(); }
   if (v==='lists'){ loadLists(); }
+  if (v==='listing'){ lInit(); }
+  if (v==='dec'){ decRender(); }
   if (v==='dash'||v==='comm'||v==='seq'||v==='meet') refresh();
 }
 document.querySelectorAll('.nv').forEach(function(b){ b.addEventListener('click', function(){ gotoView(b.getAttribute('data-view')); }); });
@@ -1506,7 +1659,7 @@ function renderList(){
     $('rows').innerHTML = LIST.map(function(b,i){
       return '<tr class="biz'+(b.status?' done':'')+'" onclick="openCall('+i+')">'+
         '<td style="color:var(--muted2)">'+(i+1)+'</td>'+
-        '<td><b>'+esc(b.name)+'</b>'+(b.why?' <span class="tag t-gold">'+esc(b.why)+'</span>':(isHot(b)?' <span class="tag t-hot">&#128293; prime</span>':''))+'</td>'+
+        '<td><b>'+esc(b.name)+'</b>'+(b.aka&&!b.renamed?' <span class="hint">(site says '+esc(b.aka)+')</span>':'')+(b.why?' <span class="tag t-gold">'+esc(b.why)+'</span>':(isHot(b)?' <span class="tag t-hot">&#128293; prime</span>':''))+'</td>'+
         '<td class="phone">'+esc(fmtPhone(b.phone))+'</td>'+
         '<td class="hidem">'+gCell(b)+'</td>'+
         '<td class="hidem">'+(b.website?'yes':'<b style="color:var(--blue)">none</b>')+'</td>'+
@@ -1990,6 +2143,7 @@ function hook(b){
   return 'your Google listing has clearly been sitting unmanaged, and that’s quietly costing you calls';
 }
 function buildScript(b){
+  if (isListing(b)) return buildListingScript(b);
   var me=BOOT.user.name, first=me.split(' ')[0];
   var noun=LISTMETA.noun||b.industryNoun||'business', city=b.town||LISTMETA.city||'your area';
   var biz=b.name||'your business';
@@ -2025,6 +2179,7 @@ function buildScript(b){
 }
 function buildVM(b){
   var first=BOOT.user.name.split(' ')[0];
+  if (isListing(b)) return '"Hey, this is '+first+' with Burket Web Design, calling about the '+lProg(b)+' profile you have for '+b.name+'. I\u2019m not with '+lProg(b)+'. I work with '+lSeg(b)+' who are tired of paying for the same lead five other companies get. Two minutes to explain. Call me back, again it\u2019s '+first+', and I\u2019ll say my number slow, twice."';
   return '"Hey, this is '+first+' with Burket Web Design. I was on '+b.name+'’s Google listing right before this call and found something that’s probably costing you customers. Takes two minutes to show you. I’ll shoot over the free scan by email too. Call me back, again it’s '+first+', and I’ll say my number slow, twice. Thanks."';
 }
 function OBJECTIONS(){
@@ -2052,6 +2207,7 @@ function renderPlaybook(){
     '<div class="playcard"><h3>&#127942; The Close (ask for it)</h3><div class="script">"Most owners just say yes right here on the call. I email you the agreement and the secure checkout while we’re talking, you tap twice, and we start this week. Want me to send it over right now?"\n\nIf they hesitate: "Then let’s do 15 minutes with Ty Burket, the owner. He pulls up your listing live and shows you exactly what’s leaking. Morning or afternoon?"</div><div class="hint">Close first, meeting second. The gold button on the call screen sends contract + checkout in seconds.</div></div>'+
     '<div class="playcard"><h3>&#127917; Three script styles (pick on the call screen)</h3><div style="font-size:13.5px;line-height:1.9;color:var(--muted)"><b style="color:var(--text)">Straight Shooter</b>: the permission opener. Admit it is a cold call, ask for one minute, hit them with their own Google fact. Best default.<br><b style="color:var(--text)">Local Expert</b>: opens with a question ("when did you last Google yourself?"), lets them discover the gap, then puts a dollar figure on it. Best for skeptical or chatty owners.<br><b style="color:var(--text)">Gatekeeper Breaker</b>: for front desks and office managers. Calm and familiar, no pitch until the owner is on, and it harvests the owner name, best time, and email if they are out.</div></div>'+
     '<div class="playcard"><h3>&#128172; Voicemail (under 20 seconds)</h3><div class="script vm">"Hey, this is '+esc(first)+' with Burket Web Design. I was on your Google listing right before this call and found something that’s probably costing you customers. Takes two minutes to show you. I’ll shoot the free scan over by email too. Call me back, again it’s '+esc(first)+'." (Say your number twice, slow. Then fire the email sequence.)</div></div>'+
+    '<div class="playcard"><h3>&#127991;&#65039; Listing Calls (lead-platform buyers)</h3><div style="font-size:13.5px;line-height:1.8;color:var(--muted)">For businesses already paying HomeAdvisor, Angi or Thumbtack. Open with their lead program, not with Google: <b style="color:var(--text)">"I was reaching out in reference to the [Lead Program] profile you have for the business."</b> Clarify you are not with them, hit the shared-lead pain (same lead sold to 5 companies, tire kickers, disputing charges), ask how many of every 10 leads turn into a job, then book a computer walkthrough. Every objection runs <b style="color:var(--text)">Address, Bridge, Progress</b>; at the close, isolate <b style="color:var(--text)">product or price</b>. Full scripts live in the Listing Calls tab.</div></div>'+
     '<div class="playcard"><h3>&#128737;&#65039; Every comeback you will need</h3>'+objs+'</div>'+
     '<div class="playcard"><h3>&#128197; Your first-month game plan</h3><div class="hint" style="margin:0 0 8px">The hub preloads each day’s industry and towns. Just hit Build Today’s 25.</div>'+
       GAMEPLAN_WEEKS.map(function(w){ return '<div class="histline" style="margin-top:8px"><b>'+esc(w.label)+'</b> · <span style="color:var(--blue)">'+esc(w.focus)+'</span><br>'+esc(w.why)+'</div>'; }).join('')+'</div>'+
@@ -2081,6 +2237,7 @@ function startCallTimer(){
 }
 function fillModal(b, progressTxt){
   $('p-name').textContent=b.name||fmtPhone(b.phone);
+  nameCheck(b);
   $('p-meta').textContent=[(b.industry||LISTMETA.industry||''), b.addr||b.town||'', (b.contact?'Ask for: '+b.contact:'')].filter(Boolean).join(' · ');
   var gs=[];
   if (b.src==='google'||b.pos){
@@ -2120,10 +2277,11 @@ function fillModal(b, progressTxt){
   $('scrapeBtn').style.display=b.website?'inline-block':'none';
   $('seqStatus').textContent=b.website?'Scrape their site for an email, or paste one, then fire the 3-step sequence with the free scan link.':'No website on file. Paste their email if you can find one (Facebook page is usually the spot).';
   cmTab('script');
+  lScriptButtons(b);
   ['straight','expert','gatekeeper'].forEach(function(x){ var b2=$('sp-'+x); if(b2) b2.classList.toggle('on', x===SCRIPT_MODE); });
   $('p-script').textContent=buildScript(b);
   $('p-vm').textContent=buildVM(b);
-  $('p-objs').innerHTML=OBJECTIONS().map(function(o){
+  $('p-objs').innerHTML = isListing(b) ? oaRender(b,'cold',true) : OBJECTIONS().map(function(o){
     return '<div class="obj" onclick="this.classList.toggle(\'open\')"><b>'+esc(o.l)+'</b><div class="r">'+esc(o.r)+'</div></div>';
   }).join('');
   $('p-note').value=''; $('p-fup').value='';
@@ -2244,6 +2402,7 @@ function logOutcome(out){
     else { tick(); toast(out.replace(/_/g,' ')+' logged.',true); }
     refresh();
     if (b.src==='assigned') checkAssigned();
+    if (LISTMETA.mode==='listing') lRender();
   }).catch(function(e){ toast(e.message); });
   if (wasCur!=null){
     LIST[wasCur].status=out; LIST[wasCur].note=$('p-note').value.trim();
@@ -2953,6 +3112,261 @@ function csExport(){
   }).catch(function(e){ toast(e.message); });
 }
 
+
+
+/* ================= BUSINESS NAME FIXES ================= */
+function nameCheck(b){
+  var el=$('p-namecheck'); var dom=b.domain||'';
+  if(!dom&&b.website){ try{ dom=new URL(/^https?:/i.test(b.website)?b.website:'https://'+b.website).hostname.replace(/^www\./,''); }catch(e){} }
+  if(b.renamed||!(b.aka||b.nameCheck)){ el.style.display='none'; return; }
+  var msg = b.aka
+    ? '&#9888;&#65039; Google shows <b>'+esc(b.name)+'</b>, but their website calls them <b>'+esc(b.aka)+'</b>. Ask for '+esc(b.aka)+'.'
+    : '&#9888;&#65039; This Google name may not be the real business. Their website is <b>'+esc(dom)+'</b>. Confirm the name when they answer.';
+  el.innerHTML=msg+' <span style="white-space:nowrap">'+(b.aka?'<button class="btn-go btn-sm" style="padding:3px 10px" onclick="applyName(\''+esc(b.aka).replace(/'/g,'&#39;')+'\')">Use '+esc(b.aka)+'</button> ':'')+
+    '<button class="btn-ghost btn-sm" style="padding:3px 10px;background:rgba(255,255,255,.14);color:#fff" onclick="renameBiz()">Rename</button></span>';
+  el.style.display='block';
+}
+function renameBiz(){
+  var b=curBiz(); if(!b) return;
+  var n=prompt('What is the business actually called?', b.aka||b.name||''); if(!n||!n.trim()) return;
+  applyName(n.trim());
+}
+function applyName(n){
+  var b=curBiz(); if(!b) return;
+  if(LISTMETA.demo){ b.name=n; b.renamed=true; return fillModal(b,$('p-progress').textContent); }
+  api('company.rename',{phone:b.phone,name:n,website:b.website||'',city:b.town||'',industry:b.industry||LISTMETA.industry||''}).then(function(){
+    b.name=n; b.renamed=true; b.aka=''; b.nameCheck='';
+    if(CUR!=null){ LIST[CUR].name=n; LIST[CUR].renamed=true; save('sdr_list',LIST); renderList(); if(LISTMETA.mode==='listing') lRender(); }
+    $('p-name').textContent=n; nameCheck(b);
+    $('p-script').textContent=buildScript(b); $('p-vm').textContent=buildVM(b);
+    toast('Renamed to '+n+'. Saved for everyone, including past calls.');
+  }).catch(function(e){ toast(e.message); });
+}
+
+/* ================= DECEMBER TAB ================= */
+function decRender(){
+  var pm=(BOOT&&BOOT.planMonth)||'auto', live=planMonth()==='dec';
+  $('dec-status').innerHTML=live?'<b style="color:var(--green)">December plan is live.</b> The dashboard, morning screen and "Build today’s list" all follow it.'
+    :'November plan is live. December switches on automatically on Dec 1'+(pm==='nov'?' (held on November by Ty).':', or Ty can switch it on early.');
+  $('dec-ctl').innerHTML=isOwner()?'<select onchange="decSet(this.value)" style="font-size:13px">'+
+     [['auto','Auto: switch on Dec 1'],['dec','December plan now'],['nov','Stay on November']].map(function(o){return '<option value="'+o[0]+'"'+(pm===o[0]?' selected':'')+'>'+o[1]+'</option>';}).join('')+'</select>':'';
+  var sets=isOwner()?[['Florida (Steven)',DEC_FL,DEC_FL_WEEKS,'FL'],['Pennsylvania (you)',DEC_PA,DEC_PA_WEEKS,'PA']]:[[TERR.state==='PA'?'Pennsylvania':'Florida',TERR.state==='PA'?DEC_PA:DEC_FL,TERR.state==='PA'?DEC_PA_WEEKS:DEC_FL_WEEKS,TERR.state]];
+  $('dec-body').innerHTML=sets.map(function(x){
+    var plan=x[1], weeks=x[2], days=Object.keys(plan).sort();
+    return '<div class="card" style="margin-top:14px"><b style="font-size:15px">'+esc(x[0])+'</b>'+
+      weeks.map(function(w,wi){
+        var rows=days.filter(function(d){return plan[d].wk===wi;}).map(function(d){var p=plan[d];
+          return '<tr'+(d===localKey()?' style="background:#fff8dc"':'')+'><td style="white-space:nowrap">'+esc(fday(d))+'</td><td>'+(p.mode==='listing'?'<span class="lp-badge">Listing Calls</span>':'<span class="tag t-cb">Regular list</span>')+'</td><td><b>'+esc(p.ind)+'</b></td><td>'+esc(p.mkt)+' area</td></tr>';}).join('');
+        return '<div style="margin-top:12px"><b style="color:var(--navy)">'+esc(w.label)+'</b> · <span style="color:var(--blue)">'+esc(w.focus)+'</span><div class="hint">'+esc(w.why)+'</div>'+
+          '<table class="an-t" style="margin-top:6px"><thead><tr><th>Day</th><th>Mode</th><th>Industry</th><th>Starting market</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+      }).join('')+'</div>';
+  }).join('')+
+  '<div class="card" style="margin-top:14px"><b style="font-size:15px">What changes in December</b><div class="hint" style="line-height:1.8;margin-top:4px">'+
+  '• Most days are <b>Listing Calls</b>: owners already paying HomeAdvisor, Angi or Thumbtack. "Build today’s list" takes you straight to the Listing Calls tab with the day’s industry and market loaded.<br>'+
+  '• Every list is cleaned: duplicate listings (same website) are removed, businesses already called under another number are skipped, and listings whose Google name doesn’t match the real business show the real name from their website.<br>'+
+  '• Pitch January starts in the last two weeks: "Lock the 6-month rate now, we launch the first week of January."</div></div>';
+  $('navDecPill').style.display=live?'inline-block':'none';
+}
+function decSet(v){
+  api('plan.month',{set:v}).then(function(r){ BOOT.planMonth=r; applyTerritory(BOOT.territory||'FL'); initControls(); decRender(); toast(r==='dec'?'December plan is live for everyone.':(r==='nov'?'Holding on the November plan.':'December plan switches on automatically Dec 1.')); })
+    .catch(function(e){ toast(e.message); });
+}
+
+/* ================= LISTING CALLS (lead-platform buyers) ================= */
+var IDEAL_JOBS={'Pool Resurfacing':'full pool resurface','Pool Service & Repair':'pump and equipment replacement','Paver & Concrete':'full paver driveway',
+ 'Screen Enclosures':'full screen enclosure','Pressure Washing':'whole-house wash and paver sealing','Lawn Care & Landscaping':'full landscape install',
+ 'Roofers':'full roof replacement','HVAC / AC Repair':'full system replacement','Pest Control':'annual pest contract','Plumbers':'repipe or water heater install',
+ 'Electricians':'panel upgrade','Hurricane Shutters & Windows':'whole-home impact window job','Cleaning Services':'recurring weekly clean','Moving Companies':'full-house move',
+ 'Heating & Furnace (HVAC)':'furnace replacement','Chimney & Fireplace':'chimney rebuild or liner install','Septic Services':'new septic system install',
+ 'Electricians & Generators':'whole-home generator install','Kitchen & Bath Remodelers':'full kitchen remodel','Garage Doors':'new garage door install',
+ 'Tree Service':'large tree removal','Water Treatment & Wells':'whole-house water treatment system','Excavating & Paving':'driveway paving job',
+ 'Snow Plowing & Landscaping':'commercial plow contract','Auto Repair & Towing':'major engine or transmission job'};
+var LP_PROGRAMS=['HomeAdvisor','Angi','Thumbtack','Porch','Networx','Bark','Houzz','Yelp'];
+function isListing(b){ return !!((b&&b.src==='listing')||LISTMETA.mode==='listing'); }
+function lProg(b){ return (b&&b.platform)||'HomeAdvisor'; }
+function lIndustry(b){ return (b&&b.industry)||LISTMETA.industry||''; }
+function lJob(b){ return IDEAL_JOBS[lIndustry(b)]||'big, profitable job'; }
+function lSeg(b){
+  var n=LISTMETA.noun||'contractor';
+  return /y$/.test(n)&&!/ey$/.test(n)?n.replace(/y$/,'ies'):(/s$/.test(n)?n:n+'s');
+}
+function lCity(b){ return String((b&&b.town)||LISTMETA.city||'your area').replace(/ (PA|FL)$/,''); }
+function lWho(){ return isOwner()?'me':'Ty Burket, our owner'; }
+var LP_PRICE='Our programs run $500, $750 or $1,250 a month depending on what’s included: Google profile and website SEO at $500, add social media at $750, and the full growth package with a new website at $1,250. It’s month to month, or 10% off on a 6-month plan and 20% off on 12.';
+function lScriptButtons(b){
+  var on=isListing(b), lab=on?['Opener + pitch','Qualify + set','Gatekeeper']:['Straight Shooter','Local Expert','Gatekeeper Breaker'];
+  ['straight','expert','gatekeeper'].forEach(function(x,i){ var e=$('sp-'+x); if(e) e.textContent=lab[i]; });
+  var sel=$('lp-prog'); sel.style.display=on?'inline-block':'none';
+  if(on){ sel.innerHTML=LP_PROGRAMS.map(function(x){return '<option'+(x===lProg(b)?' selected':'')+'>'+x+'</option>';}).join(''); }
+}
+function lSetProgram(v){
+  var b=curBiz(); if(!b) return;
+  b.platform=v; if(CUR!=null){ LIST[CUR].platform=v; save('sdr_list',LIST); }
+  $('p-script').textContent=buildScript(b); $('p-vm').textContent=buildVM(b);
+  $('p-objs').innerHTML=oaRender(b,'cold',true); lRender();
+}
+function buildListingScript(b){
+  var me=BOOT.user.name, first=me.split(' ')[0], prog=lProg(b), seg=lSeg(b), job=lJob(b), city=lCity(b), biz=b.name||'the business';
+  var who=lWho();
+  if (SCRIPT_MODE==='gatekeeper'){
+    return 'WHOEVER ANSWERS: "Hi, is the owner around? ... Yeah, you can just let them know it’s '+first+', thanks."\n\n'+
+      'IF THEY PUSH BACK: "You can just let them know it’s in regards to the '+prog+' profile for '+biz+'. I don’t mind holding."\n\n'+
+      'IF THE OWNER IS OUT: "No problem. What’s the owner’s first name, and are mornings or afternoons better to catch them?" (Log the name and best time, set the callback.)\n\n'+
+      'OWNER PICKS UP: switch to "Opener + pitch".';
+  }
+  if (SCRIPT_MODE==='expert'){
+    var close = isOwner()
+      ? 'Ok. Based on what you told me, I know you’ll be impressed with what I put together. What’s the best email so I can send a calendar invite?'
+      : 'Ok. Based on what you told me, I know you’ll be impressed with what Ty puts together. What’s the best email so I can send a calendar invite?';
+    return 'LOCK THE TIME: "Ok, so at [day and time] you’ll be in front of a computer?"\n\n'+
+      '"Great. Before I let you go, a few quick questions so we show you something that fits your goals, because the last thing I want to do is waste your time."\n\n'+
+      '1. "Other '+seg+' I work with usually want more '+job+'s. Right now, what types of jobs are the most valuable for your time? What’s your focus?"\n'+
+      '2. "How many of those are you doing a week, or a month?"\n'+
+      '3. "How many more do you want without spreading yourself too thin?"\n'+
+      '4. "What areas do you prefer to work in?"\n'+
+      '5. "Other than '+prog+', what else are you doing to get your name out there?" (SEO, website, Google ads, Facebook, radio: dig in, then come back.)\n\n'+
+      close+'\n\n'+
+      '"This is for [day and time], in front of a computer. The invite comes from '+(isOwner()?'me':'Burket Web Design')+', so just hit accept so it blocks the time."\n\n'+
+      'DECISION MAKERS: "If you like what you see and want to move forward, is there a partner, spouse or anyone else you’d talk to?" If yes: "What’s their name, and will they be in front of a computer at [time]?" If not: "What’s the best time you can both be there? We’ll go over a lot of detail, and they’ll have their own questions."\n\n'+
+      'COMMITMENT: "'+(isOwner()?'I’m going to do about 45 minutes of research on your business, market and competition before we meet.':'Ty does about 45 minutes of research on your business, market and competition before you meet.')+' Just like you, we work by appointment, so if anything comes up and you can’t be at a computer at [time], give us a courtesy call and we’ll do the same. Fair?"\n\n'+
+      '"Perfect. Again, I’m '+me+' with Burket Web Design, and I look forward to it. I know you’ll be impressed."';
+  }
+  return '"Hey, this is '+first+'. I was reaching out in reference to the '+prog+' profile you have for '+biz+'." (Wait for them to acknowledge.)\n\n'+
+    '"Yes, and just to clarify, I’m not with '+prog+'. I work directly with '+seg+' that have used that program. What we do is completely different. We don’t think you should have to chase after a name and number you paid for that will probably never answer the phone. I can briefly explain what we do, and if it piques your interest, we set up another time to talk. Is that fair?"\n\n'+
+    'ELEVATOR PITCH: "The challenge I hear from other owners with '+prog+' is the same name and number gets sold to you and five other '+seg+', and if you’re not the first to call, they never answer. Or if they do, they’re tire kickers worried about price, not the quality of your work. Then you waste time disputing charges. Is that what’s happening to you, or something different?"\n\n'+
+    '   IF "YEAH, PRETTY MUCH": "If you don’t mind me asking, out of every 10 leads you buy from them, how many actually turn into a job?"\n'+
+    '   IF "MY LEADS ARE GREAT": "That’s great, keep doing it. A lot of people will never click on '+prog+' though. Out of every 10 leads you buy, how many turn into a job?" Then continue.\n\n'+
+    '"So what we do is cut out the middleman and drive direct calls to you from people in '+city+' who need a '+String(LISTMETA.noun||'contractor')+' right now. The leads are yours alone, not shared. Most of those searches happen on a phone, and those callers are far more likely to turn into a job."\n\n'+
+    '"And there’s no long contract. It’s month to month, so we have to earn it every month. I know you get calls all the time from people claiming they can do this or that, so I’m not going to ask you to take my word for it. All I want is a little time on your calendar when you’re in front of a computer so '+(isOwner()?'I':'we')+' can show you everything in detail."\n\n'+
+    'BOOK THE WALKTHROUGH: "I know I caught you out of the blue. If you’re near a computer, pop open a browser and I can show you really quick." If not: "No worries. What’s the best time to be in front of a computer or tablet, later today or tomorrow?" (Book it with '+who+', then switch to "Qualify + set".)\n\n'+
+    'IF THEY’RE READY NOW: "Most owners start right here. I can email the agreement and checkout while we’re talking and we start this week." (Close tab.)';
+}
+
+/* ---- Objection Assistant ---- */
+function OA_LIB(b){
+  var prog=lProg(b), seg=lSeg(b), job=lJob(b), city=lCity(b), first=BOOT.user.name.split(' ')[0], who=lWho();
+  return [
+   {id:'notint_pre', m:'cold', l:'"Not interested" / "No time" (before the pitch)', s:[
+     ['FIRST SHOT','"No worries. Just to make sure it warrants a callback, I can explain what my call is about in 30 seconds. If it’s something you want to talk about more, I can call you back later."'],
+     ['SECOND SHOT','"Hey, I get it. You’re busy and get calls like this all the time. Let me ask you: if someone called you for a '+job+', a really profitable job you specifically wanted, would you take it on or refer it out?"']],
+    n:'If YES: "Okay, so those are the calls I’m talking about." Go straight back to the elevator pitch. If NO: "We’re looking to partner with a '+String(LISTMETA.noun||'contractor')+' in the area who can take this kind of work. Anyone you’d recommend I reach out to?"'},
+   {id:'notint_post', m:'cold', l:'"Not interested" / "No time" (after the pitch)', s:[
+     ['FIRST SHOT','"Hey, I get it. Let me ask you: if someone called you for a '+job+', a really profitable job you specifically wanted, would you take it on or refer it out?"'],
+     ['SECOND SHOT','"I understand. Look at it this way: worst case, you see what other '+seg+' in '+city+' are doing to get new customers and where the opportunities are for you. Best case, it makes sense for your business. Either way, you make an educated decision. What time later today or tomorrow works best?"']]},
+   {id:'price', m:'cold', l:'"How much is it?"', s:[
+     ['FIRST SHOT','"Absolutely. '+LP_PRICE+' Before I assume it makes sense for you, if somebody called tomorrow for a profitable '+job+' in '+city+', would you take it on?"'],
+     ['IF THEY ENGAGE','"Perfect. That’s the kind of customer we put you in front of. The challenge I hear with '+prog+' is the same lead goes to five companies..." (Back to the elevator pitch.)'],
+     ['SECOND SHOT','"That’s fair. It’s $500 to $1,250 a month, month to month. How does that compare with what you spend on '+prog+' each month? And roughly how much profit does a typical '+job+' bring in? I can show you what customers see on Google and where your competitors show up. Are you near a computer now, or is later today better?"']],
+    n:'Always say the real number when asked. Before the walkthrough this is a normal question, not a price objection, so never make them chase it.'},
+   {id:'what', m:'cold', l:'"Just tell me what you do"', s:[
+     ['FIRST SHOT','"Of course. We help local '+seg+' show up on Google so people searching for a '+String(LISTMETA.noun||'contractor')+' in '+city+' find and call you directly, instead of relying on shared-lead platforms. Are you happy with the quality of leads from '+prog+', or do you run into price shoppers?"'],
+     ['IF THEY ENGAGE','Listen, then connect it to the pitch: "Out of every 10 leads you buy, how many turn into a job?"'],
+     ['SECOND SHOT','"More specifically, we manage your Google Business Profile, your reviews and your website’s local SEO. Rather than throw jargon at you, let me show you what comes up when someone searches for a '+job+' near you. Do you know if you show up near the top today? If you’re near a computer, I can show you now."']]},
+   {id:'email', m:'cold', l:'"Just send me an email"', s:[
+     ['FIRST SHOT','"Happy to. So I send something actually useful and not a generic brochure: what types of jobs are most valuable for you right now?"'],
+     ['SECOND SHOT','"I’ll send it. Honestly, an email can’t show you where you rank against the other '+seg+' in '+city+'; that takes about 15 minutes on a screen. What time later today or tomorrow are you in front of a computer?"']],
+    n:'Get the email either way, then fire the email sequence from the Email tab if they still won’t book.'},
+   {id:'great', m:'cold', l:'"My leads are great"', s:[
+     ['FIRST SHOT','"That’s great, I’m glad it’s working. Keep doing it. A lot of people will never click on '+prog+' though. If you don’t mind me asking, out of every 10 leads you buy, how many turn into a job?"'],
+     ['SECOND SHOT','"Makes sense. What we do sits next to '+prog+', not instead of it: calls that are yours alone, from people already searching for you. Worth 15 minutes on a screen to see the difference?"']]},
+   {id:'who', m:'cold', l:'"Are you with '+prog+'?" / "Who is this?"', s:[
+     ['FIRST SHOT','"No, and just to clarify, I’m not with '+prog+'. I’m '+first+' with Burket Web Design. We work directly with '+seg+' that have used that program, and what we do is completely different."']]},
+   {id:'gk', m:'cold', l:'Gatekeeper pushes back', s:[
+     ['FIRST SHOT','"You can just let them know it’s '+first+', thanks."'],
+     ['SECOND SHOT','"You can let them know it’s in regards to the '+prog+' profile for '+(b&&b.name||'the business')+'. I don’t mind holding."']]},
+   {id:'isolate', m:'close', l:'Isolate first: product or price?', s:[
+     ['ASK','"Is it the product itself, what we’d be doing for your business, or is it the monthly investment that’s holding you back?"']],
+    n:'Use only after the walkthrough and recommendation. PRODUCT: go back to their target jobs, their Google presence and their '+prog+' problem; clarify scope or walk away. PRICE: compare with their lead spend and job profit, then offer a smaller package or a term plan. Never discount a product problem.'},
+   {id:'expensive', m:'close', l:'"It’s too expensive"', s:[
+     ['ISOLATE','"Totally fair. Is it that what we’d do isn’t a fit, or that it’s the right thing but the number’s too high right now?"'],
+     ['IF PRICE','"Let’s look at it against '+prog+'. What do you spend there a month, and how many of those leads become jobs? If one '+job+' a month came from your own listing, would $500 pay for itself? We can start at $500 with the Local SEO package, or lock a 6- or 12-month plan for 10 to 20% off."'],
+     ['IF PRODUCT','Go back to their goals: the jobs they want, where they show up today, and what you’d change first. Do not lower the price to fix doubt about the service.']]},
+   {id:'think', m:'close', l:'"I need to think about it"', s:[
+     ['ISOLATE','"Of course. So I know what to send you, which part are you still weighing: what we’d actually do for the business, or the investment and timing?"'],
+     ['PROGRESS','Answer the real part, then: "If that were sorted, is there anything else stopping you from starting this week?" Offer to send the agreement now so it’s in front of them, and set a specific follow-up time.']]},
+   {id:'tried', m:'close', l:'"We tried SEO before"', s:[
+     ['ISOLATE','"I hear that a lot. What happened: was it the results, how it was done, what was included, or that you never knew what they were doing?"'],
+     ['BRIDGE','"That’s exactly why we report your map rankings block by block every month and stay month to month. If it’s not producing, you’re not stuck."']]},
+   {id:'partner', m:'close', l:'"I need to talk to my partner"', s:[
+     ['ISOLATE','"Makes sense. Would they need to weigh in on whether this fits the business, the budget, or both?"'],
+     ['PROGRESS','"Let’s get 15 minutes with both of you in front of a computer so they can ask their own questions. What time works for you both?" Book it with '+who+'.']]}
+  ];
+}
+var OA_M='cold', OA_OPEN='';
+function oaRender(b, m, compact){
+  m=m||OA_M;
+  var lib=OA_LIB(b).filter(function(o){return o.m===m;});
+  var steps = m==='cold'
+    ? '<div class="oa-steps"><div><b>ADDRESS</b>Let them finish. Acknowledge what they actually said.</div><div><b>BRIDGE</b>Reconnect to their ideal job or their lead-program pain.</div><div><b>PROGRESS</b>Back into the script, or offer the computer walkthrough.</div></div>'
+    : '<div class="oa-steps"><div><b>ISOLATE</b>Product (fit, scope, confidence) or price (budget, timing)?</div><div><b>PRODUCT</b>Back to their jobs, Google presence and lead pain. Never discount it.</div><div><b>PRICE</b>Compare with lead spend and job profit, then a smaller package or term plan.</div></div>';
+  var bar='<div class="oa-bar"><button class="btn-ghost btn-sm'+(m==='cold'?' on':'')+'" onclick="oaMode(\'cold\')">Cold call</button><button class="btn-ghost btn-sm'+(m==='close'?' on':'')+'" onclick="oaMode(\'close\')">Walkthrough / close</button></div>';
+  var cards=lib.map(function(o){
+    var shots=o.s.map(function(x){ return '<div class="oa-shot"><span class="tg'+(/SECOND|PRICE|PROGRESS/.test(x[0])?' g':'')+'">'+esc(x[0])+'</span><br>'+esc(x[1])+'</div>'; }).join('');
+    return '<div class="oa-card"><h4>'+esc(o.l)+'</h4>'+shots+(o.n?'<div class="oa-note">'+esc(o.n)+'</div>':'')+'</div>';
+  }).join('');
+  return '<div id="oa-wrap">'+bar+steps+cards+'</div>';
+}
+function oaMode(m){
+  OA_M=m; var b=curBiz()||(LIST[0]&&isListing(LIST[0])?LIST[0]:{platform:'HomeAdvisor'});
+  if($('callmodal').classList.contains('show')) $('p-objs').innerHTML=oaRender(b,m,true);
+  if($('l-oa')) $('l-oa').innerHTML=oaRender(b,m);
+}
+function lInit(){
+  var mk=$('l-market'), ind=$('l-industry');
+  if(!mk.options.length||mk.getAttribute('data-st')!==TERR.state){
+    mk.innerHTML=MARKETS.map(function(m){return '<option>'+esc(m)+'</option>';}).join(''); mk.setAttribute('data-st',TERR.state);
+    ind.innerHTML=INDUSTRIES.map(function(x,i){return '<option value="'+i+'">'+esc(x.label)+'</option>';}).join('');
+    mk.value=$('market').value||MARKETS[0]; ind.value=$('industry').value||'0';
+    $('l-customLbl').textContent='Or any town ('+TERR.state+')';
+  }
+  lRender();
+  $('l-oa').innerHTML=oaRender(LIST[0]&&isListing(LIST[0])?LIST[0]:{platform:'HomeAdvisor'},OA_M);
+}
+function lRender(){
+  var on=LISTMETA.mode==='listing';
+  var L=on?LIST:[];
+  $('l-title').textContent=on?('Lead buyers: '+(LISTMETA.industry||'')+' · '+(LISTMETA.city||'')):'Lead-buyer list';
+  var called=L.filter(function(b){return b.status;}).length;
+  $('l-bar').textContent=called+' / '+L.length;
+  $('l-start').style.display=(L.length&&called<L.length)?'inline-block':'none';
+  $('l-rows').innerHTML=L.length?L.map(function(b,i){
+    return '<tr class="biz'+(b.status?' done':'')+'" onclick="openCall('+i+')"><td style="color:var(--muted2)">'+(i+1)+'</td>'+
+      '<td><b>'+esc(b.name)+'</b><div class="hint">'+esc(b.evidence||'')+'</div></td>'+
+      '<td>'+(b.platforms||[b.platform]).map(function(x){return '<span class="lp-badge">'+esc(x)+'</span>';}).join('')+'</td>'+
+      '<td class="phone">'+esc(fmtPhone(b.phone))+'</td><td class="hidem">'+gCell(b)+'</td><td>'+statusTag(b.status)+'</td></tr>';
+  }).join(''):'<tr><td colspan="6"><div class="empty">'+(LIST.length&&!on?'Your dialer has a regular list loaded. Building here swaps in a lead-buyer list (already-called numbers stay in Past Calls).':'Pick a market and industry, then hit Find lead buyers.')+'</div></td></tr>';
+}
+function lStart(){
+  for (var i=0;i<LIST.length;i++){ if(!LIST[i].status) return openCall(i); }
+  toast('Everyone on this list has been called.');
+}
+function lHunt(){
+  var custom=$('l-custom').value.trim(), mi0=MARKETS.indexOf($('l-market').value);
+  var ind=INDUSTRIES[Number($('l-industry').value)];
+  var open=LIST.filter(function(b){return !b.status;}).length;
+  if(open && LISTMETA.mode!=='listing' && !LISTMETA.demo && !confirm('Your dialer still has '+open+' uncalled businesses. Swap in a lead-buyer list?')) return;
+  var rounds=custom?1:4, acc=[], seen={}, scanned=0, towns=[], btn=$('l-go'); btn.disabled=true;
+  var GOAL=20;
+  function cluster(r){ return custom?[custom]:[0,1,2].map(function(k){return MARKETS[(mi0+r*3+k)%MARKETS.length];}); }
+  $('l-rows').innerHTML='<tr><td colspan="6"><div class="empty">Scanning '+esc(cluster(0).join(', '))+' for '+esc(ind.label.toLowerCase())+' with HomeAdvisor, Angi or Thumbtack badges...</div></td></tr>';
+  function sweep(r){
+    var c=cluster(r); btn.textContent='Scanning '+c.join(', ')+'...';
+    return api('listing.build',{vertical:ind.q||ind.label,metros:c.map(function(x){return x+' '+TERR.state;})}).then(function(d){
+      scanned+=d.scanned||0; c.forEach(function(t){towns.push(t);});
+      d.list.forEach(function(b){ if(!seen[b.phone]){ seen[b.phone]=1; b.industry=ind.label; acc.push(b); } });
+      if(acc.length<GOAL && r+1<rounds) return sweep(r+1);
+    });
+  }
+  sweep(0).then(function(){
+    LIST=acc.map(function(b){b.status='';b.note='';return b;});
+    LISTMETA={ city:towns[0]+(towns.length>1?' area ('+towns.length+' towns)':''), industry:ind.label, noun:ind.noun, best:ind.best, date:todayKey(), pro:true, mode:'listing' };
+    save('sdr_list',LIST); save('sdr_listmeta',LISTMETA);
+    renderList(); lRender(); $('l-oa').innerHTML=oaRender(LIST[0]||{platform:'HomeAdvisor'},OA_M);
+    if(LIST.length){ chime(); toast(LIST.length+' lead buyers found out of '+scanned+' websites scanned.'); }
+    else toast('No lead-platform badges found in '+scanned+' websites. Try another industry or market.');
+  }).catch(function(e){ toast(e.message); lRender(); })
+    .finally(function(){ btn.disabled=false; btn.textContent='Find lead buyers →'; });
+}
 
 /* ================= ASSIGNED LEAD LISTS ================= */
 var AREA_ST={};

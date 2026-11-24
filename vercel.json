@@ -1,5 +1,13 @@
 {
   "crons": [
-    { "path": "/api/cron", "schedule": "0 12 * * *" }
-  ]
+    {
+      "path": "/api/cron",
+      "schedule": "0 12 * * *"
+    }
+  ],
+  "functions": {
+    "api/hub.js": {
+      "maxDuration": 60
+    }
+  }
 }

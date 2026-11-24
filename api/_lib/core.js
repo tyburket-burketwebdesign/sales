@@ -301,6 +301,107 @@ async function scrapeEmails(siteUrl) {
   return Array.from(found).slice(0, 6);
 }
 
+/* ---- Lead-platform detection (Listing Calls) ----
+ * A business that shows a HomeAdvisor / Angi / Thumbtack badge or profile link on its own site,
+ * or whose Google listing points to one of those profiles, is buying (or has bought) shared leads. */
+const LEAD_PLATFORMS = [
+  ['HomeAdvisor', /homeadvisor\.com|home ?advisor|screened (?:&amp;|&|and) approved/i],
+  ['Angi', /angi\.com|angieslist|angie'?s list|angi certified|angi leads|angi super ?service/i],
+  ['Thumbtack', /thumbtack\.com|thumbtack top pro|on thumbtack/i],
+  ['Porch', /porch\.com\/(?:pro|[a-z-]+\/[a-z-]+\/pros)/i],
+  ['Networx', /networx\.com/i],
+  ['Bark', /bark\.com\/(?:en\/)?(?:us\/)?company/i],
+  ['Houzz', /houzz\.com\/(?:pro|professionals)\//i],
+];
+function platformsIn(text) {
+  const out = [];
+  LEAD_PLATFORMS.forEach(([name, rx]) => { if (rx.test(text)) out.push(name); });
+  return out;
+}
+async function fetchQuick(url, ms) {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), ms || 4500);
+  try {
+    const r = await fetch(url, { signal: ctrl.signal, redirect: 'follow', headers: { 'User-Agent': 'Mozilla/5.0 (compatible; BWDHub/1.0)' } });
+    if (!r.ok) return '';
+    return (await r.text()).slice(0, 400000);
+  } catch (e) { return ''; } finally { clearTimeout(t); }
+}
+async function detectLeadPlatforms(website) {
+  const w = String(website || '');
+  if (!w) return { platforms: [], evidence: '' };
+  const direct = platformsIn(w);
+  if (direct.length) return { platforms: direct, evidence: 'Google listing links to their ' + direct[0] + ' profile' };
+  let url = /^https?:\/\//i.test(w) ? w : 'https://' + w;
+  const html = await fetchQuick(url);
+  if (!html) return { platforms: [], evidence: '' };
+  const found = platformsIn(html);
+  return { platforms: found, evidence: found.length ? found.join(' + ') + ' badge or link on their website' : '' };
+}
+
+/* ---- Lead cleanup: duplicates, renamed businesses, keyword-stuffed Google names ---- */
+const SHARED_HOSTS = /(facebook|instagram|yelp|google|business\.site|wixsite|godaddysites|square\.site|homeadvisor|angi|thumbtack|linktr\.ee|sites\.google)\./i;
+function domainOf(u) {
+  try { const h = new URL(/^https?:\/\//i.test(u) ? u : 'https://' + u).hostname.toLowerCase().replace(/^www\./, ''); return SHARED_HOSTS.test(h + '.') ? '' : h; }
+  catch (e) { return ''; }
+}
+const NAME_FILLER = new Set(('llc inc co corp company the of and & services service repair repairs pros pro best top near me local ' +
+  'experts expert solutions contractors contractor fl florida pa pennsylvania usa county area team group professional professionals ' +
+  'residential commercial installation installers install specialists 24 hour emergency affordable quality').split(' '));
+function nameTokens(n) { return String(n || '').toLowerCase().replace(/[^a-z0-9 ]+/g, ' ').split(/\s+/).filter(Boolean); }
+function looksGeneric(name, vertical, town) {
+  const vw = new Set(nameTokens(vertical).concat(nameTokens(vertical).map(w => w.replace(/s$/, ''))));
+  const tw = new Set(nameTokens(town));
+  const rest = nameTokens(name).filter(w => !NAME_FILLER.has(w) && !vw.has(w) && !vw.has(w.replace(/s$/, '')) && !tw.has(w) && w.length > 1);
+  return rest.length === 0;
+}
+function domainMatchesName(domain, name) {
+  const base = String(domain || '').split('.')[0].replace(/[^a-z0-9]/g, '');
+  if (!base) return true;
+  return nameTokens(name).some(w => w.length >= 4 && !NAME_FILLER.has(w) && base.includes(w));
+}
+function cleanTitle(t) {
+  const x = String(t || '').replace(/&amp;/g, '&').replace(/&#0?39;|&rsquo;/g, "'").replace(/\s+/g, ' ').trim();
+  const parts = x.split(/\s[|\-–—:]\s/).map(s => s.trim()).filter(Boolean);
+  const pick = parts.sort((a, b) => a.length - b.length).find(p => p.length >= 3 && p.length <= 45 && !/^(home|welcome|homepage)$/i.test(p));
+  return pick || '';
+}
+async function siteName(website) {
+  const html = await fetchQuick(/^https?:\/\//i.test(website) ? website : 'https://' + website, 4000);
+  if (!html) return '';
+  const og = (html.match(/<meta[^>]+property=["']og:site_name["'][^>]+content=["']([^"']{3,60})["']/i) || html.match(/<meta[^>]+content=["']([^"']{3,60})["'][^>]+property=["']og:site_name["']/i) || [])[1];
+  if (og) return cleanTitle(og);
+  return cleanTitle((html.match(/<title[^>]*>([^<]{3,120})<\/title>/i) || [])[1]);
+}
+/* Remove duplicates (same website domain, same name), drop businesses already worked under another phone,
+   and flag listings whose Google name doesn't look like the real business, with the website's own name as a hint. */
+async function cleanLeads(sqlFn, list, vertical) {
+  const seenDom = {}, seenName = {}, out = [];
+  for (const b of list) {
+    b.domain = domainOf(b.website);
+    const nk = nameTokens(b.name).filter(w => !NAME_FILLER.has(w)).join(' ');
+    if (b.domain && seenDom[b.domain]) continue;
+    if (nk && seenName[nk + '|' + (b.town || '')]) continue;
+    if (b.domain) seenDom[b.domain] = true;
+    if (nk) seenName[nk + '|' + (b.town || '')] = true;
+    out.push(b);
+  }
+  const doms = out.map(b => b.domain).filter(Boolean);
+  if (doms.length) {
+    const worked = {};
+    const rows = await sqlFn`SELECT website FROM companies WHERE website <> '' UNION SELECT DISTINCT website FROM calls WHERE website <> '' AND ts > now() - interval '365 days'`;
+    rows.forEach(r => { const d = domainOf(r.website); if (d) worked[d] = true; });
+    for (let i = out.length - 1; i >= 0; i--) if (out[i].domain && worked[out[i].domain]) out.splice(i, 1);
+  }
+  const flag = out.filter(b => b.website && (looksGeneric(b.name, vertical, b.town) || (b.domain && !domainMatchesName(b.domain, b.name))));
+  const names = await Promise.all(flag.map(b => siteName(b.website).catch(() => '')));
+  flag.forEach((b, i) => {
+    b.nameCheck = looksGeneric(b.name, vertical, b.town) ? 'generic' : 'domain';
+    if (names[i] && nameTokens(names[i]).join(' ') !== nameTokens(b.name).join(' ')) b.aka = names[i];
+  });
+  return out;
+}
+
 /* ---- Twilio browser dialer ---- */
 function twE164(s2) {
   let d = String(s2 || '').replace(/\D/g, '');
@@ -513,7 +614,7 @@ function seqTemplates(s, repName) {
   ];
 }
 
-module.exports = { hashPass, docusealTemplate, LP_FEATURES, LP750_EXTRA, sql, ensureSchema, userFromToken, login, sendMail, placesSearch, scrapeEmails, isChain, geocodeCity, placesBiased, inStormZone, twE164, twilioReady, twilioNumbers, twilioToken, upsertCompany, STAGE_RANK, docusealSend, waveLink, kpiTarget, kpiBonus,
+module.exports = { cleanLeads, domainOf, detectLeadPlatforms, hashPass, docusealTemplate, LP_FEATURES, LP750_EXTRA, sql, ensureSchema, userFromToken, login, sendMail, placesSearch, scrapeEmails, isChain, geocodeCity, placesBiased, inStormZone, twE164, twilioReady, twilioNumbers, twilioToken, upsertCompany, STAGE_RANK, docusealSend, waveLink, kpiTarget, kpiBonus,
                    PRODUCTS, seqTemplates, auditUrl, normPhone, uid,
                    sendProspectMail, prospectReplyTo, prospectBcc, SEQ_GAPS, territoryFor, callerFor, ownerFrom,
                    localCallerFor, stateOfNumber };
