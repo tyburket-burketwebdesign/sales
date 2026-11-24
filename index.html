@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script>if(/^refer\./i.test(location.hostname)){location.replace('/refer.html'+location.search);}</script>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#0e2235">
@@ -1960,7 +1961,7 @@ function refRender(){
   // partners
   var AG={none:'<span class="tag">not sent</span>',sent:'<span class="tag t-gold">sent</span>',viewed:'<span class="tag t-gold">opened</span>',signed:'<span class="tag" style="background:#dcfce7;color:#166534">signed</span>'};
   $('rf-partners').innerHTML=REF.partners.length?'<div style="overflow-x:auto"><table><thead><tr><th>Client</th><th>Agreement</th><th>Referral link</th><th>Referrals</th><th>Balance</th><th></th></tr></thead><tbody>'+REF.partners.map(function(p){
-    var link=REF.base+'/refer.html?c='+p.code;
+    var link=(REF.linkBase||REF.base+'/refer.html?c=')+p.code;
     return '<tr><td><b>'+esc(p.company)+'</b><div class="hint">'+esc(p.contact||'')+(p.email?' · '+esc(p.email):' · <a href="#" onclick="refEmail('+p.id+');return false">add email</a>')+'</div></td>'+
       '<td>'+(AG[p.agreement]||esc(p.agreement))+(p.pdf_url?' <a href="'+esc(p.pdf_url)+'" target="_blank">PDF</a>':'')+'</td>'+
       '<td><code style="font-size:12px">'+esc(p.code)+'</code> <button class="btn-ghost btn-sm" onclick="refCopy(\''+esc(link)+'\')">Copy link</button></td>'+

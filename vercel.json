@@ -9,5 +9,27 @@
     "api/hub.js": {
       "maxDuration": 60
     }
-  }
+  },
+  "rewrites": [
+    {
+      "source": "/",
+      "has": [
+        {
+          "type": "host",
+          "value": "refer.burketwebdesign.com"
+        }
+      ],
+      "destination": "/refer.html"
+    },
+    {
+      "source": "/:code([A-Za-z0-9]{6})",
+      "has": [
+        {
+          "type": "host",
+          "value": "refer.burketwebdesign.com"
+        }
+      ],
+      "destination": "/refer.html"
+    }
+  ]
 }
