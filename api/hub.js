@@ -499,7 +499,8 @@ module.exports = async function handler(req, res) {
       const contT = await sql`SELECT 'contract' AS kind, (product || ' - ' || status) AS label, '' AS note, rep, ts FROM contracts WHERE phone=${phone} ORDER BY ts DESC LIMIT 10`;
       const timeline = [].concat(callsT, notesT, emailsT, meetT, propT, contT)
         .sort((x, y) => new Date(y.ts) - new Date(x.ts)).slice(0, 80);
-      return ok({ company: comp, timeline: timeline });
+      const credit = (await sql`SELECT rep, count(*)::int AS deals FROM deals WHERE lower(business)=lower(${comp.name || ''}) AND status <> 'cancelled' GROUP BY rep ORDER BY count(*) DESC LIMIT 1`)[0] || null;
+      return ok({ company: comp, timeline: timeline, credit });
     }
     if (a === 'company.note') {
       const phone = C.normPhone(P.phone);
@@ -548,6 +549,34 @@ module.exports = async function handler(req, res) {
       if (allowed.indexOf(P.stage) === -1) return err('Bad stage.');
       await sql`UPDATE companies SET stage=${P.stage}, lost_reason=${P.stage === 'lost' ? (P.reason || '') : ''}, updated=now() WHERE phone=${phone}`;
       return ok(true);
+    }
+    if (a === 'company.credit') {
+      if (!OWNER) return err('Owner only.');
+      const phone = C.normPhone(P.phone);
+      const em = String(P.email || '').toLowerCase().trim();
+      const seat = (await sql`SELECT email, name FROM users WHERE email=${em}`)[0];
+      if (!seat) return err('No seat with that email.');
+      const comp = (await sql`SELECT * FROM companies WHERE phone=${phone}`)[0];
+      if (!comp) return err('Company not found.');
+      const deals = await sql`SELECT id FROM deals WHERE lower(business)=lower(${comp.name}) AND status <> 'cancelled'`;
+      await sql`UPDATE companies SET rep=${em}, updated=now() WHERE phone=${phone}`;
+      await sql`UPDATE contracts SET rep=${em} WHERE phone=${phone}`;
+      let created = false;
+      if (deals.length) {
+        const ids = deals.map(d => d.id);
+        await sql`UPDATE deals SET rep=${em} WHERE id = ANY(${ids})`;
+        await sql`UPDATE ledger SET rep=${em} WHERE deal_id = ANY(${ids})`;
+      } else if (P.create) {
+        const monthly = Number(P.monthly) || 0;
+        await sql`INSERT INTO deals (rep, business, product, kind, amount, monthly, first_comm, rec_comm, status, note, reviewed_ts)
+          VALUES (${em}, ${comp.name}, ${'Local Presence - $' + monthly + '/mo'}, 'recurring', ${monthly}, ${monthly}, 0, 0, 'approved', 'Recorded by owner', now())`;
+        await sql`UPDATE companies SET stage='won', updated=now() WHERE phone=${phone}`;
+        created = true;
+      } else {
+        return ok({ noDeal: true });
+      }
+      await sql`INSERT INTO company_notes (phone, author, note) VALUES (${phone}, ${user.email}, ${'Sale credited to ' + (seat.name || em)})`;
+      return ok({ created, deals: deals.length });
     }
     if (a === 'company.rename') {
       const phone = C.normPhone(P.phone);
