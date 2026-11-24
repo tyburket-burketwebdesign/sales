@@ -755,7 +755,7 @@ table th{font-size:11px;letter-spacing:.4px}
 
       <div class="view" id="v-hq">
         <div class="g4" style="margin-bottom:14px">
-          <div class="kpi"><b id="hq-mrr">$0</b><span>monthly recurring revenue</span></div>
+          <div class="kpi"><b id="hq-mrr">$0</b><span>revenue billed this month · <span id="hq-revsub"></span></span></div>
           <div class="kpi"><b id="hq-cli">0</b><span>current clients</span></div>
           <div class="kpi"><b id="hq-cash">$0</b><span>collected this month · <span id="hq-cashlm"></span></span></div>
           <div class="kpi"><b id="hq-ar">$0</b><span>open invoices · <span id="hq-od"></span></span></div>
@@ -777,7 +777,7 @@ table th{font-size:11px;letter-spacing:.4px}
         <div class="card">
           <div class="row" style="align-items:center;gap:8px">
             <input id="cl-q" placeholder="Search clients" oninput="clRender()" style="max-width:240px">
-            <select id="cl-f" onchange="clRender()" style="max-width:160px"><option value="current">Current</option><option value="active">Active</option><option value="onboarding">Onboarding</option><option value="paused">Paused</option><option value="churned">Churned</option><option value="all">All</option></select>
+            <select id="cl-f" onchange="clRender()" style="max-width:160px"><option value="current">Current</option><option value="active">Active</option><option value="onboarding">Onboarding</option><option value="paused">Paused</option><option value="churned">Churned</option><option value="past">Past customers</option><option value="all">All</option></select>
             <span class="hint" id="cl-sum"></span><div style="flex:1"></div>
             <button class="btn-ghost btn-sm" onclick="clImport()">+ Import from Wave</button>
             <button class="btn-go btn-sm" onclick="clNew()">+ New client</button>
@@ -828,13 +828,14 @@ table th{font-size:11px;letter-spacing:.4px}
       <div class="view" id="v-reports">
         <div class="row" style="margin-bottom:10px;gap:8px"><span class="hint">Numbers come from Wave invoices, the CRM and every logged call.</span><div style="flex:1"></div><button class="btn-ghost btn-sm" onclick="rpCsv()">&#11015; Client revenue CSV</button><button class="btn-ghost btn-sm" onclick="rpLoad()">&#8635; Refresh</button></div>
         <div class="g4" style="margin-bottom:14px">
-          <div class="kpi"><b id="rp-ytd">$0</b><span>collected this year</span></div>
-          <div class="kpi"><b id="rp-avg">$0</b><span>avg revenue per client / mo</span></div>
+          <div class="kpi"><b id="rp-ytd">$0</b><span>total revenue billed this year · <span id="rp-ytdc"></span></span></div>
+          <div class="kpi"><b id="rp-avg">$0</b><span>avg total revenue per month (12 mo)</span></div>
           <div class="kpi"><b id="rp-dtp">-</b><span>avg days to get paid</span></div>
           <div class="kpi"><b id="rp-fc">$0</b><span>weighted pipeline forecast</span></div>
         </div>
         <div class="g2" style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
-          <div class="card" style="grid-column:span 2"><b style="font-size:15px">&#128176; Revenue collected, last 12 months</b><div id="rp-rev" style="margin-top:10px"></div></div>
+          <div class="card" style="grid-column:span 2"><b style="font-size:15px">&#128176; Total revenue billed, last 12 months</b> <span class="hint">all invoices: retainers, websites, projects, one-offs</span><div id="rp-billed" style="margin-top:10px"></div></div>
+          <div class="card" style="grid-column:span 2"><b style="font-size:15px">&#128181; Cash collected, last 12 months</b><div id="rp-rev" style="margin-top:10px"></div></div>
           <div class="card"><b style="font-size:15px">&#9203; Receivables aging</b><div id="rp-aging" style="margin-top:10px"></div></div>
           <div class="card"><b style="font-size:15px">&#127919; Sales funnel (30 days)</b><div id="rp-funnel" style="margin-top:10px"></div></div>
           <div class="card"><b style="font-size:15px">&#127942; Rep leaderboard (30 days)</b><div id="rp-reps" style="margin-top:8px"></div></div>
@@ -1250,7 +1251,7 @@ table th{font-size:11px;letter-spacing:.4px}
       <div><label>Start date</label><input id="clm-start_date" type="date"></div>
       <div><label>Term (months, 0 = month to month)</label><input id="clm-term_months" type="number" min="0"></div>
       <div><label>Term end (optional override)</label><input id="clm-renewal_date" type="date"></div>
-      <div><label>Status</label><select id="clm-status"><option value="onboarding">Onboarding</option><option value="active">Active</option><option value="paused">Paused</option><option value="churned">Churned</option></select></div>
+      <div><label>Status</label><select id="clm-status"><option value="onboarding">Onboarding</option><option value="active">Active</option><option value="paused">Paused</option><option value="churned">Churned</option><option value="past">Past customer</option></select></div>
       <div><label>Health</label><select id="clm-health"><option value="auto">Auto</option><option value="green">Green</option><option value="yellow">Yellow</option><option value="red">Red</option></select></div>
       <div><label>Sold by</label><select id="clm-rep"></select></div>
       <div style="grid-column:span 2"><label>Logins / links (GBP, site, drive)</label><input id="clm-links" placeholder="Where things live. No passwords."></div>
@@ -2223,7 +2224,7 @@ function clientChurn(id,name){
 }
 /* ================= CRM: HQ, Clients, Tasks, Billing ================= */
 var CRM={clients:[],tasks:[],invoices:[],cur:null};
-var CL_ST={active:'Active',onboarding:'Onboarding',paused:'Paused',churned:'Churned'};
+var CL_ST={active:'Active',onboarding:'Onboarding',paused:'Paused',churned:'Churned',past:'Past customer'};
 var HC={green:'#16a34a',yellow:'#d99a00',red:'#dc2626'};
 function hdot(h){ return '<span title="'+h+'" style="display:inline-block;width:10px;height:10px;border-radius:50%;background:'+(HC[h]||'#9aa8b6')+';margin-right:6px;vertical-align:middle"></span>'; }
 function dshort(s){ if(!s) return ''; var d=new Date(s+'T12:00:00'); return d.toLocaleDateString(undefined,{month:'short',day:'numeric'}); }
@@ -2233,7 +2234,7 @@ function repName(e){ var r=((BOOT.team&&BOOT.team.reps)||[]).find(function(x){re
 /* ---------- HQ ---------- */
 function hqLoad(){
   api('crm.hq').then(function(d){
-    hqExtras(d); $('hq-mrr').textContent=money(d.mrr); $('hq-cli').textContent=d.clients+(d.onboarding?' ('+d.onboarding+' onboarding)':'');
+    hqExtras(d); var bm=Number(d.billed.m)||0, br=Number(d.billed.m_rec)||0; $('hq-mrr').textContent=money(bm); $('hq-revsub').textContent=money(br)+' recurring · '+money(bm-br)+' one-time · last month '+money(d.billed.lm)+' · '+money(d.mrr)+' MRR'; $('hq-cli').textContent=d.clients+(d.onboarding?' ('+d.onboarding+' onboarding)':'');
     $('hq-cash').textContent=money(d.cash.m); $('hq-cashlm').textContent='last month '+money(d.cash.lm);
     $('hq-ar').textContent=money(d.cash.ar); $('hq-od').innerHTML=Number(d.cash.overdue)>0?'<b style="color:var(--red)">'+money(d.cash.overdue)+' overdue</b>':'nothing overdue';
     var mx=Math.max.apply(null,(d.months||[]).map(function(m){return Number(m.v);}).concat([1]));
@@ -2261,7 +2262,7 @@ function clLoad(){
 }
 function clRender(){
   var q=($('cl-q').value||'').toLowerCase(), f=$('cl-f').value;
-  var rows=CRM.clients.filter(function(c){ return (f==='all'||(f==='current'?c.status!=='churned':c.status===f)) && (!q||(c.name+' '+c.contact+' '+c.email+' '+c.package).toLowerCase().indexOf(q)>-1); });
+  var rows=CRM.clients.filter(function(c){ return (f==='all'||(f==='current'?['active','onboarding','paused'].indexOf(c.status)>-1:c.status===f)) && (!q||(c.name+' '+c.contact+' '+c.email+' '+c.package).toLowerCase().indexOf(q)>-1); });
   var cur=CRM.clients.filter(function(c){return c.status==='active'||c.status==='onboarding';});
   $('cl-sum').textContent=cur.length+' current · '+money(cur.reduce(function(a,c){return a+Number(c.mrr||0);},0))+'/mo';
   $('cl-list').innerHTML=rows.length?'<div style="overflow-x:auto"><table><thead><tr><th>Client</th><th>Package</th><th>MRR</th><th class="hidem">Since</th><th class="hidem">Term ends</th><th>Open tasks</th><th>Balance</th><th>Status</th></tr></thead><tbody>'+rows.map(function(c){
@@ -2661,9 +2662,11 @@ function rpLoad(){
   api('own.reports').then(function(d){
     RP=d; var mlab=function(r){ return new Date(r.m+'-15').toLocaleString('en-US',{month:'short'}); };
     var ytd=d.rev.filter(function(r){return r.m.slice(0,4)===String(new Date().getFullYear());}).reduce(function(a,r){return a+Number(r.v);},0);
-    $('rp-ytd').textContent=money(ytd);
-    var act=d.byClient.filter(function(c){return c.status==='active'||c.status==='onboarding';});
-    $('rp-avg').textContent=act.length?money(Math.round(act.reduce(function(a,c){return a+Number(c.mrr||0);},0)/act.length)):'$0';
+    var yr=String(new Date().getFullYear()), cm=today10().slice(0,7);
+    var byr=d.billedM.filter(function(r){return r.m.slice(0,4)===yr;}), bytd=byr.reduce(function(a,r){return a+Number(r.v);},0), brec=byr.reduce(function(a,r){return a+Number(r.rec);},0);
+    $('rp-ytd').textContent=money(bytd); $('rp-ytdc').textContent=money(ytd)+' collected';
+    var full=d.billedM.filter(function(r){return r.m<cm;}); $('rp-avg').textContent=full.length?money(Math.round(full.reduce(function(a,r){return a+Number(r.v);},0)/full.length)):'$0';
+    $('rp-billed').innerHTML=bars(d.billedM,mlab,'v',money)+'<div class="hint" style="margin-top:6px">This year: '+money(brec)+' recurring · '+money(bytd-brec)+' one-time</div>';
     var dd=d.byClient.filter(function(c){return c.days_to_pay!=null;}); $('rp-dtp').textContent=dd.length?Math.round(dd.reduce(function(a,c){return a+c.days_to_pay;},0)/dd.length)+' days':'-';
     var PW={contacted:.05,engaged:.15,meeting:.3,proposal:.5,contract:.8}; $('rp-fc').textContent=money(Math.round(d.pipe.reduce(function(a,p){return a+Number(p.v)*(PW[p.stage]||0);},0)));
     $('rp-rev').innerHTML=bars(d.rev,mlab,'v',money);
@@ -2676,11 +2679,11 @@ function rpLoad(){
     $('rp-growth').innerHTML=bars(d.growth,mlab,'n');
     $('rp-lost').innerHTML=(d.lost.length?'<b>Lost deal reasons</b>'+d.lost.map(function(l){return '<div class="row" style="justify-content:space-between;padding:3px 0"><span>'+esc(l.r)+'</span><b>'+l.n+'</b></div>';}).join(''):'<div class="hint">No lost reasons logged.</div>')+
       (d.churn.length?'<div style="margin-top:10px"><b>Churned clients</b>'+d.churn.map(function(c){return '<div class="row" style="justify-content:space-between;padding:3px 0"><span>'+esc(c.name)+'</span><span class="hint">'+fdate(c.ts)+'</span></div>';}).join('')+'</div>':'');
-    $('rp-clients').innerHTML='<table><thead><tr><th>Client</th><th>Status</th><th>MRR</th><th>Paid this year</th><th>Lifetime paid</th><th>Avg days to pay</th></tr></thead><tbody>'+d.byClient.filter(function(c){return Number(c.ltv)>0||c.status!=='churned';}).map(function(c){
-      return '<tr class="biz" onclick="clOpen('+c.id+')"><td><b>'+esc(c.name)+'</b></td><td>'+esc(c.status)+'</td><td>'+(Number(c.mrr)?money(c.mrr):'')+'</td><td>'+money(c.ytd)+'</td><td><b>'+money(c.ltv)+'</b></td><td>'+(c.days_to_pay==null?'':c.days_to_pay+'d')+'</td></tr>'; }).join('')+'</tbody></table>';
+    $('rp-clients').innerHTML='<table><thead><tr><th>Client</th><th>Status</th><th>MRR</th><th>Billed (12 mo)</th><th>Paid this year</th><th>Lifetime paid</th><th>Avg days to pay</th></tr></thead><tbody>'+d.byClient.filter(function(c){return Number(c.ltv)>0||c.status!=='churned';}).map(function(c){
+      return '<tr class="biz" onclick="clOpen('+c.id+')"><td><b>'+esc(c.name)+'</b></td><td>'+esc(c.status)+'</td><td>'+(Number(c.mrr)?money(c.mrr):'')+'</td><td>'+money(c.billed12)+'</td><td>'+money(c.ytd)+'</td><td><b>'+money(c.ltv)+'</b></td><td>'+(c.days_to_pay==null?'':c.days_to_pay+'d')+'</td></tr>'; }).join('')+'</tbody></table>';
   }).catch(function(e){ toast(e.message); });
 }
-function rpCsv(){ if(!RP) return; var cols=['name','status','mrr','ytd','ltv','days_to_pay'];
+function rpCsv(){ if(!RP) return; var cols=['name','status','mrr','billed12','ytd','ltv','days_to_pay'];
   var csv=[cols.join(',')].concat(RP.byClient.map(function(r){return cols.map(function(c){return '"'+String(r[c]==null?'':r[c]).replace(/"/g,'""')+'"';}).join(',');})).join('\n');
   var a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'})); a.download='client-revenue-'+today10()+'.csv'; a.click(); }
 
