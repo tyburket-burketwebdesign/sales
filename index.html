@@ -59,6 +59,7 @@ tr.done{opacity:.45}
 .hint{font-size:12.5px;color:var(--muted);margin-top:6px}
 .g4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
 .g3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+@media(max-width:900px){#v-hq .g2{grid-template-columns:1fr!important}#clmodal .inner>div[style*="repeat(3"]{grid-template-columns:1fr 1fr!important}}
 .g2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .kpi{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px 16px;text-align:center;box-shadow:var(--shadow)}
 .kpi b{font-size:23px;display:block;color:var(--blue);font-variant-numeric:tabular-nums}
@@ -398,6 +399,7 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--m
       <button class="nv" data-view="dialer"><span class="ic">&#128222;</span>Dialer<span class="pill" id="navDialPill" style="display:none"></span><span class="pill" id="navMissPill" title="Missed calls" style="display:none;background:#e5484d;color:#fff;margin-left:4px"></span></button>
       <button class="nv" data-view="listing"><span class="ic">&#127991;&#65039;</span>Listing Calls</button>
       <button class="nv" data-view="pipe"><span class="ic">&#128202;</span>Pipeline</button>
+      <button class="nv" data-view="tasks"><span class="ic">&#9989;</span>Tasks<span class="pill" id="navTaskPill" style="display:none;background:#e5484d;color:#fff"></span></button>
       <button class="nv" data-view="meet"><span class="ic">&#129309;</span>Meetings</button>
       <button class="nv" data-view="lists"><span class="ic">&#128203;</span>Custom Lists<span class="pill" id="navListPill" style="display:none"></span></button>
       <button class="nv" data-view="seq"><span class="ic">&#9993;&#65039;</span>Sequences</button>
@@ -407,6 +409,10 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--m
       <div class="navsec">LEARN</div>
       <button class="nv" data-view="play"><span class="ic">&#128218;</span>Playbook</button>
       <div id="ownerNav" style="display:none">
+        <div class="navsec">BUSINESS</div>
+        <button class="nv" data-view="hq"><span class="ic">&#127970;</span>Business HQ</button>
+        <button class="nv" data-view="clients"><span class="ic">&#128188;</span>Clients</button>
+        <button class="nv" data-view="billing"><span class="ic">&#129534;</span>Billing</button>
         <div class="navsec">OWNER</div>
         <button class="nv" data-view="owner"><span class="ic">&#9881;&#65039;</span>Command Center<span class="pill" id="apprBadge" style="display:none"></span></button>
         <button class="nv" data-view="perf"><span class="ic">&#128200;</span>Rep Performance</button>
@@ -669,6 +675,74 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--m
         <div id="cl-body"></div>
       </div>
 
+      <div class="view" id="v-hq">
+        <div class="g4" style="margin-bottom:14px">
+          <div class="kpi"><b id="hq-mrr">$0</b><span>monthly recurring revenue</span></div>
+          <div class="kpi"><b id="hq-cli">0</b><span>current clients</span></div>
+          <div class="kpi"><b id="hq-cash">$0</b><span>collected this month · <span id="hq-cashlm"></span></span></div>
+          <div class="kpi"><b id="hq-ar">$0</b><span>open invoices · <span id="hq-od"></span></span></div>
+        </div>
+        <div class="card" style="font-size:14px" id="hq-alerts"></div>
+        <div class="g2" style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+          <div class="card"><b style="font-size:15px">&#128176; Cash collected (6 months)</b><div id="hq-chart" style="margin-top:10px"></div></div>
+          <div class="card"><b style="font-size:15px">&#128202; Sales today</b><div class="hint" id="hq-pipe" style="margin:6px 0 8px"></div><div id="hq-team"></div></div>
+          <div class="card"><b style="font-size:15px">&#9989; Tasks due this week</b> <a href="#" class="hint" onclick="gotoView('tasks');return false">all tasks</a><div id="hq-tasks" style="margin-top:8px"></div></div>
+          <div class="card"><b style="font-size:15px">&#129534; Overdue invoices</b> <a href="#" class="hint" onclick="gotoView('billing');return false">billing</a><div id="hq-inv" style="margin-top:8px"></div></div>
+          <div class="card"><b style="font-size:15px">&#9888;&#65039; Clients needing attention</b><div class="hint">Yellow or red: overdue invoice, late tasks, or no touch in 45 days.</div><div id="hq-risk" style="margin-top:8px"></div></div>
+          <div class="card"><b style="font-size:15px">&#128197; Contract terms ending (30 days)</b><div class="hint">Call before the term ends: renew, upgrade, or ask for a referral.</div><div id="hq-ren" style="margin-top:8px"></div></div>
+        </div>
+      </div>
+
+      <div class="view" id="v-clients">
+        <div class="card">
+          <div class="row" style="align-items:center;gap:8px">
+            <input id="cl-q" placeholder="Search clients" oninput="clRender()" style="max-width:240px">
+            <select id="cl-f" onchange="clRender()" style="max-width:160px"><option value="current">Current</option><option value="active">Active</option><option value="onboarding">Onboarding</option><option value="paused">Paused</option><option value="churned">Churned</option><option value="all">All</option></select>
+            <span class="hint" id="cl-sum"></span><div style="flex:1"></div>
+            <button class="btn-ghost btn-sm" onclick="clImport()">+ Import from Wave</button>
+            <button class="btn-go btn-sm" onclick="clNew()">+ New client</button>
+          </div>
+          <div id="cl-imp" style="display:none;margin-top:10px"></div>
+          <div class="hint" style="margin-top:6px">Approved deals open a client here on their own, with the onboarding checklist. The dot is client health: green, yellow, red.</div>
+          <div id="cl-list" style="margin-top:10px"></div>
+        </div>
+      </div>
+
+      <div class="view" id="v-billing">
+        <div class="g4" style="margin-bottom:14px">
+          <div class="kpi"><b id="bl-k1">$0</b><span>open (sent, not paid)</span></div>
+          <div class="kpi"><b id="bl-k2" style="color:var(--red)">$0</b><span>overdue</span></div>
+          <div class="kpi"><b id="bl-k3">$0</b><span>collected this month</span></div>
+          <div class="kpi"><b id="bl-k4">0</b><span>clients still to bill this month</span></div>
+        </div>
+        <div class="card">
+          <b style="font-size:15px">&#128197; This month's billing run</b>
+          <div class="hint">Create each invoice in Wave as usual, then click Log Wave invoice so the CRM tracks it. Referral credits are taken off automatically; add a negative "Referral credit" line in Wave for the same amount.</div>
+          <div id="bl-run" style="margin-top:8px;overflow-x:auto"></div>
+        </div>
+        <div class="card">
+          <div class="row" style="align-items:center"><b style="font-size:15px">&#129534; Invoices</b><div style="flex:1"></div>
+            <select id="bl-f" onchange="blRender()" style="max-width:150px"><option value="open">Open</option><option value="overdue">Overdue</option><option value="paid">Paid</option><option value="all">All</option></select></div>
+          <div class="hint">When Wave shows a payment, click Mark paid here. Log one-off invoices from the client's page.</div>
+          <div id="bl-list" style="margin-top:8px"></div>
+        </div>
+      </div>
+
+      <div class="view" id="v-tasks">
+        <div class="card">
+          <div class="row" style="align-items:flex-end;gap:6px;display:none" id="tk-addrow">
+            <div style="flex:2;min-width:180px"><label>Task</label><input id="tk-t" placeholder="What needs doing?"></div>
+            <div><label>Client</label><select id="tk-c" style="max-width:180px"></select></div>
+            <div><label>Due</label><input id="tk-d" type="date"></div>
+            <div><label>Who</label><select id="tk-as"></select></div>
+            <div><label>Repeats</label><select id="tk-r"><option value="">No</option><option value="weekly">Weekly</option><option value="monthly">Monthly</option></select></div>
+            <button class="btn-go" onclick="tkAdd()">Add</button>
+          </div>
+          <div class="row" style="margin-top:8px;align-items:center"><span class="hint">Repeating tasks create the next one when you check them off.</span><div style="flex:1"></div><select id="tk-who" onchange="tkRender()" style="max-width:170px;display:none"></select></div>
+        </div>
+        <div id="tk-list"></div>
+      </div>
+
       <div class="view" id="v-refer">
         <div class="g4" style="margin-bottom:14px">
           <div class="kpi"><b id="rk-part">0</b><span>partners enrolled</span></div>
@@ -810,7 +884,7 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--m
           <div id="teamList" style="margin-top:10px"></div>
         </div>
         <div class="card">
-          <div class="row"><b style="font-size:15px">&#129309; Clients &amp; MRR</b><div style="flex:1"></div><span class="hint" id="clientsSum"></span></div>
+          <div class="row"><b style="font-size:15px">&#129309; Rep-closed deals (commissions)</b><div style="flex:1"></div><span class="hint" id="clientsSum"></span></div>
           <div class="hint">Every paying monthly client. Mark one churned when they cancel so MRR and recurring commissions stay accurate. A referral nudge shows once they have been with us 30 days.</div>
           <div id="clientsList" style="margin-top:8px"></div>
         </div>
@@ -1000,6 +1074,59 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--m
   </div>
 </div>
 
+<div class="modal2" id="clmodal">
+  <div class="inner" style="width:820px">
+    <div class="row" style="align-items:center"><h2 style="font-size:18px" id="clm-title">Client</h2><div style="flex:1"></div>
+      <button class="btn-ghost btn-sm" onclick="$('clmodal').classList.remove('show')">&#10005;</button></div>
+    <div class="hint" id="clm-meta" style="margin-top:4px"></div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px">
+      <div><label>Business name</label><input id="clm-name"></div>
+      <div><label>Contact</label><input id="clm-contact"></div>
+      <div><label>Email</label><input id="clm-email"></div>
+      <div><label>Phone</label><input id="clm-phone"></div>
+      <div><label>Website</label><input id="clm-website"></div>
+      <div><label>Package</label><input id="clm-package" placeholder="Local SEO $500/mo"></div>
+      <div><label>Monthly $ (MRR)</label><input id="clm-mrr" placeholder="500"></div>
+      <div><label>Start date</label><input id="clm-start_date" type="date"></div>
+      <div><label>Term (months, 0 = month to month)</label><input id="clm-term_months" type="number" min="0"></div>
+      <div><label>Term end (optional override)</label><input id="clm-renewal_date" type="date"></div>
+      <div><label>Status</label><select id="clm-status"><option value="onboarding">Onboarding</option><option value="active">Active</option><option value="paused">Paused</option><option value="churned">Churned</option></select></div>
+      <div><label>Health</label><select id="clm-health"><option value="auto">Auto</option><option value="green">Green</option><option value="yellow">Yellow</option><option value="red">Red</option></select></div>
+      <div><label>Sold by</label><select id="clm-rep"></select></div>
+      <div style="grid-column:span 2"><label>Logins / links (GBP, site, drive)</label><input id="clm-links" placeholder="Where things live. No passwords."></div>
+    </div>
+    <div style="margin-top:8px"><label>Notes</label><textarea id="clm-notes" rows="2"></textarea></div>
+    <div class="row" id="clm-tplrow" style="margin-top:8px;align-items:center;gap:8px"><label style="margin:0">Start with checklist</label>
+      <select id="clm-tpl" style="max-width:220px"><option value="onboard">Local SEO onboarding</option><option value="website">Website build</option><option value="">None</option></select></div>
+    <div class="row" style="margin-top:10px"><button class="btn-go" onclick="clSave()">Save</button><div style="flex:1"></div><button class="btn-ghost btn-sm" onclick="clDelete()">Delete</button></div>
+    <div id="clm-extra" style="display:none">
+      <h3 class="sec" style="margin-top:16px">&#9989; Tasks</h3>
+      <div id="clm-tasks"></div>
+      <div class="row" style="gap:6px;margin-top:6px;align-items:flex-end">
+        <div style="flex:2"><input id="clm-tt" placeholder="New task"></div><input id="clm-tdue" type="date" style="max-width:150px">
+        <select id="clm-tas" style="max-width:130px"></select><select id="clm-trec" style="max-width:110px"><option value="">Once</option><option value="weekly">Weekly</option><option value="monthly">Monthly</option></select>
+        <button class="btn-blue btn-sm" onclick="clTaskAdd()">Add</button>
+      </div>
+      <div class="row" style="gap:6px;margin-top:6px;align-items:center"><span class="hint">Add a checklist:</span>
+        <select id="clm-tplx" style="max-width:220px"><option value="onboard">Local SEO onboarding</option><option value="website">Website build</option><option value="monthly">Monthly service (repeating)</option></select>
+        <button class="btn-ghost btn-sm" onclick="clTpl()">Add tasks</button></div>
+      <h3 class="sec" style="margin-top:16px">&#129534; Invoices (from Wave)</h3>
+      <div id="clm-inv"></div>
+      <div class="row" style="gap:6px;margin-top:6px;align-items:flex-end;flex-wrap:wrap">
+        <div><label>Wave #</label><input id="clm-inum" style="max-width:90px"></div>
+        <div><label>Amount</label><input id="clm-iamt" style="max-width:90px"></div>
+        <div><label>Issued</label><input id="clm-ii" type="date"></div>
+        <div><label>Due (default +15 days)</label><input id="clm-idue" type="date"></div>
+        <div><label>Credit applied</label><input id="clm-icred" style="max-width:90px" placeholder="0"></div>
+        <label style="display:flex;gap:4px;align-items:center;margin:0 0 8px"><input type="checkbox" id="clm-ipaid" style="width:auto"> already paid</label>
+        <button class="btn-blue btn-sm" onclick="clInvAdd()">Log invoice</button>
+      </div>
+      <h3 class="sec" style="margin-top:16px">&#128221; Activity</h3>
+      <div class="row" style="gap:6px"><input id="clm-note" placeholder="Log a call, email, request or update" style="flex:1"><button class="btn-ghost btn-sm" onclick="clNote()">Add note</button></div>
+      <div id="clm-log" style="margin-top:6px;max-height:240px;overflow:auto"></div>
+    </div>
+  </div>
+</div>
 <div class="modal2" id="compmodal">
   <div class="inner" style="width:640px">
     <div class="row"><h2 style="font-size:18px" id="cp-name">Company</h2><div style="flex:1"></div>
@@ -1366,6 +1493,10 @@ var QUOTES = [
 ];
 var TITLES = {
   dash:['Dashboard','Your day at a glance'],
+  hq:['Business HQ','Revenue, clients, cash and the team in one place'],
+  clients:['Clients','Every account: package, MRR, health, tasks and billing'],
+  billing:['Billing','Wave invoices, what is owed, and this month\u2019s billing run'],
+  tasks:['Tasks','Client work and to-dos, by due date'],
   dialer:['Dialer','Qualified targets, one call at a time'],
   pipe:['Pipeline','Every prospect, every stage'],
   meet:['Meetings','Booked, showed, closed'],
@@ -1559,6 +1690,10 @@ function gotoView(v){
   if (v==='owner'){ refresh(); loadTeam(); loadShiftReports(); asInit(); }
   if (v==='perf'){ anInit(); anLoad(); }
   if (v==='refer'){ refLoad(); }
+  if (v==='hq'){ hqLoad(); }
+  if (v==='clients'){ clLoad(); }
+  if (v==='billing'){ blLoad(); }
+  if (v==='tasks'){ tkLoad(); }
   if (v==='lists'){ loadLists(); }
   if (v==='listing'){ lInit(); }
   if (v==='dash'||v==='comm'||v==='seq'||v==='meet') refresh();
@@ -1643,7 +1778,7 @@ function gCell(b){
   if (b.src!=='google') return '<span style="color:var(--muted2)">-</span>';
   return '<span style="font-size:12.5px">'+esc('#'+b.pos+' · '+(b.reviews>0?(b.rating+'★ ('+b.reviews+')'):'no reviews'))+'</span>';
 }
-function renderAll(){ missPoll(); renderList(); renderStats(); renderHistoryBoot(); renderSeqs(); renderMeetings(); renderComm(); if(BOOT&&BOOT.user.role==='owner')renderOwner(); loadBreakdown(); }
+function renderAll(){ missPoll(); try{ tkLoad(); }catch(e){} renderList(); renderStats(); renderHistoryBoot(); renderSeqs(); renderMeetings(); renderComm(); if(BOOT&&BOOT.user.role==='owner')renderOwner(); loadBreakdown(); }
 function renderList(){
   $('listTitle').textContent = LISTMETA.city ? (LISTMETA.industry+' - '+LISTMETA.city) : 'Call List';
   if (!LIST.length) {
@@ -1923,6 +2058,209 @@ function clientChurn(id,name){
   if(!confirm('Mark '+name+' as churned? They come off MRR and recurring commissions stop from here on.')) return;
   api('deal.cancel',{id:id}).then(function(){ toast(name+' marked churned.'); refresh(); clientsLoad(); }).catch(function(e){toast(e.message);});
 }
+/* ================= CRM: HQ, Clients, Tasks, Billing ================= */
+var CRM={clients:[],tasks:[],invoices:[],cur:null};
+var CL_ST={active:'Active',onboarding:'Onboarding',paused:'Paused',churned:'Churned'};
+var HC={green:'#16a34a',yellow:'#d99a00',red:'#dc2626'};
+function hdot(h){ return '<span title="'+h+'" style="display:inline-block;width:10px;height:10px;border-radius:50%;background:'+(HC[h]||'#9aa8b6')+';margin-right:6px;vertical-align:middle"></span>'; }
+function dshort(s){ if(!s) return ''; var d=new Date(s+'T12:00:00'); return d.toLocaleDateString(undefined,{month:'short',day:'numeric'}); }
+function today10(){ var d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function repName(e){ var r=((BOOT.team&&BOOT.team.reps)||[]).find(function(x){return x.email===e;}); return r?(r.name||e).split(' ')[0]:(e||''); }
+
+/* ---------- HQ ---------- */
+function hqLoad(){
+  api('crm.hq').then(function(d){
+    $('hq-mrr').textContent=money(d.mrr); $('hq-cli').textContent=d.clients+(d.onboarding?' ('+d.onboarding+' onboarding)':'');
+    $('hq-cash').textContent=money(d.cash.m); $('hq-cashlm').textContent='last month '+money(d.cash.lm);
+    $('hq-ar').textContent=money(d.cash.ar); $('hq-od').innerHTML=Number(d.cash.overdue)>0?'<b style="color:var(--red)">'+money(d.cash.overdue)+' overdue</b>':'nothing overdue';
+    var mx=Math.max.apply(null,(d.months||[]).map(function(m){return Number(m.v);}).concat([1]));
+    $('hq-chart').innerHTML=(d.months||[]).length?'<div style="display:flex;align-items:flex-end;gap:10px;height:120px">'+d.months.map(function(m){
+      return '<div style="flex:1;text-align:center"><div class="hint" style="font-size:11px">'+money(m.v)+'</div><div style="height:'+Math.max(4,Math.round(Number(m.v)/mx*90))+'px;background:linear-gradient(180deg,var(--gold),#f0b400);border-radius:6px 6px 0 0"></div><div class="hint" style="font-size:11px">'+esc(m.m)+'</div></div>';
+    }).join('')+'</div>':'<div class="empty" style="padding:12px">Mark invoices paid in Billing and cash collected charts here.</div>';
+    $('hq-alerts').innerHTML=[
+      d.pending?'<a href="#" onclick="gotoView(\'owner\');return false">&#9203; '+d.pending+' deal'+(d.pending===1?'':'s')+' waiting for approval</a>':'',
+      d.missed?'<a href="#" onclick="gotoView(\'dialer\');return false">&#128222; '+d.missed+' missed call'+(d.missed===1?'':'s')+' to return</a>':'',
+      d.refOpen?'<a href="#" onclick="gotoView(\'refer\');return false">&#129309; '+d.refOpen+' referral'+(d.refOpen===1?'':'s')+' in progress</a>':'',
+      Number(d.refOwed)>0?'<a href="#" onclick="gotoView(\'refer\');return false">&#128181; '+money(d.refOwed)+' referral credits to apply</a>':''
+    ].filter(Boolean).join(' &nbsp;·&nbsp; ')||'<span class="hint">All clear: no approvals, missed calls or referral credits waiting.</span>';
+    $('hq-pipe').innerHTML='<b>'+d.pipe.warm+'</b> warm &nbsp;·&nbsp; <b>'+d.pipe.hot+'</b> proposal / contract &nbsp;·&nbsp; <b>'+d.pipe.won_m+'</b> won this month';
+    $('hq-team').innerHTML=(d.team||[]).map(function(t){ return '<div class="row" style="justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--line)"><b>'+esc(t.name||t.email)+'</b><span class="hint">'+t.dials+' dials · '+t.convos+' convos · '+t.meetings+' meetings</span></div>'; }).join('');
+    $('hq-inv').innerHTML=d.overdueInv.length?d.overdueInv.map(function(i){ return '<div class="row" style="justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--line)"><a href="#" onclick="clOpen('+i.client_id+');return false"><b>'+esc(i.client)+'</b></a><span>'+money(i.amount)+' <span class="tag" style="background:var(--red-bg);color:var(--red)">'+i.days+'d late</span> <button class="btn-ghost btn-sm" onclick="invPaid('+i.id+',hqLoad)">Paid</button></span></div>'; }).join(''):'<div class="hint">No overdue invoices.</div>';
+    $('hq-tasks').innerHTML=d.tasks.length?d.tasks.map(function(t){ var late=t.due_s<today10(); return '<div class="row" style="gap:8px;padding:5px 0;border-bottom:1px solid var(--line)"><input type="checkbox" style="width:auto" onchange="tkDone('+t.id+',true,hqLoad)"><div style="flex:1">'+esc(t.title)+(t.client?' <span class="hint">· '+esc(t.client)+'</span>':'')+'</div><span class="hint" style="'+(late?'color:var(--red);font-weight:700':'')+'">'+dshort(t.due_s)+' · '+esc(repName(t.assignee))+'</span></div>'; }).join(''):'<div class="hint">Nothing due this week.</div>';
+    $('hq-risk').innerHTML=d.risk.length?d.risk.map(function(c){ return '<div class="row" style="justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--line)"><a href="#" onclick="clOpen('+c.id+');return false">'+hdot(c.health)+'<b>'+esc(c.name)+'</b></a><span class="hint">'+[Number(c.overdue)>0?money(c.overdue)+' overdue':'',c.late>0?c.late+' late tasks':'',c.quiet>45&&c.quiet<999?c.quiet+' days no touch':''].filter(Boolean).join(' · ')+'</span></div>'; }).join(''):'<div class="hint">Every client is green.</div>';
+    $('hq-ren').innerHTML=d.renewals.length?d.renewals.map(function(c){ return '<div class="row" style="justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--line)"><a href="#" onclick="clOpen('+c.id+');return false"><b>'+esc(c.name)+'</b></a><span class="hint">'+money(c.mrr)+'/mo · term ends '+dshort(c.renewal)+'</span></div>'; }).join(''):'<div class="hint">No contract terms ending in the next 30 days.</div>';
+  }).catch(function(e){toast(e.message);});
+}
+
+/* ---------- Clients ---------- */
+function clLoad(){
+  api('crm.clients').then(function(rows){ CRM.clients=rows; clRender(); }).catch(function(e){toast(e.message);});
+}
+function clRender(){
+  var q=($('cl-q').value||'').toLowerCase(), f=$('cl-f').value;
+  var rows=CRM.clients.filter(function(c){ return (f==='all'||(f==='current'?c.status!=='churned':c.status===f)) && (!q||(c.name+' '+c.contact+' '+c.email+' '+c.package).toLowerCase().indexOf(q)>-1); });
+  var cur=CRM.clients.filter(function(c){return c.status==='active'||c.status==='onboarding';});
+  $('cl-sum').textContent=cur.length+' current · '+money(cur.reduce(function(a,c){return a+Number(c.mrr||0);},0))+'/mo';
+  $('cl-list').innerHTML=rows.length?'<div style="overflow-x:auto"><table><thead><tr><th>Client</th><th>Package</th><th>MRR</th><th class="hidem">Since</th><th class="hidem">Term ends</th><th>Open tasks</th><th>Balance</th><th>Status</th></tr></thead><tbody>'+rows.map(function(c){
+    return '<tr class="biz" onclick="clOpen('+c.id+')"><td>'+hdot(c.health_c)+'<b>'+esc(c.name)+'</b><div class="hint">'+esc([c.contact,c.email].filter(Boolean).join(' · '))+'</div></td>'+
+      '<td>'+esc(c.package||'')+'</td><td>'+(Number(c.mrr)?money(c.mrr):'')+'</td><td class="hidem">'+dshort(c.start_s)+'</td><td class="hidem">'+(c.term_months?dshort(c.renewal_s):'month to month')+'</td>'+
+      '<td>'+(c.open_tasks||'')+(c.late_tasks?' <span class="tag" style="background:var(--red-bg);color:var(--red)">'+c.late_tasks+' late</span>':'')+'</td>'+
+      '<td>'+(Number(c.open_amt)?money(c.open_amt):'')+(Number(c.overdue_amt)?' <span class="tag" style="background:var(--red-bg);color:var(--red)">overdue</span>':'')+'</td>'+
+      '<td><span class="tag'+(c.status==='active'?'" style="background:var(--green-bg);color:var(--green)"':c.status==='onboarding'?' t-gold"':'"')+'>'+CL_ST[c.status]+'</span></td></tr>';
+  }).join('')+'</tbody></table></div>':'<div class="empty">'+(CRM.clients.length?'No clients match.':'No clients yet. Click <b>+ Import from Wave</b> to pull in your customers, or <b>+ New client</b>.')+'</div>';
+}
+function clNew(){ CRM.cur=null; clFill({status:'onboarding',term_months:6,health:'auto',start_s:today10()}); $('clm-extra').style.display='none'; $('clm-tplrow').style.display='flex'; $('clmodal').classList.add('show'); }
+function clOpen(id){
+  api('crm.client.get',{id:id}).then(function(d){
+    CRM.cur=d; clFill(d.client); $('clm-extra').style.display='block'; $('clm-tplrow').style.display='none'; clDetail(); $('clmodal').classList.add('show');
+  }).catch(function(e){toast(e.message);});
+}
+var CLF=['name','contact','email','phone','website','package','mrr','start_date','term_months','renewal_date','status','health','rep','notes','links'];
+function clFill(c){
+  $('clm-title').textContent=c.id?c.name:'New client';
+  CLF.forEach(function(k){ var el=$('clm-'+k); if(!el) return; var v=k==='start_date'?c.start_s:k==='renewal_date'?(c.renewal_date?String(c.renewal_date).slice(0,10):''):c[k]; el.value=v==null?'':(k==='mrr'?Number(v)||'':v); });
+  $('clm-rep').innerHTML='<option value="">None</option>'+((BOOT.team&&BOOT.team.reps)||[]).map(function(r){return '<option value="'+esc(r.email)+'">'+esc(r.name||r.email)+'</option>';}).join('');
+  $('clm-rep').value=c.rep||'';
+  $('clm-meta').innerHTML=c.id?(hdot(c.health_c)+'Health: <b>'+c.health_c+'</b>'+(c.health==='auto'?' (auto)':'')+' &nbsp;·&nbsp; term ends '+(c.term_months?dshort(c.renewal_s):'n/a')+(c.phone?' &nbsp;·&nbsp; <a href="#" onclick="twDial(\''+esc(c.phone)+'\');return false">&#128222; '+esc(fmtPhone(c.phone))+'</a>':'')):'';
+}
+function clSave(){
+  var b={}; CLF.forEach(function(k){ var el=$('clm-'+k); if(el) b[k]=el.value; });
+  if(CRM.cur) b.id=CRM.cur.client.id; else b.template=$('clm-tpl').value;
+  if(CRM.cur && CRM.cur.client.status!=='churned' && b.status==='churned' && !confirm('Mark '+b.name+' as churned? This also stops recurring commissions on their deal and moves them to Lost in the pipeline.')) return;
+  api('crm.client.save',b).then(function(r){ toast('Saved.'+(r.cancelled?' Recurring commission stopped.':'')); clLoad(); if(CRM.cur) clOpen(r.id); else $('clmodal').classList.remove('show'); }).catch(function(e){toast(e.message);});
+}
+function clDelete(){ var c=CRM.cur&&CRM.cur.client; if(!c||!confirm('Delete '+c.name+' and all their invoices, tasks and notes from the CRM? This cannot be undone. (Use status Churned to keep history.)')) return;
+  api('crm.client.delete',{id:c.id}).then(function(){ $('clmodal').classList.remove('show'); toast('Deleted.'); clLoad(); }); }
+function clDetail(){
+  var d=CRM.cur, c=d.client;
+  $('clm-inv').innerHTML=(d.invoices.length?'<table><thead><tr><th>#</th><th>Amount</th><th>Issued</th><th>Due</th><th>Status</th><th></th></tr></thead><tbody>'+d.invoices.map(function(i){
+    var late=i.status==='open'&&i.due_s<today10();
+    return '<tr><td>'+esc(i.number||'')+'</td><td>'+money(i.amount)+'</td><td>'+dshort(i.issued_s)+'</td><td'+(late?' style="color:var(--red);font-weight:700"':'')+'>'+dshort(i.due_s)+'</td><td>'+(i.status==='paid'?'<span class="tag" style="background:var(--green-bg);color:var(--green)">paid '+dshort(i.paid_s)+'</span>':i.status==='void'?'<span class="tag">void</span>':'<span class="tag t-gold">open</span>')+'</td>'+
+      '<td>'+(i.status==='open'?'<button class="btn-ghost btn-sm" onclick="invPaid('+i.id+',function(){clOpen('+c.id+')})">Paid</button>':'')+' <button class="btn-ghost btn-sm" onclick="invDel('+i.id+',function(){clOpen('+c.id+')})">&#10005;</button></td></tr>';
+  }).join('')+'</tbody></table>':'<div class="hint">No invoices logged yet.</div>')+
+    (d.ref&&Number(d.ref.balance)>0?'<div class="hint" style="margin-top:6px">&#128181; This client has a <b>'+money(d.ref.balance)+'</b> referral credit. Put it on their next Wave invoice and enter it in Credit applied below.</div>':'');
+  $('clm-tasks').innerHTML=d.tasks.length?d.tasks.map(function(t){
+    var late=t.status==='open'&&t.due_s&&t.due_s<today10();
+    return '<div class="row" style="gap:8px;padding:4px 0;border-bottom:1px solid var(--line)'+(t.status==='done'?';opacity:.5':'')+'"><input type="checkbox" style="width:auto"'+(t.status==='done'?' checked':'')+' onchange="tkDone('+t.id+',this.checked,function(){clOpen('+c.id+')})"><div style="flex:1'+(t.status==='done'?';text-decoration:line-through':'')+'">'+esc(t.title)+(t.recurring?' <span class="tag t-gold">'+t.recurring+'</span>':'')+'</div><span class="hint" style="'+(late?'color:var(--red);font-weight:700':'')+'">'+(t.due_s?dshort(t.due_s):'')+' · '+esc(repName(t.assignee))+'</span><button class="btn-ghost btn-sm" onclick="tkDel('+t.id+',function(){clOpen('+c.id+')})">&#10005;</button></div>';
+  }).join(''):'<div class="hint">No tasks yet. Add one or apply a checklist.</div>';
+  $('clm-log').innerHTML=d.log.length?d.log.map(function(l){ return '<div style="padding:4px 0;border-bottom:1px solid var(--line)"><span class="hint">'+fdate(l.ts)+' · '+esc(repName(l.author))+'</span><div>'+esc(l.note)+'</div></div>'; }).join(''):'<div class="hint">No activity yet.</div>';
+  $('clm-ii').value=today10(); $('clm-iamt').value=Number(c.mrr)||''; $('clm-inum').value=''; $('clm-icred').value='';
+  $('clm-tdue').value=''; $('clm-tt').value='';
+  $('clm-tas').innerHTML=((BOOT.team&&BOOT.team.reps)||[]).map(function(r){return '<option value="'+esc(r.email)+'"'+(r.email===BOOT.user.email?' selected':'')+'>'+esc(r.name||r.email)+'</option>';}).join('');
+}
+function clInvAdd(){
+  var c=CRM.cur.client, iss=$('clm-ii').value;
+  api('crm.invoice.save',{client_id:c.id,number:$('clm-inum').value,amount:$('clm-iamt').value,issued:iss,due:$('clm-idue').value,credit:$('clm-icred').value,status:$('clm-ipaid').checked?'paid':'open'})
+    .then(function(){ toast('Invoice logged.'); clOpen(c.id); }).catch(function(e){toast(e.message);});
+}
+function clTaskAdd(){
+  var c=CRM.cur.client;
+  api('crm.task.save',{client_id:c.id,title:$('clm-tt').value,due:$('clm-tdue').value,assignee:$('clm-tas').value,recurring:$('clm-trec').value})
+    .then(function(){ clOpen(c.id); }).catch(function(e){toast(e.message);});
+}
+function clTpl(){
+  var c=CRM.cur.client, k=$('clm-tplx').value; if(!k) return;
+  api('crm.template.apply',{client_id:c.id,template:k}).then(function(r){ toast(r.added+' tasks added.'); clOpen(c.id); });
+}
+function clNote(){
+  var n=$('clm-note').value.trim(); if(!n) return;
+  api('crm.client.note',{id:CRM.cur.client.id,note:n}).then(function(){ $('clm-note').value=''; clOpen(CRM.cur.client.id); });
+}
+function clImport(){
+  var box=$('cl-imp');
+  if(box.style.display==='block'){ box.style.display='none'; return; }
+  box.style.display='block';
+  box.innerHTML='<div class="hint">Export customers from Wave (Sales &rarr; Customers &rarr; Export), choose the file, check your <b>current paying clients</b>, and enter their monthly amount. Read in your browser; only checked rows are saved.</div><input type="file" id="clCsv" accept=".csv" style="margin-top:8px">';
+  $('clCsv').onchange=function(){
+    var fl=this.files[0]; if(!fl) return; var rd=new FileReader();
+    rd.onload=function(){
+      var rows=refCsvParse(String(rd.result)).sort(function(a,b){return a.company.localeCompare(b.company);});
+      var have=CRM.clients.map(function(c){return c.name.toLowerCase();});
+      box.innerHTML='<div style="max-height:340px;overflow:auto;border:1px solid var(--line);border-radius:10px"><table><thead><tr><th></th><th>Customer</th><th>Contact</th><th>Monthly $</th><th class="hidem">Since</th><th>Wave balance</th></tr></thead><tbody>'+rows.map(function(r,i){
+        var on=have.indexOf(r.company.toLowerCase())>-1;
+        return '<tr'+(on?' style="opacity:.5"':'')+'><td><input type="checkbox" class="clpk" data-i="'+i+'" style="width:auto"'+(on?' disabled checked':'')+'></td><td><b>'+esc(r.company)+'</b>'+(on?' <span class="hint">in CRM</span>':'')+'</td><td>'+esc((r.first+' '+r.last).trim())+'<div class="hint">'+esc(r.email||'')+'</div></td><td><input class="clmrr" data-i="'+i+'" placeholder="0" style="width:80px"'+(on?' disabled':'')+'></td><td class="hidem">'+esc(r.since)+'</td><td>'+(r.balance?money(r.balance):'')+'</td></tr>';
+      }).join('')+'</tbody></table></div><div class="row" style="margin-top:8px"><button class="btn-go" id="clImpGo">Import checked</button><button class="btn-ghost" onclick="$(\'cl-imp\').style.display=\'none\'">Cancel</button></div>';
+      $('clImpGo').onclick=function(){
+        var m={}; [].slice.call(document.querySelectorAll('.clmrr')).forEach(function(x){ m[x.getAttribute('data-i')]=x.value; });
+        var pick=[].slice.call(document.querySelectorAll('.clpk:checked:not(:disabled)')).map(function(c){ var i=c.getAttribute('data-i'), r=rows[Number(i)]; r.mrr=m[i]; return r; });
+        if(!pick.length) return toast('Check at least one customer.');
+        api('crm.client.import',{list:pick}).then(function(d){ toast(d.added+' client'+(d.added===1?'':'s')+' imported.'); box.style.display='none'; clLoad(); }).catch(function(e){toast(e.message);});
+      };
+    };
+    rd.readAsText(fl);
+  };
+}
+
+/* ---------- Tasks ---------- */
+function tkLoad(){
+  var p=[api('crm.tasks')]; if(isOwner()&&!CRM.clients.length) p.push(api('crm.clients'));
+  Promise.all(p).then(function(r){ CRM.tasks=r[0]; if(r[1]) CRM.clients=r[1]; tkRender(); }).catch(function(e){toast(e.message);});
+}
+function tkRender(){
+  var who=$('tk-who').value, t0=today10(), wk=new Date(Date.now()+7*864e5).toISOString().slice(0,10);
+  if(isOwner()){
+    var sel=$('tk-who'), cur=sel.value; sel.style.display='';
+    sel.innerHTML='<option value="">Everyone</option>'+((BOOT.team&&BOOT.team.reps)||[]).map(function(r){return '<option value="'+esc(r.email)+'">'+esc(r.name||r.email)+'</option>';}).join(''); sel.value=cur; who=cur;
+    $('tk-addrow').style.display='flex';
+    $('tk-c').innerHTML='<option value="">No client (internal)</option>'+CRM.clients.filter(function(c){return c.status!=='churned';}).map(function(c){return '<option value="'+c.id+'">'+esc(c.name)+'</option>';}).join('');
+    if(!$('tk-as').options.length) $('tk-as').innerHTML=((BOOT.team&&BOOT.team.reps)||[]).map(function(r){return '<option value="'+esc(r.email)+'"'+(r.email===BOOT.user.email?' selected':'')+'>'+esc(r.name||r.email)+'</option>';}).join('');
+  }
+  var L=CRM.tasks.filter(function(t){return !who||t.assignee===who;});
+  var G=[['Overdue',function(t){return t.status==='open'&&t.due_s&&t.due_s<t0;},'var(--red)'],['Today',function(t){return t.status==='open'&&t.due_s===t0;}],['This week',function(t){return t.status==='open'&&t.due_s>t0&&t.due_s<=wk;}],['Later',function(t){return t.status==='open'&&(!t.due_s||t.due_s>wk);}],['Done (last 14 days)',function(t){return t.status==='done';}]];
+  $('tk-list').innerHTML=G.map(function(g){
+    var rows=L.filter(g[1]); if(!rows.length) return '';
+    return '<div class="card"><b style="'+(g[2]?'color:'+g[2]:'')+'">'+g[0]+'</b> <span class="hint">'+rows.length+'</span>'+rows.map(function(t){
+      return '<div class="row" style="gap:8px;padding:6px 0;border-bottom:1px solid var(--line)'+(t.status==='done'?';opacity:.55':'')+'"><input type="checkbox" style="width:auto"'+(t.status==='done'?' checked':'')+' onchange="tkDone('+t.id+',this.checked,tkLoad)">'+
+        '<div style="flex:1'+(t.status==='done'?';text-decoration:line-through':'')+'">'+esc(t.title)+(t.recurring?' <span class="tag t-gold">'+t.recurring+'</span>':'')+(t.client?' <a href="#" class="hint" onclick="'+(isOwner()?'clOpen('+t.client_id+')':'')+';return false">· '+esc(t.client)+'</a>':'')+'</div>'+
+        '<span class="hint">'+(t.due_s?dshort(t.due_s):'no date')+' · '+esc(repName(t.assignee))+'</span>'+(isOwner()?'<button class="btn-ghost btn-sm" onclick="tkDel('+t.id+',tkLoad)">&#10005;</button>':'')+'</div>';
+    }).join('')+'</div>';
+  }).join('')||'<div class="card"><div class="empty">No tasks. '+(isOwner()?'Add one above, or open a client and apply a checklist.':'Nothing assigned to you right now.')+'</div></div>';
+  var open=CRM.tasks.filter(function(t){return t.status==='open'&&t.due_s&&t.due_s<=t0&&(isOwner()||t.assignee===BOOT.user.email);}).length, pill=$('navTaskPill');
+  pill.style.display=open?'inline-block':'none'; pill.textContent=open;
+}
+function tkAdd(){
+  api('crm.task.save',{title:$('tk-t').value,client_id:$('tk-c').value,due:$('tk-d').value,assignee:$('tk-as').value,recurring:$('tk-r').value})
+    .then(function(){ $('tk-t').value=''; toast('Task added.'); tkLoad(); }).catch(function(e){toast(e.message);});
+}
+function tkDone(id,done,cb){ api('crm.task.done',{id:id,done:!!done}).then(function(r){ if(r&&r.next) toast('Done. Next one scheduled for '+dshort(r.next)+'.'); cb&&cb(); }).catch(function(e){toast(e.message);}); }
+function tkDel(id,cb){ if(confirm('Delete this task?')) api('crm.task.delete',{id:id}).then(function(){cb&&cb();}); }
+
+/* ---------- Billing ---------- */
+function blLoad(){
+  Promise.all([api('crm.invoices'),api('crm.billing.run',{month:today10()}),CRM.clients.length?Promise.resolve(CRM.clients):api('crm.clients')]).then(function(r){
+    CRM.invoices=r[0]; CRM.run=r[1]; CRM.clients=r[2]; blRender();
+  }).catch(function(e){toast(e.message);});
+}
+function blRender(){
+  var inv=CRM.invoices, t0=today10(), f=$('bl-f').value;
+  var open=inv.filter(function(i){return i.status==='open';}), od=open.filter(function(i){return i.due_s<t0;});
+  var mStart=t0.slice(0,8)+'01', paidM=inv.filter(function(i){return i.status==='paid'&&i.paid_s>=mStart;});
+  $('bl-k1').textContent=money(open.reduce(function(a,i){return a+Number(i.amount);},0));
+  $('bl-k2').textContent=money(od.reduce(function(a,i){return a+Number(i.amount);},0));
+  $('bl-k3').textContent=money(paidM.reduce(function(a,i){return a+Number(i.amount);},0));
+  var todo=CRM.run.filter(function(c){return !c.logged;});
+  $('bl-k4').textContent=todo.length+' of '+CRM.run.length;
+  $('bl-run').innerHTML=CRM.run.length?'<table><thead><tr><th>Client</th><th>Monthly</th><th>Referral credit</th><th>Bill in Wave</th><th></th></tr></thead><tbody>'+CRM.run.map(function(c){
+    var cr=Math.min(Number(c.credit)||0,Number(c.mrr));
+    return '<tr'+(c.logged?' style="opacity:.5"':'')+'><td><a href="#" onclick="clOpen('+c.id+');return false"><b>'+esc(c.name)+'</b></a></td><td>'+money(c.mrr)+'</td><td>'+(cr>0?'<b style="color:var(--green)">-'+money(cr)+'</b>':'')+'</td><td><b>'+money(Number(c.mrr)-cr)+'</b></td>'+
+      '<td>'+(c.logged?'<span class="tag" style="background:var(--green-bg);color:var(--green)">logged</span>':'<button class="btn-blue btn-sm" onclick="blLog('+c.id+','+Number(c.mrr)+','+cr+')">Log Wave invoice</button>')+'</td></tr>';
+  }).join('')+'</tbody></table>':'<div class="hint">No active clients with a monthly amount yet. Add MRR on each client.</div>';
+  var rows=inv.filter(function(i){ return f==='all'||(f==='overdue'?(i.status==='open'&&i.due_s<t0):i.status===f); });
+  $('bl-list').innerHTML=rows.length?'<div style="overflow-x:auto"><table><thead><tr><th>Client</th><th>#</th><th>Amount</th><th>Issued</th><th>Due</th><th>Status</th><th></th></tr></thead><tbody>'+rows.map(function(i){
+    var late=i.status==='open'&&i.due_s<t0;
+    return '<tr><td><a href="#" onclick="clOpen('+i.client_id+');return false"><b>'+esc(i.client||'')+'</b></a></td><td>'+esc(i.number||'')+'</td><td>'+money(i.amount)+'</td><td>'+dshort(i.issued_s)+'</td><td'+(late?' style="color:var(--red);font-weight:700"':'')+'>'+dshort(i.due_s)+(late?' ('+i.late_days+'d)':'')+'</td>'+
+      '<td>'+(i.status==='paid'?'<span class="tag" style="background:var(--green-bg);color:var(--green)">paid '+dshort(i.paid_s)+'</span>':i.status==='void'?'<span class="tag">void</span>':'<span class="tag t-gold">open</span>')+'</td>'+
+      '<td style="white-space:nowrap">'+(i.status==='open'?'<button class="btn-green btn-sm" onclick="invPaid('+i.id+',blLoad)">Mark paid</button> ':'')+'<button class="btn-ghost btn-sm" onclick="invDel('+i.id+',blLoad)">&#10005;</button></td></tr>';
+  }).join('')+'</tbody></table></div>':'<div class="empty" style="padding:12px">No invoices here.</div>';
+}
+function blLog(id,mrr,cr){
+  var num=prompt('Wave invoice number:'); if(num===null) return;
+  var amt=prompt('Invoice total after credits ($):', String(mrr-cr)); if(amt===null) return;
+  api('crm.invoice.save',{client_id:id,number:num,amount:amt,issued:today10(),credit:cr}).then(function(){ toast('Logged.'+(cr?' Referral credit applied.':'')); blLoad(); }).catch(function(e){toast(e.message);});
+}
+function invPaid(id,cb){ var d=prompt('Date paid (YYYY-MM-DD):', today10()); if(d===null) return; api('crm.invoice.paid',{id:id,date:d}).then(function(){ toast('Marked paid.'); cb&&cb(); }); }
+function invDel(id,cb){ if(confirm('Delete this invoice entry? (Only removes it from the CRM log, not from Wave.)')) api('crm.invoice.delete',{id:id}).then(function(){cb&&cb();}); }
+
 /* ================= REFERRAL PROGRAM ================= */
 var REF={partners:[],referrals:[],credits:[],base:''};
 var RF_ST={submitted:'New',contacted:'Contacted',meeting:'Meeting set',won:'Signed',paid:'First invoice paid',not_qualified:'Not qualified',lost:'Lost'};
