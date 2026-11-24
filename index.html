@@ -409,6 +409,7 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--m
         <div class="navsec">OWNER</div>
         <button class="nv" data-view="owner"><span class="ic">&#9881;&#65039;</span>Command Center<span class="pill" id="apprBadge" style="display:none"></span></button>
         <button class="nv" data-view="perf"><span class="ic">&#128200;</span>Rep Performance</button>
+        <button class="nv" data-view="refer"><span class="ic">&#129309;</span>Referral Program<span class="pill" id="refPill" style="display:none"></span></button>
       </div>
     </div>
     <div class="foot">
@@ -665,6 +666,52 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--m
           </div>
         </div>
         <div id="cl-body"></div>
+      </div>
+
+      <div class="view" id="v-refer">
+        <div class="g4" style="margin-bottom:14px">
+          <div class="kpi"><b id="rk-part">0</b><span>partners enrolled</span></div>
+          <div class="kpi"><b id="rk-open">0</b><span>referrals in progress</span></div>
+          <div class="kpi"><b id="rk-won">0</b><span>referrals won</span></div>
+          <div class="kpi"><b id="rk-owed">$0</b><span>credits owed (apply in Wave)</span></div>
+        </div>
+        <div class="card" id="rf-owedCard">
+          <b style="font-size:15px">&#128181; Credits to apply in Wave</b>
+          <div class="hint">When you build their next invoice in Wave, add a line called <b>Referral credit</b> for the amount (negative), then click Applied here so the balance stays right. Anything left over carries to the next invoice.</div>
+          <div id="rf-owed" style="margin-top:8px"></div>
+        </div>
+        <div class="card" style="margin-top:14px">
+          <div class="row" style="align-items:center"><b style="font-size:15px">&#128203; Referrals</b><div style="flex:1"></div>
+            <select id="rf-filter" onchange="refRender()" style="max-width:180px"><option value="open">In progress</option><option value="all">All</option><option value="won">Won / credited</option></select></div>
+          <div class="row" style="align-items:flex-end;margin-top:10px;gap:6px">
+            <div><label>Referred by</label><select id="rf-p"></select></div>
+            <div><label>Business</label><input id="rf-biz" placeholder="Business name"></div>
+            <div><label>Contact</label><input id="rf-con" placeholder="Name"></div>
+            <div><label>Phone</label><input id="rf-ph" placeholder="(814) 555-1234"></div>
+            <div><label>Email</label><input id="rf-em" placeholder="optional"></div>
+            <button class="btn-go" onclick="refAdd()">Add referral</button>
+          </div>
+          <div class="hint" style="margin-top:4px">Referrals sent through a client's link land here on their own, go into the Pipeline under you, and email you right away.</div>
+          <div id="rf-list" style="margin-top:10px"></div>
+        </div>
+        <div class="card" style="margin-top:14px">
+          <div class="row" style="align-items:center"><b style="font-size:15px">&#128101; Referral partners</b><div style="flex:1"></div>
+            <button class="btn-ghost btn-sm" onclick="refPick()">+ Add from Wave export</button>
+            <button class="btn-ghost btn-sm" onclick="refManual()">+ Add by hand</button></div>
+          <div id="rf-pick" style="display:none;margin-top:10px"></div>
+          <div id="rf-partners" style="margin-top:10px"></div>
+        </div>
+        <div class="card" style="margin-top:14px">
+          <b style="font-size:15px">&#9881;&#65039; Program setup</b>
+          <div class="hint" style="line-height:1.6;margin-top:4px"><b>The deal:</b> a business they send signs a monthly plan and pays the first invoice, they get a credit equal to that first month. Website projects earn 10%, up to $500. No cap. Credits have no cash value, expire after 12 months, and need the account in good standing.<br>
+          <b>Order of operations:</b> 1. Add the partner. 2. Send agreement (DocuSeal). 3. Send their link. 4. Work the referral. 5. When their first invoice is paid in Wave, click <b>First invoice paid</b>. 6. Apply the credit on the partner's next Wave invoice and click <b>Applied</b>.</div>
+          <div class="row" style="align-items:flex-end;margin-top:10px;gap:6px">
+            <div><label>DocuSeal template ID</label><input id="rf-tpl" placeholder="e.g. 123456" style="max-width:160px"></div>
+            <button class="btn-ghost btn-sm" onclick="refTplSave()">Save</button>
+            <button class="btn-blue btn-sm" onclick="refTplCreate()">Create template in DocuSeal for me</button>
+            <span class="hint" id="rf-tplst"></span>
+          </div>
+        </div>
       </div>
 
       <div class="view" id="v-perf">
@@ -1327,6 +1374,7 @@ var TITLES = {
   play:['Playbook','Scripts, comebacks, and the plan'],
   owner:['Command Center','Approvals, payouts, team'],
   perf:['Rep Performance','Owner only: every call, outcome, and industry'],
+  refer:['Referral Program','Clients send business, earn invoice credits'],
   lists:['Custom Lists','Hand-picked leads from Ty, ready to dial'],
   listing:['Listing Calls','Businesses paying for HomeAdvisor, Angi and Thumbtack leads']
 };
@@ -1509,6 +1557,7 @@ function gotoView(v){
   if (v==='pipe') loadPipeline();
   if (v==='owner'){ refresh(); loadTeam(); loadShiftReports(); asInit(); }
   if (v==='perf'){ anInit(); anLoad(); }
+  if (v==='refer'){ refLoad(); }
   if (v==='lists'){ loadLists(); }
   if (v==='listing'){ lInit(); }
   if (v==='dash'||v==='comm'||v==='seq'||v==='meet') refresh();
@@ -1873,6 +1922,140 @@ function clientChurn(id,name){
   if(!confirm('Mark '+name+' as churned? They come off MRR and recurring commissions stop from here on.')) return;
   api('deal.cancel',{id:id}).then(function(){ toast(name+' marked churned.'); refresh(); clientsLoad(); }).catch(function(e){toast(e.message);});
 }
+/* ================= REFERRAL PROGRAM ================= */
+var REF={partners:[],referrals:[],credits:[],base:''};
+var RF_ST={submitted:'New',contacted:'Contacted',meeting:'Meeting set',won:'Signed',paid:'First invoice paid',not_qualified:'Not qualified',lost:'Lost'};
+function refLoad(){
+  api('ref.data').then(function(d){
+    REF=d; $('rf-tpl').value=d.template||''; $('rf-tplst').textContent=d.template?'Template ready.':'No template yet.';
+    var act=d.partners.filter(function(p){return p.status==='active';});
+    $('rf-p').innerHTML='<option value="">Pick a partner</option>'+act.map(function(p){return '<option value="'+p.id+'">'+esc(p.company)+'</option>';}).join('');
+    var open=d.referrals.filter(function(r){return ['submitted','contacted','meeting'].indexOf(r.status)>-1;});
+    var owed=act.reduce(function(a,p){return a+Math.max(0,Number(p.balance||0));},0);
+    $('rk-part').textContent=act.length; $('rk-open').textContent=open.length;
+    $('rk-won').textContent=d.referrals.filter(function(r){return r.status==='won'||r.status==='paid';}).length;
+    $('rk-owed').textContent=money(owed);
+    var newc=d.referrals.filter(function(r){return r.status==='submitted';}).length, pill=$('refPill');
+    pill.style.display=newc?'inline-block':'none'; pill.textContent=newc;
+    refRender();
+  }).catch(function(e){toast(e.message);});
+}
+function refRender(){
+  // credits owed
+  var owe=REF.partners.filter(function(p){return Number(p.balance)>0;});
+  $('rf-owed').innerHTML=owe.length?'<table><thead><tr><th>Client</th><th>Credit balance</th><th>Earned to date</th><th></th></tr></thead><tbody>'+owe.map(function(p){
+    return '<tr><td><b>'+esc(p.company)+'</b></td><td><b style="color:var(--green,#16a34a)">'+money(p.balance)+'</b></td><td>'+money(p.earned)+'</td><td><button class="btn-green btn-sm" onclick="refApply('+p.id+')">Applied in Wave</button></td></tr>';
+  }).join('')+'</tbody></table>':'<div class="empty" style="padding:8px">No credits waiting. When a referral pays their first invoice, the credit shows up here.</div>';
+  // referrals
+  var f=$('rf-filter').value;
+  var rows=REF.referrals.filter(function(r){ return f==='all'||(f==='open'?['submitted','contacted','meeting'].indexOf(r.status)>-1:(r.status==='won'||r.status==='paid')); });
+  $('rf-list').innerHTML=rows.length?'<div style="overflow-x:auto"><table><thead><tr><th>Business</th><th>Referred by</th><th>Sent</th><th>Status</th><th>Credit</th><th></th></tr></thead><tbody>'+rows.map(function(r){
+    var sel=r.status==='paid'?'<span class="tag" style="background:#dcfce7;color:#166534">First invoice paid</span>':
+      '<select onchange="refStatus('+r.id+',this.value)" style="max-width:150px">'+['submitted','contacted','meeting','won','not_qualified','lost'].map(function(k){return '<option value="'+k+'"'+(r.status===k?' selected':'')+'>'+RF_ST[k]+'</option>';}).join('')+'</select>';
+    return '<tr><td><b'+(r.phone?' style="cursor:pointer;color:var(--blue)" onclick="openCompany(\''+r.phone+'\')"':'')+'>'+esc(r.business)+'</b><div class="hint">'+esc([r.contact,r.phone?fmtPhone(r.phone):'',r.email].filter(Boolean).join(' · '))+(r.note?' · '+esc(r.note):'')+'</div></td>'+
+      '<td>'+esc(r.partner||'')+(r.source==='link'?' <span class="tag t-gold">via link</span>':'')+'</td><td>'+fdate(r.ts)+'</td><td>'+sel+'</td>'+
+      '<td>'+(Number(r.credit)>0?money(r.credit):'')+'</td>'+
+      '<td>'+(r.status!=='paid'&&r.status!=='lost'&&r.status!=='not_qualified'?'<button class="btn-blue btn-sm" onclick="refPaid('+r.id+')">First invoice paid</button>':'')+'</td></tr>';
+  }).join('')+'</tbody></table></div>':'<div class="empty" style="padding:8px">Nothing here yet.</div>';
+  // partners
+  var AG={none:'<span class="tag">not sent</span>',sent:'<span class="tag t-gold">sent</span>',viewed:'<span class="tag t-gold">opened</span>',signed:'<span class="tag" style="background:#dcfce7;color:#166534">signed</span>'};
+  $('rf-partners').innerHTML=REF.partners.length?'<div style="overflow-x:auto"><table><thead><tr><th>Client</th><th>Agreement</th><th>Referral link</th><th>Referrals</th><th>Balance</th><th></th></tr></thead><tbody>'+REF.partners.map(function(p){
+    var link=REF.base+'/refer.html?c='+p.code;
+    return '<tr><td><b>'+esc(p.company)+'</b><div class="hint">'+esc(p.contact||'')+(p.email?' · '+esc(p.email):' · <a href="#" onclick="refEmail('+p.id+');return false">add email</a>')+'</div></td>'+
+      '<td>'+(AG[p.agreement]||esc(p.agreement))+(p.pdf_url?' <a href="'+esc(p.pdf_url)+'" target="_blank">PDF</a>':'')+'</td>'+
+      '<td><code style="font-size:12px">'+esc(p.code)+'</code> <button class="btn-ghost btn-sm" onclick="refCopy(\''+esc(link)+'\')">Copy link</button></td>'+
+      '<td>'+p.refs+(p.wins?' · '+p.wins+' won':'')+'</td><td>'+(Number(p.balance)>0?money(p.balance):'$0')+'</td>'+
+      '<td style="white-space:nowrap">'+(p.agreement!=='signed'?'<button class="btn-blue btn-sm" onclick="refAgree('+p.id+')">Send agreement</button> ':'')+
+      '<button class="btn-ghost btn-sm" onclick="refInvite('+p.id+')">'+(p.invited_ts?'Resend link':'Email link')+'</button> '+
+      (p.agreement!=='signed'?'<button class="btn-ghost btn-sm" title="Signed on paper or outside DocuSeal" onclick="refMarkSigned('+p.id+')">Mark signed</button> ':'')+
+      '<button class="btn-ghost btn-sm" title="Remove from the program" onclick="refArchive('+p.id+')">&#10005;</button></td></tr>';
+  }).join('')+'</tbody></table></div>':'<div class="empty" style="padding:8px">No partners yet. Click <b>+ Add from Wave export</b> and check off your current paying clients.</div>';
+}
+function refCsvParse(txt){
+  var rows=[], row=[], f='', q=false;
+  for(var i=0;i<txt.length;i++){ var c=txt[i];
+    if(q){ if(c==='"'){ if(txt[i+1]==='"'){f+='"';i++;} else q=false; } else f+=c; }
+    else if(c==='"') q=true; else if(c===','){ row.push(f); f=''; } else if(c==='\n'){ row.push(f); rows.push(row); row=[]; f=''; } else if(c!=='\r') f+=c; }
+  if(f||row.length){ row.push(f); rows.push(row); }
+  var hd=rows.shift()||[], ix=function(n){return hd.indexOf(n);};
+  return rows.filter(function(r){return r.length>2;}).map(function(r){
+    var g=function(n){return (r[ix(n)]||'').replace(/[‪-‮]/g,'').trim();};
+    return {company:g('company')||(g('firstName')+' '+g('lastName')).trim(), first:g('firstName'), last:g('lastName'), email:g('email'), phone:g('phone')||g('mobile'), since:g('createdAt').slice(0,10), balance:Number(g('balance'))||0};
+  }).filter(function(r){return r.company;});
+}
+function refPick(){
+  var box=$('rf-pick');
+  if(box.style.display==='block'){ box.style.display='none'; return; }
+  box.style.display='block';
+  box.innerHTML='<div class="hint">Export your customers from Wave (Sales &rarr; Customers &rarr; Export to CSV), then choose the file. It is read right here in your browser; only the clients you check get saved.</div><input type="file" id="rfCsv" accept=".csv" style="margin-top:8px">';
+  $('rfCsv').onchange=function(){
+    var fl=this.files[0]; if(!fl) return;
+    var rd=new FileReader();
+    rd.onload=function(){
+      var rows=refCsvParse(String(rd.result));
+      api('ref.enrolled').then(function(have){
+        rows.forEach(function(r){ r.enrolled=have.indexOf(r.company.toLowerCase())>-1; });
+        rows.sort(function(a,b){return a.company.localeCompare(b.company);});
+        box.innerHTML='<div class="hint" style="margin-bottom:6px">'+rows.length+' customers found. Check your <b>current paying clients</b> and click Enroll. Balance is what Wave showed as owed in the export.</div>'+
+          '<div style="max-height:320px;overflow:auto;border:1px solid var(--line);border-radius:10px"><table><thead><tr><th></th><th>Client</th><th>Contact</th><th class="hidem">Customer since</th><th>Wave balance</th></tr></thead><tbody>'+
+          rows.map(function(r,i){ return '<tr'+(r.enrolled?' style="opacity:.5"':'')+'><td><input type="checkbox" class="rfpk" data-i="'+i+'" style="width:auto"'+(r.enrolled?' disabled checked':'')+'></td><td><b>'+esc(r.company)+'</b>'+(r.enrolled?' <span class="hint">enrolled</span>':'')+'</td><td>'+esc((r.first+' '+r.last).trim())+'<div class="hint">'+esc(r.email||'no email')+'</div></td><td class="hidem">'+esc(r.since)+'</td><td>'+(r.balance?money(r.balance):'')+'</td></tr>'; }).join('')+
+          '</tbody></table></div><div class="row" style="margin-top:8px"><button class="btn-go" id="rfEnroll">Enroll checked</button><button class="btn-ghost" onclick="$(\'rf-pick\').style.display=\'none\'">Cancel</button></div>';
+        $('rfEnroll').onclick=function(){
+          var pick=[].slice.call(document.querySelectorAll('.rfpk:checked:not(:disabled)')).map(function(c){return rows[Number(c.getAttribute('data-i'))];});
+          if(!pick.length) return toast('Check at least one client.');
+          api('ref.partner.add',{list:pick}).then(function(d){ toast(d.added+' partner'+(d.added===1?'':'s')+' enrolled.'); box.style.display='none'; refLoad(); }).catch(function(e){toast(e.message);});
+        };
+      }).catch(function(e){toast(e.message);});
+    };
+    rd.readAsText(fl);
+  };
+}
+function refManual(){
+  var c=prompt('Business name?'); if(!c) return;
+  var n=prompt('Contact name?')||'', e=prompt('Contact email? (needed for the agreement and link)')||'';
+  api('ref.partner.add',{company:c,contact:n,email:e}).then(function(){ toast(c+' enrolled.'); refLoad(); }).catch(function(x){toast(x.message);});
+}
+function refEmail(id){ var e=prompt('Email for this client?'); if(!e) return; api('ref.partner.update',{id:id,email:e}).then(refLoad); }
+function refCopy(link){ try{ navigator.clipboard.writeText(link); toast('Link copied: '+link); }catch(e){ prompt('Copy this link:',link); } }
+function refAgree(id){
+  var p=REF.partners.find(function(x){return x.id===id;});
+  if(!confirm('Send the referral agreement to '+p.company+' ('+(p.email||'no email')+') through DocuSeal?')) return;
+  api('ref.agreement.send',{id:id}).then(function(){ toast('Agreement sent to '+p.email+'.'); refLoad(); }).catch(function(e){toast(e.message);});
+}
+function refInvite(id){
+  var p=REF.partners.find(function(x){return x.id===id;});
+  if(!confirm('Email '+p.company+' ('+(p.email||'no email')+') their referral link and how the program works? Reply-to is you.')) return;
+  api('ref.invite',{id:id}).then(function(){ toast('Sent to '+p.email+'.'); refLoad(); }).catch(function(e){toast(e.message);});
+}
+function refMarkSigned(id){ if(confirm('Mark the agreement as signed (outside DocuSeal)?')) api('ref.partner.update',{id:id,agreement:'signed'}).then(refLoad); }
+function refArchive(id){ var p=REF.partners.find(function(x){return x.id===id;}); if(confirm('Remove '+p.company+' from the referral program? Their history stays.')) api('ref.partner.update',{id:id,status:'archived'}).then(refLoad); }
+function refAdd(){
+  var b={partner_id:$('rf-p').value,business:$('rf-biz').value.trim(),contact:$('rf-con').value.trim(),phone:$('rf-ph').value.trim(),email:$('rf-em').value.trim()};
+  if(!b.partner_id) return toast('Pick who referred them.'); if(!b.business) return toast('Business name?');
+  api('ref.add',b).then(function(){ ['rf-biz','rf-con','rf-ph','rf-em'].forEach(function(k){$(k).value='';}); toast('Referral added and dropped in your Pipeline.'); refLoad(); }).catch(function(e){toast(e.message);});
+}
+function refStatus(id,st){ api('ref.status',{id:id,status:st}).then(refLoad).catch(function(e){toast(e.message);refLoad();}); }
+function refPaid(id){
+  var r=REF.referrals.find(function(x){return x.id===id;});
+  var monthly=confirm(r.business+' paid their first invoice?\n\nOK = monthly plan (credit equals the first month)\nCancel = one-time project (credit is 10%, up to $500)');
+  var amt=prompt('First '+(monthly?'monthly invoice':'project total')+' amount ($):', monthly?'500':''); if(amt===null) return;
+  amt=Number(String(amt).replace(/[^\d.]/g,'')); if(!amt) return toast('Enter the amount.');
+  var credit=monthly?amt:Math.min(500,Math.round(amt*10)/100);
+  var notify=confirm('Credit for '+(r.partner||'the partner')+': '+money(credit)+'.\n\nEmail them a quick thank-you saying they earned it?');
+  api('ref.status',{id:id,status:'paid',kind:monthly?'monthly':'project',amount:amt,notify:notify}).then(function(d){ chime(); confetti&&confetti(); toast(money(d.credit)+' credit added for '+(r.partner||'the partner')+'.'); refLoad(); }).catch(function(e){toast(e.message);});
+}
+function refApply(pid){
+  var p=REF.partners.find(function(x){return x.id===pid;});
+  var amt=prompt('How much did you apply on '+p.company+'\'s Wave invoice? (balance '+money(p.balance)+')', String(Number(p.balance))); if(amt===null) return;
+  var inv=prompt('Wave invoice number (for the record):')||'';
+  api('ref.apply',{partner_id:pid,amount:Number(String(amt).replace(/[^\d.]/g,'')),invoice:inv}).then(function(){ toast('Recorded. Balance updated.'); refLoad(); }).catch(function(e){toast(e.message);});
+}
+function refTplSave(){ api('ref.template.set',{id:$('rf-tpl').value}).then(function(){ toast('Template saved.'); refLoad(); }); }
+function refTplCreate(){
+  $('rf-tplst').textContent='Creating...';
+  api('ref.template.create').then(function(d){ toast('DocuSeal template created ('+d.id+').'); refLoad(); }).catch(function(e){ $('rf-tplst').textContent=''; alert(e.message); });
+}
+
 function renderOwner(){
   var t=BOOT.team; if(!t)return;
   clientsLoad();

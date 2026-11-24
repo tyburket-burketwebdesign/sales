@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Refer a business · Burket Web Design</title>
+<meta name="robots" content="noindex">
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:#f3f6f9;color:#1d2a38}
+.top{background:#0e2235;color:#fff;padding:26px 20px 70px;text-align:center}
+.top h1{margin:6px 0 6px;font-size:26px}.top p{margin:0;opacity:.85;font-size:15px}
+.brand{font-weight:800;letter-spacing:.5px;color:#57b4e4;font-size:13px;text-transform:uppercase}
+.wrap{max-width:560px;margin:-48px auto 40px;padding:0 16px}
+.card{background:#fff;border-radius:16px;box-shadow:0 8px 30px rgba(14,34,53,.10);padding:22px;margin-bottom:16px}
+.stats{display:flex;gap:10px;text-align:center}.stats div{flex:1;background:#f3f6f9;border-radius:12px;padding:10px}.stats b{display:block;font-size:20px;color:#0e2235}.stats span{font-size:12px;color:#5b6b80}
+label{display:block;font-size:13px;font-weight:700;margin:12px 0 4px}input,textarea{width:100%;padding:11px 12px;border:1px solid #d5dee8;border-radius:10px;font-size:15px;font-family:inherit}
+button{width:100%;margin-top:16px;padding:14px;border:0;border-radius:12px;background:#fec814;color:#0e2235;font-weight:800;font-size:16px;cursor:pointer}
+button:disabled{opacity:.6}.how{font-size:14px;line-height:1.6;color:#33465a}.how b{color:#0e2235}
+.msg{padding:12px;border-radius:10px;margin-top:12px;font-size:14px;display:none}.ok{background:#dcfce7;color:#166534}.bad{background:#fde8e8;color:#b42318}
+.foot{text-align:center;font-size:12px;color:#7a8a9c}
+</style></head><body>
+<div class="top"><div class="brand">Burket Web Design</div><h1 id="hi">Refer a business</h1><p>Know a business that needs more calls? Send them our way.</p></div>
+<div class="wrap">
+  <div class="card" id="statCard" style="display:none"><div class="stats"><div><b id="sSent">0</b><span>referred</span></div><div><b id="sWon">0</b><span>signed up</span></div><div><b id="sEarn">$0</b><span>credits earned</span></div></div></div>
+  <div class="card">
+    <form id="f">
+      <label>Business name</label><input id="biz" required maxlength="120">
+      <label>Owner or contact name</label><input id="con" maxlength="80">
+      <label>Their phone</label><input id="ph" type="tel" maxlength="20" placeholder="(814) 555-1234">
+      <label>Their email (optional)</label><input id="em" type="email" maxlength="120">
+      <label>Anything we should know? (optional)</label><textarea id="note" rows="3" maxlength="500" placeholder="What they do, what they need, best time to call"></textarea>
+      <button id="go" type="submit">Send referral</button>
+      <div class="msg" id="msg"></div>
+    </form>
+  </div>
+  <div class="card how"><b>How it works</b><br>When a business you refer signs up for a monthly plan and pays their first invoice, you get a credit on your next invoice equal to their first month ($500 to $1,250). Website projects earn 10%, up to $500. No limit on referrals. Tip: let them know Ty will be calling.</div>
+  <div class="foot">Questions? Call or text Ty at (814) 656-8597</div>
+</div>
+<script>
+var code=(new URLSearchParams(location.search).get('c')||'').toUpperCase();
+function api(a,d){ d=d||{}; d.a=a; d.code=code; return fetch('/api/hub',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)}).then(function(r){return r.json();}).then(function(j){ if(!j.ok) throw new Error(j.error||'Something went wrong'); return j.data; }); }
+function money(n){ return '$'+Number(n||0).toLocaleString(); }
+function show(t,ok){ var m=document.getElementById('msg'); m.className='msg '+(ok?'ok':'bad'); m.textContent=t; m.style.display='block'; }
+if(!code){ show('This link is missing its referral code. Ask Ty for your personal link.',false); document.getElementById('go').disabled=true; }
+else api('ref.public').then(function(d){
+  if(d.first) document.getElementById('hi').textContent='Thanks, '+d.first+'!';
+  if(d.sent){ document.getElementById('statCard').style.display='block'; document.getElementById('sSent').textContent=d.sent; document.getElementById('sWon').textContent=d.won; document.getElementById('sEarn').textContent=money(d.earned); }
+}).catch(function(e){ show(e.message,false); document.getElementById('go').disabled=true; });
+document.getElementById('f').onsubmit=function(ev){
+  ev.preventDefault(); var b=document.getElementById('go'); b.disabled=true; b.textContent='Sending...';
+  api('ref.submit',{business:biz.value,contact:con.value,phone:ph.value,email:em.value,note:note.value}).then(function(){
+    show('Got it! Ty will reach out to '+biz.value+' soon. Thank you for the referral.',true);
+    document.getElementById('f').reset();
+  }).catch(function(e){ show(e.message,false); }).finally(function(){ b.disabled=false; b.textContent='Send referral'; });
+};
+</script></body></html>
