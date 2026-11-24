@@ -201,7 +201,6 @@ module.exports = async function handler(req, res) {
         if ((m = u.match(/thumbtack\.com\/([a-z]{2})\/([^\/]+)\/[^\/]+\/([^\/?#]+)/i))) return { name: m[3].replace(/-/g, ' '), town: m[2].replace(/-/g, ' ') + ' ' + m[1].toUpperCase() };
         return null;
       };
-      let loc = null; if (metro) { try { loc = await C.geocodeCity(metro); } catch (e) {} }
       const found = [], missed = [];
       for (const line of lines) {
         const isUrl = /^https?:\/\//i.test(line);
@@ -210,8 +209,8 @@ module.exports = async function handler(req, res) {
         const town = q.town || metro;
         let res = [];
         try {
-          const l2 = town && town !== metro ? await C.geocodeCity(town).catch(() => loc) : loc;
-          res = l2 ? await C.placesBiased(q.name + (town ? ' ' + town : ''), l2.lat, l2.lng, 60000) : await C.placesSearch(q.name + ' ' + town);
+          const l2 = q.town ? await C.geocodeCity(q.town).catch(() => null) : null;
+          res = l2 ? await C.placesBiased(q.name + ' ' + q.town, l2.lat, l2.lng, 50000) : await C.placesSearch(q.name + (town ? ' ' + town : ''));
         } catch (e) { missed.push(line + ' (' + e.message + ')'); continue; }
         const want = toks(q.name);
         let best = null, bestScore = 0;

@@ -620,7 +620,7 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--m
         </div>
         <div class="card" style="margin-top:14px;border:2px solid var(--green)">
           <b style="font-size:15px">&#9989; Verified lead buyers</b>
-          <div class="hint" style="margin-top:4px;line-height:1.6">The sure way. Every pro listed on these platforms pays for leads, so we pull straight from the platform. <b>1.</b> Open a platform search below (it opens a Google search of that platform for your industry and town). <b>2.</b> Open the pro profiles, copy each profile link. <b>3.</b> Paste the links here, one per line (or type <i>Business name | Town</i>). The hub finds the Google listing and phone and adds them to your list marked <b>Verified</b>.</div>
+          <div class="hint" style="margin-top:4px;line-height:1.6">The sure way. Every pro listed on these platforms pays for leads, so we pull straight from the platform. <b>1.</b> Pick an industry above, then open a platform search below. It searches that platform's pros for the industry across all of <span class="l-stname">the state</span>. <b>2.</b> Open the pro profiles, copy each profile link. <b>3.</b> Paste the links here, one per line (or type <i>Business name | Town</i>). The hub finds the Google listing and phone and adds them to your list marked <b>Verified</b>.</div>
           <div class="row" style="margin-top:10px;gap:6px" id="l-search"></div>
           <div class="row" style="align-items:flex-end;margin-top:10px">
             <div><label>Platform</label><select id="l-vplat"><option>Thumbtack</option><option>Angi</option><option>HomeAdvisor</option></select></div>
@@ -3253,7 +3253,7 @@ function lInit(){
     mk.value=$('market').value||MARKETS[0]; ind.value=$('industry').value||'0';
     $('l-customLbl').textContent='Or any town ('+TERR.state+')';
   }
-  lRender(); lSearchLinks(); $('l-market').onchange=$('l-industry').onchange=$('l-custom').oninput=lSearchLinks;
+  lRender(); lSearchLinks(); document.querySelectorAll('.l-stname').forEach(function(x){x.textContent=stateName();}); $('l-industry').onchange=lSearchLinks;
   $('l-oa').innerHTML=oaRender(LIST[0]&&isListing(LIST[0])?LIST[0]:{platform:'HomeAdvisor'},OA_M);
 }
 function lRender(){
@@ -3270,15 +3270,16 @@ function lRender(){
       '<td class="phone">'+esc(fmtPhone(b.phone))+'</td><td class="hidem">'+gCell(b)+'</td><td>'+statusTag(b.status)+'</td></tr>';
   }).join(''):'<tr><td colspan="6"><div class="empty">'+(LIST.length&&!on?'Your dialer has a regular list loaded. Building here swaps in a lead-buyer list (already-called numbers stay in Past Calls).':'Pick a market and industry, then hit Find lead buyers.')+'</div></td></tr>';
 }
+function stateName(){ return TERR.state==='PA'?'Pennsylvania':'Florida'; }
 function lSearchLinks(){
-  var town=($('l-custom').value.trim()||$('l-market').value)+' '+TERR.state, ind=INDUSTRIES[Number($('l-industry').value)]||{label:''};
+  var ind=INDUSTRIES[Number($('l-industry').value)]||{label:''}, st=TERR.state.toLowerCase(), full=stateName();
   var t=ind.label.toLowerCase();
-  var Q=[['Thumbtack','site:thumbtack.com '+t+' '+town],['Angi','site:angi.com/companylist '+t+' '+town],['HomeAdvisor','site:homeadvisor.com/rated '+t+' '+town]];
+  var Q=[['Thumbtack','site:thumbtack.com/'+st+' '+t],['Angi','site:angi.com/companylist/us/'+st+' '+t],['HomeAdvisor','site:homeadvisor.com/rated '+t+' '+full]];
   $('l-search').innerHTML=Q.map(function(q){ return '<a class="btn-ghost btn-sm" target="_blank" href="https://www.google.com/search?q='+encodeURIComponent(q[1])+'">Search '+q[0]+' &#8599;</a>'; }).join('');
 }
 function lVerify(){
   var lines=$('l-vlines').value.trim(); if(!lines) return toast('Paste at least one profile link or name.');
-  var plat=$('l-vplat').value, town=($('l-custom').value.trim()||$('l-market').value)+' '+TERR.state, ind=INDUSTRIES[Number($('l-industry').value)];
+  var plat=$('l-vplat').value, town=stateName(), ind=INDUSTRIES[Number($('l-industry').value)];
   var btn=$('l-vgo'); btn.disabled=true; btn.textContent='Matching...'; $('l-vmiss').textContent='';
   api('listing.verify',{platform:plat,metro:town,lines:lines}).then(function(d){
     if(LISTMETA.mode!=='listing'){
