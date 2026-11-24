@@ -331,6 +331,30 @@ module.exports = async function handler(req, res) {
       }
 
       /* ---- Wave: two-way ---- */
+      if (a === 'wave.pnl') {
+        const { accts, today } = await C.waveLedger(sql);
+        const sum = k => accts.filter(x => x.kind === k).reduce((s, x) => s + x.balance, 0);
+        const life = { income: sum('income'), cogs: sum('cogs'), opex: sum('opex') };
+        let base = null; try { base = JSON.parse(((await sql`SELECT v FROM kv WHERE k='pnl_base'`)[0] || {}).v || 'null'); } catch (e) {}
+        if (P.calibrate) {
+          /* Ty's Wave P&L for the year so far: opening (Jan 1) = lifetime now minus year to date */
+          const y = { income: Number(P.income) || 0, cogs: Number(P.cogs) || 0, opex: Number(P.opex) || 0 };
+          base = { year: today.slice(0, 4), set: today, income: life.income - y.income, cogs: life.cogs - y.cogs, opex: life.opex - y.opex,
+                   accts: Object.fromEntries(accts.map(x => [x.id, x.balance])) };
+          await sql`INSERT INTO kv (k, v) VALUES ('pnl_base', ${JSON.stringify(base)}) ON CONFLICT (k) DO UPDATE SET v=${JSON.stringify(base)}`;
+          audit('pnl.calibrate', '', JSON.stringify(y));
+        }
+        /* month to date from the snapshot taken at the end of last month (when we have one) */
+        const mStart = today.slice(0, 8) + '01';
+        const prevSnap = await sql`SELECT kind, sum(balance)::numeric AS b FROM acct_snap WHERE day = (SELECT max(day) FROM acct_snap WHERE day < ${mStart}) GROUP BY kind`;
+        const prev = Object.fromEntries(prevSnap.map(r => [r.kind, Number(r.b)]));
+        const mtd = prevSnap.length ? { income: life.income - (prev.income || 0), cogs: life.cogs - (prev.cogs || 0), opex: life.opex - (prev.opex || 0) } : null;
+        const ytd = base && base.year === today.slice(0, 4) ? { income: life.income - base.income, cogs: life.cogs - base.cogs, opex: life.opex - base.opex } : null;
+        const since = base ? accts.filter(x => x.kind === 'income').map(x => ({ name: x.name, v: x.balance - ((base.accts || {})[x.id] || 0) })).filter(x => Math.abs(x.v) > 0.005) : [];
+        const firstSnap = ((await sql`SELECT to_char(min(day),'YYYY-MM-DD') AS d FROM acct_snap`)[0] || {}).d;
+        return ok({ ytd, mtd, life, base: base ? { set: base.set, year: base.year } : null, firstSnap, since,
+          incomeAccts: accts.filter(x => x.kind === 'income' && Math.abs(x.balance) > 0.005).map(x => ({ name: x.name, life: x.balance })).sort((a, b) => b.life - a.life) });
+      }
       if (a === 'wave.meta') { const m = await C.waveMeta(sql); m.settings = await getSettings(); return ok(m); }
       if (a === 'wave.customer.ensure') {
         const c = (await sql`SELECT * FROM clients WHERE id=${Number(P.client_id) || 0}`)[0];
