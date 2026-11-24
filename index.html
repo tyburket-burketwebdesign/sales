@@ -117,6 +117,9 @@ tr.done{opacity:.45}
 .col h4{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:8px;display:flex;justify-content:space-between}
 .pcard{background:var(--card);border:1px solid var(--line);border-radius:11px;padding:9px 11px;margin-bottom:8px;cursor:pointer;font-size:12.5px;box-shadow:0 1px 3px rgba(14,34,53,.06)}
 .pcard:hover{border-color:var(--teal)}
+.pcard[draggable=true]{cursor:grab}
+.pcard.dragging{opacity:.45}
+.col.dropping{outline:2px dashed var(--teal);outline-offset:-4px;background:rgba(87,180,228,.08)}
 .pcard b{display:block;font-size:13px}
 .pcard .sub2{color:var(--muted2);font-size:11px;margin-top:2px}
 .stage-won{border-left:4px solid var(--green)}
@@ -388,7 +391,6 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--m
       <button class="nv on" data-view="dash"><span class="ic">&#127968;</span>Dashboard</button>
       <button class="nv" data-view="dialer"><span class="ic">&#128222;</span>Dialer<span class="pill" id="navDialPill" style="display:none"></span></button>
       <button class="nv" data-view="listing"><span class="ic">&#127991;&#65039;</span>Listing Calls</button>
-      <button class="nv" data-view="dec"><span class="ic">&#127876;</span>December Plan<span class="pill" id="navDecPill" style="display:none">LIVE</span></button>
       <button class="nv" data-view="pipe"><span class="ic">&#128202;</span>Pipeline</button>
       <button class="nv" data-view="meet"><span class="ic">&#129309;</span>Meetings</button>
       <button class="nv" data-view="lists"><span class="ic">&#128203;</span>Custom Lists<span class="pill" id="navListPill" style="display:none"></span></button>
@@ -601,17 +603,6 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--m
 
       <div class="view" id="v-play">
         <div id="playWrap"></div>
-      </div>
-
-      <div class="view" id="v-dec">
-        <div class="card">
-          <div class="row" style="align-items:center">
-            <div style="flex:1"><b style="font-size:15px">&#127876; December Plan</b>
-              <div class="hint" id="dec-status"></div></div>
-            <div id="dec-ctl"></div>
-          </div>
-        </div>
-        <div id="dec-body"></div>
       </div>
 
       <div class="view" id="v-listing">
@@ -954,6 +945,12 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--m
       <span id="cp-alts" style="display:contents"></span>
       <button class="btn-red btn-sm" onclick="cpDelete()">&#128465;&#65039; Delete</button>
     </div>
+    <div class="row" id="cp-creditRow" style="display:none;margin-top:10px;align-items:center;gap:8px">
+      <span style="font-size:12px;font-weight:700;color:var(--muted)">SALE CREDITED TO</span>
+      <select id="cp-credit" style="max-width:220px"></select>
+      <button class="btn-blue btn-sm" onclick="cpCredit()">Save credit</button>
+      <span class="hint" id="cp-creditNote"></span>
+    </div>
     <div class="cpupd">
       <b style="font-size:13.5px">&#9998;&#65039; Add an update</b>
       <span class="hint" style="margin-left:6px">They called back, you followed up, or you just want a note on file.</span>
@@ -1272,89 +1269,11 @@ var PA_WEEKS = [
     why:'Owners check out by Wednesday. Clear every callback and drop-by first, then dial chimney, garage door, and heating companies early in the morning.' }
 ];
 var PA_SET = { state:'PA', region:'Pennsylvania', markets:PA_MARKETS, industries:PA_INDUSTRIES, plan:PA_PLAN, weeks:PA_WEEKS };
-/* ================= DECEMBER PLAN =================
- * Built around Listing Calls (businesses already paying HomeAdvisor / Angi / Thumbtack) plus the regular map-gap lists.
- * mode 'listing' = the day's list comes from Listing Calls; 'standard' = the regular Build Today's list. */
-var DEC_FL = {
-  '2026-12-01': { ind:'Roofers',               mkt:'Tampa',          wk:0, mode:'listing' },
-  '2026-12-02': { ind:'HVAC / AC Repair',      mkt:'Fort Myers',     wk:0, mode:'listing' },
-  '2026-12-03': { ind:'Plumbers',              mkt:'Sarasota',       wk:0, mode:'listing' },
-  '2026-12-04': { ind:'Paver & Concrete',      mkt:'Lakeland',       wk:0, mode:'listing' },
-  '2026-12-07': { ind:'Screen Enclosures',     mkt:'Tampa',          wk:1, mode:'listing' },
-  '2026-12-08': { ind:'Roofers',               mkt:'Kissimmee',      wk:1, mode:'listing' },
-  '2026-12-09': { ind:'Pressure Washing',      mkt:'Sarasota',       wk:1, mode:'standard' },
-  '2026-12-10': { ind:'HVAC / AC Repair',      mkt:'Daytona Beach',  wk:1, mode:'listing' },
-  '2026-12-11': { ind:'Pest Control',          mkt:'Cape Coral',     wk:1, mode:'listing' },
-  '2026-12-14': { ind:'Plumbers',              mkt:'Melbourne',      wk:2, mode:'listing' },
-  '2026-12-15': { ind:'Electricians',          mkt:'Tampa',          wk:2, mode:'listing' },
-  '2026-12-16': { ind:'Pool Resurfacing',      mkt:'Kissimmee',      wk:2, mode:'standard' },
-  '2026-12-17': { ind:'Roofers',               mkt:'Daytona Beach',  wk:2, mode:'listing' },
-  '2026-12-18': { ind:'Paver & Concrete',      mkt:'Melbourne',      wk:2, mode:'listing' },
-  '2026-12-21': { ind:'HVAC / AC Repair',      mkt:'Gainesville',    wk:3, mode:'listing' },
-  '2026-12-22': { ind:'Plumbers',              mkt:'Bonita Springs', wk:3, mode:'listing' },
-  '2026-12-23': { ind:'Screen Enclosures',     mkt:'Port Charlotte', wk:3, mode:'standard' },
-  '2026-12-28': { ind:'Roofers',               mkt:'Brandon',        wk:4, mode:'listing' },
-  '2026-12-29': { ind:'HVAC / AC Repair',      mkt:'Sanford',        wk:4, mode:'listing' },
-  '2026-12-30': { ind:'Paver & Concrete',      mkt:'Port St. Lucie', wk:4, mode:'listing' }
-};
-var DEC_FL_WEEKS = [
-  { label:'Dec week 1 (Dec 1 to 4)', focus:'Listing Calls: roofers, HVAC, plumbers and pavers paying for HomeAdvisor and Angi',
-    why:'These owners already spend money every month on shared leads and hate them. Open with their lead program, ask how many of every 10 leads become jobs, and book the walkthrough.' },
-  { label:'Dec week 2 (Dec 7 to 11)', focus:'Listing Calls in Tampa, Kissimmee, Daytona and Cape Coral, one regular list day',
-    why:'Same play in new metros. Wednesday is a regular map-gap list so follow-ups and fresh dials stay balanced.' },
-  { label:'Dec week 3 (Dec 14 to 18)', focus:'Listing Calls on the east coast plus pool resurfacing',
-    why:'Last full selling week before the holidays. Push for walkthroughs this week and for January start dates.' },
-  { label:'Holiday week (Dec 21 to 23)', focus:'Follow-ups first, then light Listing Calls',
-    why:'Owners are winding down. Clear every callback and pitch a January 1 start: "Lock the rate now, we launch the first week of January."' },
-  { label:'Year-end (Dec 28 to 30)', focus:'Book January',
-    why:'Owners plan the new year this week. Every walkthrough booked now is a January customer. Off Dec 24, 25 and 31.' }
-];
-var DEC_PA = {
-  '2026-12-01': { ind:'Heating & Furnace (HVAC)',  mkt:'State College', wk:0, mode:'listing' },
-  '2026-12-02': { ind:'Plumbers',                  mkt:'Altoona',       wk:0, mode:'listing' },
-  '2026-12-03': { ind:'Roofers',                   mkt:'Johnstown',     wk:0, mode:'listing' },
-  '2026-12-04': { ind:'Snow Plowing & Landscaping',mkt:'Altoona',       wk:0, mode:'standard' },
-  '2026-12-07': { ind:'Heating & Furnace (HVAC)',  mkt:'Bedford',       wk:1, mode:'listing' },
-  '2026-12-08': { ind:'Electricians & Generators', mkt:'Johnstown',     wk:1, mode:'listing' },
-  '2026-12-09': { ind:'Accountants & Tax Prep',    mkt:'State College', wk:1, mode:'standard' },
-  '2026-12-10': { ind:'Plumbers',                  mkt:'Indiana',       wk:1, mode:'listing' },
-  '2026-12-11': { ind:'Kitchen & Bath Remodelers', mkt:'Altoona',       wk:1, mode:'listing' },
-  '2026-12-14': { ind:'Roofers',                   mkt:'Somerset',      wk:2, mode:'listing' },
-  '2026-12-15': { ind:'Heating & Furnace (HVAC)',  mkt:'Lewistown',     wk:2, mode:'listing' },
-  '2026-12-16': { ind:'Chimney & Fireplace',       mkt:'Tyrone',        wk:2, mode:'standard' },
-  '2026-12-17': { ind:'Garage Doors',              mkt:'Johnstown',     wk:2, mode:'listing' },
-  '2026-12-18': { ind:'Accountants & Tax Prep',    mkt:'Johnstown',     wk:2, mode:'standard' },
-  '2026-12-21': { ind:'Plumbers',                  mkt:'Latrobe',       wk:3, mode:'listing' },
-  '2026-12-22': { ind:'Heating & Furnace (HVAC)',  mkt:'DuBois',        wk:3, mode:'listing' },
-  '2026-12-23': { ind:'Septic Services',           mkt:'Bedford',       wk:3, mode:'standard' },
-  '2026-12-28': { ind:'Roofers',                   mkt:'Chambersburg',  wk:4, mode:'listing' },
-  '2026-12-29': { ind:'Kitchen & Bath Remodelers', mkt:'State College', wk:4, mode:'listing' },
-  '2026-12-30': { ind:'Accountants & Tax Prep',    mkt:'Indiana',       wk:4, mode:'standard' }
-};
-var DEC_PA_WEEKS = [
-  { label:'PA Dec week 1 (Dec 1 to 4)', focus:'Listing Calls: heating, plumbing and roofing companies on HomeAdvisor and Angi',
-    why:'Winter emergencies mean these owners are buying the most shared leads right now and feeling the most waste. Friday: snow plow companies before the first big storm.' },
-  { label:'PA Dec week 2 (Dec 7 to 11)', focus:'Listing Calls plus tax offices',
-    why:'Generators and remodelers book winter work now. Tax offices need to rank before January; offer to stop by in person.' },
-  { label:'PA Dec week 3 (Dec 14 to 18)', focus:'Listing Calls in Somerset, Lewistown and Johnstown',
-    why:'Last full week. Push for walkthroughs and January start dates.' },
-  { label:'PA holiday week (Dec 21 to 23)', focus:'Follow-ups first, then light lists',
-    why:'Clear callbacks and drop-bys. Pitch a January 1 start with the rate locked now.' },
-  { label:'PA year-end (Dec 28 to 30)', focus:'Book January',
-    why:'Owners plan the new year this week. Off Dec 24, 25 and 31.' }
-];
-var NOV_FL=GAMEPLAN, NOV_FL_WEEKS=GAMEPLAN_WEEKS;
-function planMonth(){
-  var pm=(BOOT&&BOOT.planMonth)||'auto';
-  if(pm==='dec') return 'dec'; if(pm==='nov') return 'nov';
-  return localKey()>='2026-12-01'?'dec':'nov';
-}
 
 var TERR = FL_SET;
 function applyTerritory(t){
   TERR = t==='PA' ? PA_SET : FL_SET;
   MARKETS = TERR.markets; INDUSTRIES = TERR.industries; GAMEPLAN = TERR.plan; GAMEPLAN_WEEKS = TERR.weeks;
-  if (planMonth()==='dec'){ GAMEPLAN = t==='PA'?DEC_PA:DEC_FL; GAMEPLAN_WEEKS = t==='PA'?DEC_PA_WEEKS:DEC_FL_WEEKS; }
 }
 function isOwner(){ return !!(BOOT && BOOT.user && BOOT.user.role==='owner'); }
 var QUOTES = [
@@ -1383,8 +1302,7 @@ var TITLES = {
   owner:['Command Center','Approvals, payouts, team'],
   perf:['Rep Performance','Owner only: every call, outcome, and industry'],
   lists:['Custom Lists','Hand-picked leads from Ty, ready to dial'],
-  listing:['Listing Calls','Businesses paying for HomeAdvisor, Angi and Thumbtack leads'],
-  dec:['December Plan','The December playbook, ready to switch on']
+  listing:['Listing Calls','Businesses paying for HomeAdvisor, Angi and Thumbtack leads']
 };
 
 /* ================= STATE ================= */
@@ -1567,7 +1485,6 @@ function gotoView(v){
   if (v==='perf'){ anInit(); anLoad(); }
   if (v==='lists'){ loadLists(); }
   if (v==='listing'){ lInit(); }
-  if (v==='dec'){ decRender(); }
   if (v==='dash'||v==='comm'||v==='seq'||v==='meet') refresh();
 }
 document.querySelectorAll('.nv').forEach(function(b){ b.addEventListener('click', function(){ gotoView(b.getAttribute('data-view')); }); });
@@ -2028,9 +1945,9 @@ function loadPipeline(){
     var by={}; STAGES.forEach(function(s){by[s]=[];});
     rows.forEach(function(cm){ (by[cm.stage]||by.new).push(cm); });
     $('board').innerHTML = STAGES.map(function(s){
-      return '<div class="col"><h4>'+STAGE_LBL[s]+'<span>'+by[s].length+'</span></h4>'+
+      return '<div class="col" data-stage="'+s+'" ondragover="pipeOver(event,this)" ondragleave="this.classList.remove(\'dropping\')" ondrop="pipeDrop(event,this)"><h4>'+STAGE_LBL[s]+'<span>'+by[s].length+'</span></h4>'+
         by[s].slice(0,40).map(function(cm){
-          return '<div class="pcard stage-'+s+'" onclick="openCompany(\''+cm.phone+'\')"><b>'+esc(cm.name||fmtPhone(cm.phone))+'</b>'+
+          return '<div class="pcard stage-'+s+'" draggable="true" ondragstart="pipeDrag(event,\''+cm.phone+'\',\''+s+'\')" ondragend="this.classList.remove(\'dragging\')" onclick="openCompany(\''+cm.phone+'\')"><b>'+esc(cm.name||fmtPhone(cm.phone))+'</b>'+
             '<div class="sub2">'+esc((cm.city||'')+(cm.industry?' · '+cm.industry:''))+'</div></div>';
         }).join('')+'</div>';
     }).join('');
@@ -2038,10 +1955,30 @@ function loadPipeline(){
     $('pipeTotals').textContent = act+' active · '+won+' won · '+by.lost.length+' lost';
   }).catch(function(e){toast(e.message);});
 }
+var PIPE_DRAG=null;
+function pipeDrag(e, phone, from){ PIPE_DRAG={phone:phone,from:from}; e.dataTransfer.effectAllowed='move'; try{e.dataTransfer.setData('text/plain',phone);}catch(x){} e.target.classList.add('dragging'); }
+function pipeOver(e, col){ if(!PIPE_DRAG) return; e.preventDefault(); e.dataTransfer.dropEffect='move'; col.classList.add('dropping'); }
+function pipeDrop(e, col){
+  e.preventDefault(); col.classList.remove('dropping');
+  var d=PIPE_DRAG; PIPE_DRAG=null; if(!d) return;
+  var to=col.getAttribute('data-stage'); if(to===d.from) return;
+  var reason='';
+  if(to==='lost'){ reason=prompt('Why did we lose them? (one line, it feeds the report)'); if(reason===null) return; }
+  var card=document.querySelector('.pcard.dragging'); if(card){ card.classList.remove('dragging'); col.appendChild(card); }
+  api('company.stage',{phone:d.phone,stage:to,reason:reason||''}).then(function(){ toast('Moved to '+STAGE_LBL[to]+'.'); loadPipeline(); })
+    .catch(function(err){ toast(err.message); loadPipeline(); });
+}
 function openCompany(phone){
   api('company.get',{phone:phone}).then(function(d){
     CURCOMP=d.company;
     $('cp-name').textContent=d.company.name||fmtPhone(d.company.phone);
+    if(isOwner()){
+      $('cp-creditRow').style.display='flex';
+      var reps=(BOOT.team&&BOOT.team.reps)||[];
+      var cur=(d.credit&&d.credit.rep)||d.company.rep||BOOT.user.email;
+      $('cp-credit').innerHTML=reps.map(function(r){return '<option value="'+esc(r.email)+'"'+(r.email===cur?' selected':'')+'>'+esc(r.name||r.email)+'</option>';}).join('');
+      $('cp-creditNote').textContent=d.credit&&d.credit.deals?(d.credit.deals+' deal'+(d.credit.deals===1?'':'s')+' on file'):'No deal on file yet';
+    } else $('cp-creditRow').style.display='none';
     $('cp-meta').textContent=[(d.company.industry||''),(d.company.city||''),(d.company.pos?'#'+d.company.pos+' on Google':''),(d.company.reviews>-1?d.company.reviews+' reviews':''),(d.company.website?'':'no website')].filter(Boolean).join(' · ');
     $('cp-stage').innerHTML=STAGES.map(function(s){return '<option value="'+s+'"'+(d.company.stage===s?' selected':'')+'>'+STAGE_LBL[s]+'</option>';}).join('');
     $('cp-contact').value=d.company.contact||'';
@@ -3114,6 +3051,20 @@ function csExport(){
 
 
 
+/* ================= SALE CREDIT ================= */
+function cpCredit(create, monthly){
+  var em=$('cp-credit').value, name=$('cp-credit').options[$('cp-credit').selectedIndex].text;
+  api('company.credit',{phone:CURCOMP.phone,email:em,create:!!create,monthly:monthly||0}).then(function(r){
+    if(r.noDeal){
+      var amt=prompt('No deal is on file for '+(CURCOMP.name||'this business')+'. Record an approved deal credited to '+name+'?\n\nMonthly amount ($):','450');
+      if(amt===null) return toast('Credit saved on the company. No deal recorded.');
+      return cpCredit(true, Number(String(amt).replace(/[^\d.]/g,''))||0);
+    }
+    toast((r.created?'Deal recorded and ':'')+'sale credited to '+name+'. It counts toward their KPI this month.'); chime();
+    refresh(); openCompany(CURCOMP.phone);
+  }).catch(function(e){ toast(e.message); });
+}
+
 /* ================= BUSINESS NAME FIXES ================= */
 function nameCheck(b){
   var el=$('p-namecheck'); var dom=b.domain||'';
@@ -3141,35 +3092,6 @@ function applyName(n){
     $('p-script').textContent=buildScript(b); $('p-vm').textContent=buildVM(b);
     toast('Renamed to '+n+'. Saved for everyone, including past calls.');
   }).catch(function(e){ toast(e.message); });
-}
-
-/* ================= DECEMBER TAB ================= */
-function decRender(){
-  var pm=(BOOT&&BOOT.planMonth)||'auto', live=planMonth()==='dec';
-  $('dec-status').innerHTML=live?'<b style="color:var(--green)">December plan is live.</b> The dashboard, morning screen and "Build today’s list" all follow it.'
-    :'November plan is live. December switches on automatically on Dec 1'+(pm==='nov'?' (held on November by Ty).':', or Ty can switch it on early.');
-  $('dec-ctl').innerHTML=isOwner()?'<select onchange="decSet(this.value)" style="font-size:13px">'+
-     [['auto','Auto: switch on Dec 1'],['dec','December plan now'],['nov','Stay on November']].map(function(o){return '<option value="'+o[0]+'"'+(pm===o[0]?' selected':'')+'>'+o[1]+'</option>';}).join('')+'</select>':'';
-  var sets=isOwner()?[['Florida (Steven)',DEC_FL,DEC_FL_WEEKS,'FL'],['Pennsylvania (you)',DEC_PA,DEC_PA_WEEKS,'PA']]:[[TERR.state==='PA'?'Pennsylvania':'Florida',TERR.state==='PA'?DEC_PA:DEC_FL,TERR.state==='PA'?DEC_PA_WEEKS:DEC_FL_WEEKS,TERR.state]];
-  $('dec-body').innerHTML=sets.map(function(x){
-    var plan=x[1], weeks=x[2], days=Object.keys(plan).sort();
-    return '<div class="card" style="margin-top:14px"><b style="font-size:15px">'+esc(x[0])+'</b>'+
-      weeks.map(function(w,wi){
-        var rows=days.filter(function(d){return plan[d].wk===wi;}).map(function(d){var p=plan[d];
-          return '<tr'+(d===localKey()?' style="background:#fff8dc"':'')+'><td style="white-space:nowrap">'+esc(fday(d))+'</td><td>'+(p.mode==='listing'?'<span class="lp-badge">Listing Calls</span>':'<span class="tag t-cb">Regular list</span>')+'</td><td><b>'+esc(p.ind)+'</b></td><td>'+esc(p.mkt)+' area</td></tr>';}).join('');
-        return '<div style="margin-top:12px"><b style="color:var(--navy)">'+esc(w.label)+'</b> · <span style="color:var(--blue)">'+esc(w.focus)+'</span><div class="hint">'+esc(w.why)+'</div>'+
-          '<table class="an-t" style="margin-top:6px"><thead><tr><th>Day</th><th>Mode</th><th>Industry</th><th>Starting market</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
-      }).join('')+'</div>';
-  }).join('')+
-  '<div class="card" style="margin-top:14px"><b style="font-size:15px">What changes in December</b><div class="hint" style="line-height:1.8;margin-top:4px">'+
-  '• Most days are <b>Listing Calls</b>: owners already paying HomeAdvisor, Angi or Thumbtack. "Build today’s list" takes you straight to the Listing Calls tab with the day’s industry and market loaded.<br>'+
-  '• Every list is cleaned: duplicate listings (same website) are removed, businesses already called under another number are skipped, and listings whose Google name doesn’t match the real business show the real name from their website.<br>'+
-  '• Pitch January starts in the last two weeks: "Lock the 6-month rate now, we launch the first week of January."</div></div>';
-  $('navDecPill').style.display=live?'inline-block':'none';
-}
-function decSet(v){
-  api('plan.month',{set:v}).then(function(r){ BOOT.planMonth=r; applyTerritory(BOOT.territory||'FL'); initControls(); decRender(); toast(r==='dec'?'December plan is live for everyone.':(r==='nov'?'Holding on the November plan.':'December plan switches on automatically Dec 1.')); })
-    .catch(function(e){ toast(e.message); });
 }
 
 /* ================= LISTING CALLS (lead-platform buyers) ================= */
