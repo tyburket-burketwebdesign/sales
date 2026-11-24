@@ -288,10 +288,14 @@ module.exports = async function handler(req, res) {
         return ok(true);
       }
       if (a === 'own.reports') {
+        const billedM = await sql`SELECT to_char(date_trunc('month', issued),'YYYY-MM') AS m, sum(amount)::numeric AS v,
+            COALESCE(sum(amount) FILTER (WHERE recurring_id <> ''),0)::numeric AS rec FROM invoices
+          WHERE status IN ('open','paid') AND issued >= date_trunc('month', now()) - interval '11 months' GROUP BY 1 ORDER BY 1`;
         const rev = await sql`SELECT to_char(date_trunc('month', paid_date),'YYYY-MM') AS m, sum(amount)::numeric AS v, count(*)::int AS n FROM invoices
           WHERE status='paid' AND paid_date >= date_trunc('month', now()) - interval '11 months' GROUP BY 1 ORDER BY 1`;
         const byClient = await sql`SELECT c.id, c.name, c.status, c.mrr, COALESCE(sum(i.amount) FILTER (WHERE i.status='paid'),0)::numeric AS ltv,
             COALESCE(sum(i.amount) FILTER (WHERE i.status='paid' AND i.paid_date >= date_trunc('year', now())),0)::numeric AS ytd,
+            COALESCE(sum(i.amount) FILTER (WHERE i.status IN ('open','paid') AND i.issued >= current_date - 365),0)::numeric AS billed12,
             ROUND(AVG(i.paid_date - i.issued) FILTER (WHERE i.status='paid'))::int AS days_to_pay
           FROM clients c LEFT JOIN invoices i ON i.client_id=c.id GROUP BY c.id ORDER BY ltv DESC`;
         const aging = (await sql`SELECT
@@ -315,7 +319,7 @@ module.exports = async function handler(req, res) {
         const churn = await sql`SELECT c.name, max(l.ts) AS ts FROM clients c JOIN client_log l ON l.client_id=c.id AND (l.note LIKE 'Status:%churned' OR l.note LIKE 'Marked churned%') WHERE c.status='churned' GROUP BY c.name ORDER BY 2 DESC LIMIT 12`;
         const lost = await sql`SELECT lower(trim(lost_reason)) AS r, count(*)::int AS n FROM companies WHERE stage='lost' AND lost_reason <> '' GROUP BY 1 ORDER BY 2 DESC LIMIT 8`;
         const pipe = await sql`SELECT stage, count(*)::int AS n, COALESCE(sum(value),0)::numeric AS v FROM companies GROUP BY stage`;
-        return ok({ rev, byClient, aging, funnel, won30, reps, growth, churn, lost, pipe });
+        return ok({ rev, billedM, byClient, aging, funnel, won30, reps, growth, churn, lost, pipe });
       }
       if (a === 'own.activity') {
         const rows = await sql`(SELECT 'call' AS k, c.ts, COALESCE(u.name, c.rep) AS who, c.name || ': ' || replace(c.outcome,'_',' ') AS text, NULL::int AS client_id, c.phone FROM calls c LEFT JOIN users u ON u.email=c.rep ORDER BY c.ts DESC LIMIT 25)
@@ -508,7 +512,7 @@ module.exports = async function handler(req, res) {
         const f = {
           contact: String(P.contact || ''), email: String(P.email || ''), phone: C.normPhone(P.phone) || String(P.phone || ''), website: String(P.website || ''),
           package: String(P.package || ''), mrr: num(P.mrr), start: D(P.start_date) || new Date().toISOString().slice(0, 10), term: Math.max(0, parseInt(P.term_months, 10) || 0),
-          renewal: D(P.renewal_date), status: ['active', 'onboarding', 'paused', 'churned'].includes(P.status) ? P.status : 'active',
+          renewal: D(P.renewal_date), status: ['active', 'onboarding', 'paused', 'churned', 'past'].includes(P.status) ? P.status : 'active',
           health: ['auto', 'green', 'yellow', 'red'].includes(P.health) ? P.health : 'auto', rep: String(P.rep || ''), notes: String(P.notes || ''), links: String(P.links || '')
         };
         let id = Number(P.id) || 0, prev = null;
@@ -608,6 +612,13 @@ module.exports = async function handler(req, res) {
             COALESCE(sum(amount) FILTER (WHERE paid_date >= date_trunc('month', now()) - interval '1 month' AND paid_date < date_trunc('month', now())),0)::numeric AS lm,
             COALESCE(sum(amount) FILTER (WHERE status='open'),0)::numeric AS ar,
             COALESCE(sum(amount) FILTER (WHERE status='open' AND due < current_date),0)::numeric AS overdue FROM invoices`)[0];
+        const billed = (await sql`SELECT
+            COALESCE(sum(amount) FILTER (WHERE issued >= date_trunc('month', now())),0)::numeric AS m,
+            COALESCE(sum(amount) FILTER (WHERE issued >= date_trunc('month', now()) AND recurring_id <> ''),0)::numeric AS m_rec,
+            COALESCE(sum(amount) FILTER (WHERE issued >= date_trunc('month', now()) - interval '1 month' AND issued < date_trunc('month', now())),0)::numeric AS lm,
+            COALESCE(sum(amount) FILTER (WHERE issued >= date_trunc('year', now())),0)::numeric AS ytd,
+            COALESCE(sum(amount) FILTER (WHERE issued >= date_trunc('month', now()) - interval '12 months' AND issued < date_trunc('month', now())),0)::numeric AS t12
+          FROM invoices WHERE status IN ('open','paid')`)[0];
         const months = await sql`SELECT to_char(date_trunc('month', paid_date),'Mon') AS m, sum(amount)::numeric AS v FROM invoices
           WHERE status='paid' AND paid_date >= date_trunc('month', now()) - interval '5 months' GROUP BY date_trunc('month', paid_date) ORDER BY date_trunc('month', paid_date)`;
         const overdueInv = await sql`SELECT i.id, i.number, i.amount, c.name AS client, c.id AS client_id, (current_date - i.due) AS days FROM invoices i JOIN clients c ON c.id=i.client_id
@@ -625,9 +636,9 @@ module.exports = async function handler(req, res) {
         const refOpen = (await sql`SELECT count(*)::int AS n FROM referrals WHERE status IN ('submitted','contacted','meeting')`)[0].n;
         const missed = (await sql`SELECT count(*)::int AS n FROM inbound WHERE status='missed'`)[0].n;
         const pending = (await sql`SELECT count(*)::int AS n FROM deals WHERE status='pending'`)[0].n;
-        const soon = cl.filter(c => c.status !== 'churned' && c.renewal_s && (new Date(c.renewal_s) - Date.now()) / 864e5 <= 30 && (new Date(c.renewal_s) - Date.now()) / 864e5 >= -7);
-        return ok({ mrr, clients: act.length, onboarding: cl.filter(c => c.status === 'onboarding').length, cash, months, overdueInv, tasks, pipe, team, refOwed, refOpen, missed, pending,
-          risk: cl.filter(c => c.health_c !== 'green' && c.status !== 'churned').map(c => ({ id: c.id, name: c.name, health: c.health_c, mrr: c.mrr, overdue: c.overdue_amt, late: c.late_tasks, quiet: c.days_quiet })),
+        const soon = cl.filter(c => (c.status === 'active' || c.status === 'onboarding') && c.term_months > 0 && c.renewal_s && (new Date(c.renewal_s) - Date.now()) / 864e5 <= 30 && (new Date(c.renewal_s) - Date.now()) / 864e5 >= -7);
+        return ok({ mrr, billed, clients: act.length, onboarding: cl.filter(c => c.status === 'onboarding').length, cash, months, overdueInv, tasks, pipe, team, refOwed, refOpen, missed, pending,
+          risk: cl.filter(c => c.health_c !== 'green' && c.status !== 'churned' && (c.status !== 'past' || Number(c.overdue_amt) > 0)).map(c => ({ id: c.id, name: c.name, health: c.health_c, mrr: c.mrr, overdue: c.overdue_amt, late: c.late_tasks, quiet: c.days_quiet })),
           renewals: soon.map(c => ({ id: c.id, name: c.name, mrr: c.mrr, renewal: c.renewal_s })) });
       }
       return err('Unknown CRM action.');
