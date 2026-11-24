@@ -793,12 +793,12 @@ table th{font-size:11px;letter-spacing:.4px}
           <div class="kpi"><b id="bl-k1">$0</b><span>open (sent, not paid)</span></div>
           <div class="kpi"><b id="bl-k2" style="color:var(--red)">$0</b><span>overdue</span></div>
           <div class="kpi"><b id="bl-k3">$0</b><span>collected this month</span></div>
-          <div class="kpi"><b id="bl-k4">0</b><span>clients still to bill this month</span></div>
+          <div class="kpi"><b id="bl-k4">0</b><span>clients to bill by hand this month</span></div>
         </div>
         <div class="row" style="margin-bottom:12px;gap:8px"><button class="btn-go" onclick="invCompose()">+ New invoice in Wave</button><span class="hint" id="bl-aging"></span></div>
         <div class="card">
           <b style="font-size:15px">&#128197; This month's billing run</b>
-          <div class="hint">Create each invoice in Wave as usual. The Wave sync pulls it in every morning (or hit Sync now); Log Wave invoice is only needed if you want it here right away. Referral credits are taken off automatically; add a negative "Referral credit" line in Wave for the same amount.</div>
+          <div class="hint">Clients on a Wave recurring invoice are billed by Wave automatically (marked &#8635;). For everyone else, click Create &amp; send: the CRM builds the invoice in Wave and Wave emails it. Referral credits are taken off automatically; add a negative "Referral credit" line in Wave for the same amount.</div>
           <div id="bl-run" style="margin-top:8px;overflow-x:auto"></div>
         </div>
         <div class="card">
@@ -2415,12 +2415,12 @@ function blRender(){ waveStatus();
   $('bl-k1').textContent=money(open.reduce(function(a,i){return a+Number(i.amount);},0));
   $('bl-k2').textContent=money(od.reduce(function(a,i){return a+Number(i.amount);},0));
   $('bl-k3').textContent=money(paidM.reduce(function(a,i){return a+Number(i.amount);},0));
-  var todo=CRM.run.filter(function(c){return !c.logged;});
+  var todo=CRM.run.filter(function(c){return !c.logged && !c.rec_last;});
   $('bl-k4').textContent=todo.length+' of '+CRM.run.length;
   $('bl-run').innerHTML=CRM.run.length?'<table><thead><tr><th>Client</th><th>Monthly</th><th>Referral credit</th><th>Bill in Wave</th><th></th></tr></thead><tbody>'+CRM.run.map(function(c){
     var cr=Math.min(Number(c.credit)||0,Number(c.mrr));
     return '<tr'+(c.logged?' style="opacity:.5"':'')+'><td><a href="#" onclick="clOpen('+c.id+');return false"><b>'+esc(c.name)+'</b></a></td><td>'+money(c.mrr)+'</td><td>'+(cr>0?'<b style="color:var(--green)">-'+money(cr)+'</b>':'')+'</td><td><b>'+money(Number(c.mrr)-cr)+'</b></td>'+
-      '<td>'+(c.logged?'<span class="tag" style="background:var(--green-bg);color:var(--green)">logged</span>':'<button class="btn-blue btn-sm" onclick="invCompose('+c.id+')">Create &amp; send</button> <button class="btn-ghost btn-sm" title="Already made it in Wave" onclick="blLog('+c.id+','+Number(c.mrr)+','+cr+')">Log</button>')+'</td></tr>';
+      '<td>'+(c.rec_last?'<span class="tag" style="background:var(--green-bg);color:var(--green)" title="Wave creates and emails this one on its own">&#8635; Wave recurring · next ~'+dshort(nextMonthDay(c.rec_last))+'</span>':c.logged?'<span class="tag" style="background:var(--green-bg);color:var(--green)">logged</span>':'<button class="btn-blue btn-sm" onclick="invCompose('+c.id+')">Create &amp; send</button> <button class="btn-ghost btn-sm" title="Already made it in Wave" onclick="blLog('+c.id+','+Number(c.mrr)+','+cr+')">Log</button>')+'</td></tr>';
   }).join('')+'</tbody></table>':'<div class="hint">No active clients with a monthly amount yet. Add MRR on each client.</div>';
   var rows=inv.filter(function(i){ return f==='all'||(f==='overdue'?(i.status==='open'&&i.due_s<t0):i.status===f); });
   $('bl-list').innerHTML=rows.length?'<div style="overflow-x:auto"><table><thead><tr><th>Client</th><th>#</th><th>Amount</th><th>Issued</th><th>Due</th><th>Status</th><th></th></tr></thead><tbody>'+rows.map(function(i){
@@ -2430,6 +2430,7 @@ function blRender(){ waveStatus();
       '<td style="white-space:nowrap">'+invActs(i,'blLoad')+'</td></tr>';
   }).join('')+'</tbody></table></div>':'<div class="empty" style="padding:12px">No invoices here.</div>';
 }
+function nextMonthDay(d){ var x=new Date(d+'T12:00:00'); x.setMonth(x.getMonth()+1); while(x<new Date()) x.setMonth(x.getMonth()+1); return x.toISOString().slice(0,10); }
 function blLog(id,mrr,cr){
   var num=prompt('Wave invoice number:'); if(num===null) return;
   var amt=prompt('Invoice total after credits ($):', String(mrr-cr)); if(amt===null) return;
