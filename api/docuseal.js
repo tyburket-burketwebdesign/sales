@@ -18,6 +18,20 @@ module.exports = async function handler(req, res) {
     const subId = String(data.submission_id || (data.submission && data.submission.id) || data.id || '');
     if (!subId) return res.status(200).json({ ok: true, data: 'no submission id' });
 
+    /* referral program agreements */
+    const rp = (await sql`SELECT * FROM ref_partners WHERE docuseal_id=${subId}`)[0];
+    if (rp) {
+      if (event === 'form.completed' || event === 'submission.completed') {
+        const docs0 = data.documents || [];
+        await sql`UPDATE ref_partners SET agreement='signed', signed_ts=now(), pdf_url=${(docs0[0] && docs0[0].url) || ''} WHERE id=${rp.id}`;
+        const mt = process.env.MAIL_TO || process.env.OWNER_EMAIL;
+        if (mt) C.sendMail(mt, '🤝 Referral agreement signed: ' + rp.company, '<p><b>' + rp.company + '</b> signed the referral program agreement.</p>').catch(() => {});
+      } else if (event === 'form.viewed' || event === 'submission.viewed') {
+        await sql`UPDATE ref_partners SET agreement='viewed' WHERE id=${rp.id} AND agreement='sent'`;
+      }
+      return res.status(200).json({ ok: true });
+    }
+
     if (event === 'form.viewed' || event === 'submission.viewed') {
       await sql`UPDATE contracts SET status='viewed' WHERE docuseal_id=${subId} AND status='sent'`;
       return res.status(200).json({ ok: true });

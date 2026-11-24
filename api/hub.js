@@ -1,6 +1,7 @@
 /* BWD SDR Hub - single API dispatcher. POST /api/hub  { a, token, ...params } */
 const C = require('./_lib/core.js');
 const sql = C.sql;
+const REF_HTML = "<div style=\"font-family:Helvetica,Arial,sans-serif;font-size:11px;line-height:1.45;color:#1d2a38\">\n<h2 style=\"color:#0e2235;margin:0 0 2px\">Client Referral Program Agreement</h2>\n<p style=\"margin:0 0 10px;color:#5b6b80\">Burket Web Design &middot; (814) 656-8597 &middot; burketwebdesign.com</p>\n<p>This agreement is between Burket Web Design (\"BWD\") and the client named below (\"you\"). It explains how you earn invoice credits for introducing new business to BWD.</p>\n<p><b>1. How you earn a credit.</b> Introduce a business to BWD. If they sign up for a monthly plan and pay their first invoice, you earn an invoice credit equal to their first monthly invoice (for example $500, $750 or $1,250). If they buy a one-time project such as a website, you earn 10% of the project total, up to $500.</p>\n<p><b>2. What counts as a referral.</b> The business must be new to BWD: not a current or past client, and not already in active conversations with us (a meeting or proposal in the last 90 days). Send them through your personal referral link, or tell us about them before they sign. If two people refer the same business, the first one we receive gets the credit.</p>\n<p><b>3. When the credit is applied.</b> The credit is earned once the new client's first invoice is paid in full. We apply it to your next Wave invoice as a \"Referral credit\" line. If a credit is larger than one invoice, the rest carries forward to the following invoices until it is used up.</p>\n<p><b>4. Credit rules.</b> Credits apply only to BWD services. They have no cash value and cannot be transferred or exchanged for cash. Unused credits expire 12 months after they are earned. To use credits, your account must be in good standing, with no balance more than 30 days past due. If your account closes, unused credits end with it.</p>\n<p><b>5. No limit.</b> There is no cap on how many businesses you can refer or how many credits you can earn.</p>\n<p><b>6. How you refer.</b> Refer people you know and believe we can help. Please do not send bulk or unsolicited messages, and do not make promises on BWD's behalf about pricing, results or rankings. You are not an employee or agent of BWD and cannot sign agreements for us.</p>\n<p><b>7. Changes.</b> BWD may update or end the program with 30 days' written notice. Credits you have already earned will be honored.</p>\n<table style=\"width:100%;margin-top:14px;border-collapse:collapse;font-size:11px\"><tr>\n<td style=\"width:50%;vertical-align:top;padding-right:16px\">\n<b>Client</b><br>\nBusiness: <text-field name=\"Business Name\" role=\"Client\" required=\"true\" style=\"width:200px;height:18px;display:inline-block\"></text-field><br>\nName: <text-field name=\"Full Name\" role=\"Client\" required=\"true\" style=\"width:200px;height:18px;display:inline-block\"></text-field><br>\nSignature:<br><signature-field name=\"Signature\" role=\"Client\" required=\"true\" style=\"width:220px;height:56px;display:inline-block\"></signature-field><br>\nDate: <date-field name=\"Date\" role=\"Client\" required=\"true\" style=\"width:120px;height:18px;display:inline-block\"></date-field>\n</td>\n<td style=\"width:50%;vertical-align:top\">\n<b>Burket Web Design</b><br>Ty Burket, Owner<br><br>Your referral link is emailed to you once this is signed.\n</td></tr></table>\n</div>";
 
 module.exports = async function handler(req, res) {
   const ok = d => res.status(200).json({ ok: true, data: d === undefined ? true : d });
@@ -16,6 +17,36 @@ module.exports = async function handler(req, res) {
       const r = await C.login(P.email, P.pass);
       if (!r) return err('Wrong email or password.');
       return ok(r);
+    }
+
+    /* ---- public referral form (refer.html), no login ---- */
+    if (a === 'ref.public') {
+      const p = (await sql`SELECT id, company, contact FROM ref_partners WHERE code=${String(P.code || '').toUpperCase()} AND status='active'`)[0];
+      if (!p) return err('That referral link is not active. Ask Ty for a fresh one.');
+      const earned = (await sql`SELECT COALESCE(sum(amount) FILTER (WHERE amount>0),0)::numeric AS e, COALESCE(sum(amount),0)::numeric AS b FROM ref_credits WHERE partner_id=${p.id}`)[0];
+      const n = (await sql`SELECT count(*)::int AS n, count(*) FILTER (WHERE status IN ('won','paid'))::int AS w FROM referrals WHERE partner_id=${p.id}`)[0];
+      return ok({ company: p.company, first: String(p.contact || '').split(' ')[0], earned: earned.e, balance: earned.b, sent: n.n, won: n.w });
+    }
+    if (a === 'ref.submit') {
+      const p = (await sql`SELECT * FROM ref_partners WHERE code=${String(P.code || '').toUpperCase()} AND status='active'`)[0];
+      if (!p) return err('That referral link is not active. Ask Ty for a fresh one.');
+      const biz = String(P.business || '').trim().slice(0, 120), contact = String(P.contact || '').trim().slice(0, 80);
+      const phone = C.normPhone(P.phone) || '', email = String(P.email || '').trim().slice(0, 120);
+      if (biz.length < 2) return err('What is the business name?');
+      if (!phone && !/@/.test(email)) return err('Add a phone number or email so we can reach them.');
+      const today = (await sql`SELECT count(*)::int AS n FROM referrals WHERE partner_id=${p.id} AND ts > now() - interval '1 day'`)[0].n;
+      if (today >= 15) return err('That is a lot of referrals for one day. Text Ty at (814) 656-8597 and he will take it from there.');
+      const r = (await sql`INSERT INTO referrals (partner_id, business, contact, phone, email, note, source) VALUES (${p.id}, ${biz}, ${contact}, ${phone}, ${email}, ${String(P.note || '').slice(0, 500)}, 'link') RETURNING id`)[0];
+      const owner = (await sql`SELECT email FROM users WHERE role='owner' ORDER BY created LIMIT 1`)[0];
+      if (phone) {
+        await C.upsertCompany({ phone, name: biz, email, rep: owner ? owner.email : '' });
+        await sql`INSERT INTO company_notes (phone, author, note) VALUES (${phone}, 'referral', ${'Referred by ' + p.company + (contact ? ' · contact: ' + contact : '') + (P.note ? ' · ' + String(P.note).slice(0, 200) : '')})`;
+      }
+      const mailTo = process.env.MAIL_TO || process.env.OWNER_EMAIL;
+      if (mailTo) C.sendMail(mailTo, '🤝 New referral from ' + p.company + ': ' + biz,
+        '<p><b>' + p.company + '</b> just referred <b>' + biz + '</b>.</p><p>' + [contact, phone, email].filter(Boolean).join(' &middot; ') + '</p>' + (P.note ? '<p>' + String(P.note).slice(0, 500) + '</p>' : '') +
+        '<p>Call them today. It is in the hub under Referral Program.</p>').catch(() => {});
+      return ok({ id: r.id });
     }
 
     if (a === 'auth.invite.check') {
@@ -186,6 +217,142 @@ module.exports = async function handler(req, res) {
     }
 
     /* ---------------- LISTING CALLS: businesses buying shared leads ---------------- */
+    /* ---------------- REFERRAL PROGRAM (owner) ---------------- */
+    if (a.indexOf('ref.') === 0) {
+      if (!OWNER) return err('Owner only.');
+      const newCode = () => Array.from({ length: 6 }, () => 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[Math.floor(Math.random() * 32)]).join('');
+      const base = (process.env.APP_URL || ('https://' + (req.headers['x-forwarded-host'] || req.headers.host || 'sales-eta-livid.vercel.app'))).replace(/\/$/, '');
+      if (a === 'ref.data') {
+        const partners = await sql`SELECT p.*,
+            (SELECT count(*)::int FROM referrals r WHERE r.partner_id=p.id) AS refs,
+            (SELECT count(*)::int FROM referrals r WHERE r.partner_id=p.id AND r.status IN ('won','paid')) AS wins,
+            (SELECT COALESCE(sum(amount),0)::numeric FROM ref_credits c WHERE c.partner_id=p.id) AS balance,
+            (SELECT COALESCE(sum(amount),0)::numeric FROM ref_credits c WHERE c.partner_id=p.id AND amount>0) AS earned
+          FROM ref_partners p WHERE p.status <> 'archived' ORDER BY p.company`;
+        const referrals = await sql`SELECT r.*, p.company AS partner FROM referrals r LEFT JOIN ref_partners p ON p.id=r.partner_id ORDER BY r.ts DESC LIMIT 300`;
+        const credits = await sql`SELECT c.*, p.company AS partner FROM ref_credits c LEFT JOIN ref_partners p ON p.id=c.partner_id ORDER BY c.ts DESC LIMIT 200`;
+        const tpl = process.env.DOCUSEAL_TEMPLATE_REFERRAL || ((await sql`SELECT v FROM kv WHERE k='ref_template'`)[0] || {}).v || '';
+        return ok({ partners, referrals, credits, template: tpl, base });
+      }
+      if (a === 'ref.enrolled') {
+        return ok((await sql`SELECT lower(company) AS c FROM ref_partners WHERE status <> 'archived'`).map(r => r.c));
+      }
+      if (a === 'ref.partner.add') {
+        const list = Array.isArray(P.list) ? P.list : [P];
+        let added = 0;
+        for (const x of list.slice(0, 100)) {
+          const company = String(x.company || '').trim(); if (!company) continue;
+          const dup = (await sql`SELECT id, status FROM ref_partners WHERE lower(company)=lower(${company})`)[0];
+          if (dup) { if (dup.status === 'archived') { await sql`UPDATE ref_partners SET status='active' WHERE id=${dup.id}`; added++; } continue; }
+          let code = newCode();
+          while ((await sql`SELECT 1 FROM ref_partners WHERE code=${code}`).length) code = newCode();
+          await sql`INSERT INTO ref_partners (company, contact, email, phone, code) VALUES (${company}, ${String(x.contact || ((x.first || '') + ' ' + (x.last || ''))).trim()}, ${String(x.email || '').trim()}, ${C.normPhone(x.phone) || ''}, ${code})`;
+          added++;
+        }
+        return ok({ added });
+      }
+      if (a === 'ref.partner.update') {
+        const id = Number(P.id) || 0;
+        if (P.status) await sql`UPDATE ref_partners SET status=${P.status === 'archived' ? 'archived' : 'active'} WHERE id=${id}`;
+        if (P.email !== undefined) await sql`UPDATE ref_partners SET email=${String(P.email).trim()} WHERE id=${id}`;
+        if (P.contact !== undefined) await sql`UPDATE ref_partners SET contact=${String(P.contact).trim()} WHERE id=${id}`;
+        if (P.agreement) await sql`UPDATE ref_partners SET agreement=${P.agreement}, signed_ts=${P.agreement === 'signed' ? new Date().toISOString() : null} WHERE id=${id}`;
+        return ok(true);
+      }
+      if (a === 'ref.template.set') {
+        await sql`INSERT INTO kv (k, v) VALUES ('ref_template', ${String(P.id || '').replace(/\D/g, '')}) ON CONFLICT (k) DO UPDATE SET v=${String(P.id || '').replace(/\D/g, '')}`;
+        return ok(true);
+      }
+      if (a === 'ref.template.create') {
+        const key = process.env.DOCUSEAL_API_KEY;
+        if (!key) return err('DOCUSEAL_API_KEY is not set.');
+        const r = await fetch('https://api.docuseal.com/templates/html', {
+          method: 'POST', headers: { 'X-Auth-Token': key, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: 'BWD Client Referral Program Agreement', html: REF_HTML, size: 'Letter' })
+        });
+        const j = await r.json().catch(() => ({}));
+        if (!r.ok || !j.id) return err('DocuSeal would not create it automatically (' + r.status + '). Upload the agreement PDF in DocuSeal instead and paste the template ID here.');
+        await sql`INSERT INTO kv (k, v) VALUES ('ref_template', ${String(j.id)}) ON CONFLICT (k) DO UPDATE SET v=${String(j.id)}`;
+        return ok({ id: j.id });
+      }
+      if (a === 'ref.agreement.send') {
+        const p = (await sql`SELECT * FROM ref_partners WHERE id=${Number(P.id) || 0}`)[0];
+        if (!p) return err('Partner not found.');
+        if (!/@/.test(p.email)) return err('Add an email for ' + p.company + ' first.');
+        const tpl = process.env.DOCUSEAL_TEMPLATE_REFERRAL || ((await sql`SELECT v FROM kv WHERE k='ref_template'`)[0] || {}).v || '';
+        if (!tpl) return err('Set up the DocuSeal template first (Program setup card).');
+        const sub = await C.docusealSend(tpl, p.email, p.contact || p.company, { 'Business Name': p.company, 'Full Name': p.contact || '' });
+        await sql`UPDATE ref_partners SET agreement='sent', docuseal_id=${sub.id}, invited_ts=now() WHERE id=${p.id}`;
+        return ok(true);
+      }
+      if (a === 'ref.invite') {
+        const p = (await sql`SELECT * FROM ref_partners WHERE id=${Number(P.id) || 0}`)[0];
+        if (!p) return err('Partner not found.');
+        if (!/@/.test(p.email)) return err('Add an email for ' + p.company + ' first.');
+        const link = base + '/refer.html?c=' + p.code, first = String(p.contact || '').split(' ')[0] || 'there';
+        const html = '<p>Hi ' + first + ',</p>' +
+          '<p>Thank you for being a Burket Web Design client. A lot of our best clients come from people like you, so we started a referral program to say thanks.</p>' +
+          '<p><b>Here is how it works:</b> when a business you send our way signs up for a monthly plan and pays their first invoice, you get a credit on your next invoice equal to their first month. That is $500 to $1,250 off, depending on their plan. Website projects earn 10% of the project, up to $500. There is no limit.</p>' +
+          '<p>Your personal referral link:<br><a href="' + link + '">' + link + '</a></p>' +
+          '<p>Use it to send me a business, or just text me their name and number. I will take great care of them.</p>' +
+          (p.agreement !== 'signed' ? '<p>I will also send a short one-page agreement through DocuSeal that spells out the details. It takes about a minute to sign.</p>' : '') +
+          '<p>Thanks again,<br>Ty Burket<br>Burket Web Design<br>(814) 656-8597</p>';
+        await C.sendProspectMail(p.email, 'Earn invoice credits for every business you send us', html);
+        await sql`UPDATE ref_partners SET invited_ts=now() WHERE id=${p.id}`;
+        return ok({ link });
+      }
+      if (a === 'ref.add') {
+        const pid = Number(P.partner_id) || 0;
+        const p = (await sql`SELECT * FROM ref_partners WHERE id=${pid}`)[0];
+        if (!p) return err('Pick who referred them.');
+        const biz = String(P.business || '').trim(); if (!biz) return err('Business name?');
+        const phone = C.normPhone(P.phone) || '';
+        const r = (await sql`INSERT INTO referrals (partner_id, business, contact, phone, email, note, source) VALUES (${pid}, ${biz}, ${P.contact || ''}, ${phone}, ${P.email || ''}, ${P.note || ''}, 'hub') RETURNING id`)[0];
+        if (phone) {
+          await C.upsertCompany({ phone, name: biz, email: P.email || '', rep: user.email });
+          await sql`INSERT INTO company_notes (phone, author, note) VALUES (${phone}, ${user.email}, ${'Referred by ' + p.company})`;
+        }
+        return ok({ id: r.id });
+      }
+      if (a === 'ref.status') {
+        const id = Number(P.id) || 0, st = String(P.status || '');
+        if (['submitted', 'contacted', 'meeting', 'won', 'paid', 'not_qualified', 'lost'].indexOf(st) < 0) return err('Bad status.');
+        const r = (await sql`SELECT * FROM referrals WHERE id=${id}`)[0];
+        if (!r) return err('Referral not found.');
+        if (st === 'paid') {
+          if (r.status === 'paid') return err('Already credited.');
+          const kind = P.kind === 'project' ? 'project' : 'monthly', amt = Number(P.amount) || 0;
+          if (amt <= 0) return err('What was their first invoice amount?');
+          const credit = kind === 'monthly' ? amt : Math.min(500, Math.round(amt * 0.10 * 100) / 100);
+          await sql`UPDATE referrals SET status='paid', kind=${kind}, amount=${amt}, credit=${credit}, updated=now() WHERE id=${id}`;
+          await sql`INSERT INTO ref_credits (partner_id, referral_id, amount, note, author) VALUES (${r.partner_id}, ${id}, ${credit}, ${'Earned: ' + r.business + ' paid first invoice'}, ${user.email})`;
+          const p = (await sql`SELECT * FROM ref_partners WHERE id=${r.partner_id}`)[0];
+          if (P.notify && p && /@/.test(p.email)) {
+            const first = String(p.contact || '').split(' ')[0] || 'there';
+            C.sendProspectMail(p.email, 'You just earned a $' + credit + ' credit',
+              '<p>Hi ' + first + ',</p><p>Great news: <b>' + r.business + '</b> is officially a Burket Web Design client, so you earned a <b>$' + credit + ' credit</b>. It will show up as a "Referral credit" line on your next invoice.</p><p>Thank you for sending them our way.</p><p>Ty Burket<br>Burket Web Design</p>').catch(() => {});
+          }
+          return ok({ credit });
+        }
+        if (r.status === 'paid') return err('This referral already earned its credit. Remove the credit first if it needs to change.');
+        await sql`UPDATE referrals SET status=${st}, updated=now() WHERE id=${id}`;
+        return ok(true);
+      }
+      if (a === 'ref.apply') {
+        const pid = Number(P.partner_id) || 0, amt = Number(P.amount) || 0;
+        const bal = Number((await sql`SELECT COALESCE(sum(amount),0)::numeric AS b FROM ref_credits WHERE partner_id=${pid}`)[0].b);
+        if (amt <= 0 || amt > bal + 0.001) return err('Amount has to be between $0 and the $' + bal + ' balance.');
+        await sql`INSERT INTO ref_credits (partner_id, amount, note, author) VALUES (${pid}, ${-amt}, ${'Applied on Wave invoice ' + String(P.invoice || '').slice(0, 40)}, ${user.email})`;
+        return ok(true);
+      }
+      if (a === 'ref.credit.delete') {
+        const c = (await sql`DELETE FROM ref_credits WHERE id=${Number(P.id) || 0} RETURNING *`)[0];
+        if (c && c.referral_id && c.amount > 0) await sql`UPDATE referrals SET status='won', credit=0, updated=now() WHERE id=${c.referral_id}`;
+        return ok(true);
+      }
+      return err('Unknown referral action.');
+    }
+
     if (a === 'listing.mark') {
       const phone = C.normPhone(P.phone);
       if (!phone) return err('Bad phone.');
