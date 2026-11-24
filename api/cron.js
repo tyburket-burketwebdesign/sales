@@ -121,6 +121,24 @@ module.exports = async function handler(req, res) {
         }
       } catch (e) { out.errors.push('statements: ' + e.message); }
     }
+
+    /* ---- 7. CRM morning digest for the owner: overdue invoices, tasks due, renewals ---- */
+    try {
+      const inv = await sql`SELECT i.number, i.amount, c.name, (current_date - i.due) AS days FROM invoices i JOIN clients c ON c.id=i.client_id WHERE i.status='open' AND i.due < current_date ORDER BY i.due`;
+      const tks = await sql`SELECT t.title, to_char(t.due,'Mon DD') AS d, COALESCE(c.name,'') AS client, t.assignee FROM tasks t LEFT JOIN clients c ON c.id=t.client_id WHERE t.status='open' AND t.due <= current_date ORDER BY t.due LIMIT 30`;
+      const ren = await sql`SELECT name, mrr, to_char(COALESCE(renewal_date, start_date + make_interval(months => GREATEST(term_months,1))),'Mon DD') AS d FROM clients
+        WHERE status IN ('active','onboarding') AND COALESCE(renewal_date, start_date + make_interval(months => GREATEST(term_months,1))) BETWEEN current_date AND current_date + 14`;
+      if (mailTo && (inv.length || tks.length || ren.length)) {
+        const li = a => '<ul>' + a.join('') + '</ul>';
+        const html = '<h2 style="color:#0e2235;font-family:Arial">CRM today</h2>' +
+          (inv.length ? '<h3>Overdue invoices</h3>' + li(inv.map(r => '<li><b>' + r.name + '</b> ' + (r.number ? '#' + r.number + ' ' : '') + '$' + Number(r.amount) + ', ' + r.days + ' days late</li>')) : '') +
+          (tks.length ? '<h3>Tasks due or late</h3>' + li(tks.map(r => '<li>' + r.title + (r.client ? ' (' + r.client + ')' : '') + ', due ' + r.d + '</li>')) : '') +
+          (ren.length ? '<h3>Renewals in the next 2 weeks</h3>' + li(ren.map(r => '<li><b>' + r.name + '</b> $' + Number(r.mrr) + '/mo, renews ' + r.d + '</li>')) : '') +
+          '<p>Open the CRM to work these.</p>';
+        await C.sendMail(mailTo, 'CRM today: ' + [inv.length && inv.length + ' overdue', tks.length && tks.length + ' tasks', ren.length && ren.length + ' renewals'].filter(Boolean).join(', '), html);
+        out.crm = true;
+      }
+    } catch (e) { out.errors.push('crm: ' + e.message); }
   } catch (e) { out.errors.push(e.message); }
   res.status(200).json({ ok: true, data: out });
 };

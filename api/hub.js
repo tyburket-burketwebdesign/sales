@@ -217,6 +217,221 @@ module.exports = async function handler(req, res) {
     }
 
     /* ---------------- LISTING CALLS: businesses buying shared leads ---------------- */
+    /* ================= CRM: clients, billing, tasks, HQ ================= */
+    if (a.indexOf('crm.') === 0) {
+      const D = v => (v ? String(v).slice(0, 10) : null);
+      const num = v => Number(String(v == null ? '' : v).replace(/[^\d.\-]/g, '')) || 0;
+      const TPL = {
+        onboard: { label: 'Local SEO onboarding', items: [
+          ['Kickoff call and collect logins', 0], ['Get Google Business Profile manager access', 1], ['Get website / hosting access', 2],
+          ['Baseline rankings + GBP audit', 3], ['Set up review request link and NFC cards', 7], ['NAP / citation cleanup', 7],
+          ['GBP optimization: categories, services, photos', 10], ['Schedule first month of GBP posts', 10], ['30-day check-in call with client', 30]] },
+        website: { label: 'Website build', items: [
+          ['Collect content, logo and photos', 0], ['Sitemap + design direction approved', 5], ['Build draft site', 14], ['Client review round', 18],
+          ['Revisions', 21], ['Launch + Google Analytics / Search Console', 25], ['Post-launch check and speed test', 32]] },
+        monthly: { label: 'Monthly service', items: [
+          ['Send monthly SEO report', 30, 'monthly'], ['Schedule next month of GBP posts', 25, 'monthly'], ['Review response sweep', 7, 'weekly']] }
+      };
+      const addDays = (d, n) => { const x = new Date(d || Date.now()); x.setUTCDate(x.getUTCDate() + n); return x.toISOString().slice(0, 10); };
+      const applyTpl = async (clientId, key, who) => {
+        const t = TPL[key]; if (!t) return 0;
+        for (const it of t.items) await sql`INSERT INTO tasks (client_id, title, due, assignee, recurring, created_by) VALUES (${clientId}, ${it[0]}, ${addDays(null, it[1])}, ${who}, ${it[2] || ''}, ${user.email})`;
+        await sql`INSERT INTO client_log (client_id, author, note) VALUES (${clientId}, ${user.email}, ${'Added task list: ' + t.label})`;
+        return t.items.length;
+      };
+      const healthOf = c => {
+        if (c.health && c.health !== 'auto') return c.health;
+        if (c.status === 'paused' || Number(c.overdue_amt) > 0 && Number(c.overdue_days) > 14) return 'red';
+        if (Number(c.overdue_amt) > 0 || Number(c.late_tasks) > 2 || (c.status === 'active' && Number(c.days_quiet) > 45)) return 'yellow';
+        return 'green';
+      };
+      const clientRows = async (where) => {
+        const rows = await sql`SELECT c.*,
+            (SELECT count(*)::int FROM tasks t WHERE t.client_id=c.id AND t.status='open') AS open_tasks,
+            (SELECT count(*)::int FROM tasks t WHERE t.client_id=c.id AND t.status='open' AND t.due < current_date) AS late_tasks,
+            (SELECT COALESCE(sum(amount),0)::numeric FROM invoices i WHERE i.client_id=c.id AND i.status='open') AS open_amt,
+            (SELECT COALESCE(sum(amount),0)::numeric FROM invoices i WHERE i.client_id=c.id AND i.status='open' AND i.due < current_date) AS overdue_amt,
+            (SELECT COALESCE(max(current_date - i.due),0)::int FROM invoices i WHERE i.client_id=c.id AND i.status='open' AND i.due < current_date) AS overdue_days,
+            (SELECT COALESCE(current_date - max(l.ts)::date, 999)::int FROM client_log l WHERE l.client_id=c.id) AS days_quiet,
+            to_char(c.start_date,'YYYY-MM-DD') AS start_s, to_char(COALESCE(c.renewal_date, c.start_date + make_interval(months => GREATEST(c.term_months,1))),'YYYY-MM-DD') AS renewal_s
+          FROM clients c ORDER BY CASE c.status WHEN 'active' THEN 0 WHEN 'onboarding' THEN 1 WHEN 'paused' THEN 2 ELSE 3 END, c.name`;
+        return rows.filter(where || (() => true)).map(c => Object.assign(c, { health_c: healthOf(c) }));
+      };
+
+      /* tasks: everyone (reps see their own) */
+      if (a === 'crm.tasks') {
+        const rows = await sql`SELECT t.*, to_char(t.due,'YYYY-MM-DD') AS due_s, COALESCE(c.name,'') AS client FROM tasks t LEFT JOIN clients c ON c.id=t.client_id
+          WHERE (t.status='open' OR t.done_ts > now() - interval '14 days') ORDER BY t.status, t.due NULLS LAST, t.id LIMIT 500`;
+        return ok(OWNER ? rows : rows.filter(t => t.assignee === user.email));
+      }
+      if (a === 'crm.task.done') {
+        const t = (await sql`SELECT * FROM tasks WHERE id=${Number(P.id) || 0}`)[0];
+        if (!t) return err('Task not found.');
+        if (!OWNER && t.assignee !== user.email) return err('Not your task.');
+        if (P.done === false) { await sql`UPDATE tasks SET status='open', done_ts=NULL WHERE id=${t.id}`; return ok(true); }
+        await sql`UPDATE tasks SET status='done', done_ts=now(), done_by=${user.email} WHERE id=${t.id}`;
+        let next = null;
+        if (t.recurring === 'monthly' || t.recurring === 'weekly') {
+          const nd = t.recurring === 'weekly' ? addDays(t.due || null, 7) : (() => { const x = new Date(t.due || Date.now()); x.setUTCMonth(x.getUTCMonth() + 1); return x.toISOString().slice(0, 10); })();
+          await sql`INSERT INTO tasks (client_id, title, due, assignee, recurring, note, created_by) VALUES (${t.client_id}, ${t.title}, ${nd}, ${t.assignee}, ${t.recurring}, ${t.note}, ${user.email})`;
+          next = nd;
+        }
+        if (t.client_id) await sql`INSERT INTO client_log (client_id, author, note) VALUES (${t.client_id}, ${user.email}, ${'Done: ' + t.title})`;
+        return ok({ next });
+      }
+
+      if (!OWNER) return err('Owner only.');
+
+      if (a === 'crm.task.save') {
+        const title = String(P.title || '').trim(); if (!title) return err('What is the task?');
+        const f = { client_id: Number(P.client_id) || null, due: D(P.due), assignee: String(P.assignee || user.email), recurring: ['monthly', 'weekly'].includes(P.recurring) ? P.recurring : '', note: String(P.note || '') };
+        if (P.id) await sql`UPDATE tasks SET title=${title}, client_id=${f.client_id}, due=${f.due}, assignee=${f.assignee}, recurring=${f.recurring}, note=${f.note} WHERE id=${Number(P.id)}`;
+        else await sql`INSERT INTO tasks (client_id, title, due, assignee, recurring, note, created_by) VALUES (${f.client_id}, ${title}, ${f.due}, ${f.assignee}, ${f.recurring}, ${f.note}, ${user.email})`;
+        return ok(true);
+      }
+      if (a === 'crm.task.delete') { await sql`DELETE FROM tasks WHERE id=${Number(P.id) || 0}`; return ok(true); }
+      if (a === 'crm.template.apply') {
+        const n = await applyTpl(Number(P.client_id) || 0, String(P.template || ''), String(P.assignee || user.email));
+        return ok({ added: n });
+      }
+      if (a === 'crm.templates') return ok(Object.keys(TPL).map(k => ({ key: k, label: TPL[k].label, n: TPL[k].items.length })));
+
+      if (a === 'crm.clients') return ok(await clientRows());
+      if (a === 'crm.client.get') {
+        const id = Number(P.id) || 0;
+        const c = (await clientRows(x => x.id === id))[0];
+        if (!c) return err('Client not found.');
+        const invoices = await sql`SELECT *, to_char(issued,'YYYY-MM-DD') AS issued_s, to_char(due,'YYYY-MM-DD') AS due_s, to_char(paid_date,'YYYY-MM-DD') AS paid_s FROM invoices WHERE client_id=${id} ORDER BY issued DESC NULLS LAST, id DESC`;
+        const tasks = await sql`SELECT *, to_char(due,'YYYY-MM-DD') AS due_s FROM tasks WHERE client_id=${id} ORDER BY status, due NULLS LAST, id`;
+        const log = await sql`SELECT * FROM client_log WHERE client_id=${id} ORDER BY ts DESC LIMIT 60`;
+        const ref = (await sql`SELECT p.id, p.code, (SELECT COALESCE(sum(amount),0)::numeric FROM ref_credits r WHERE r.partner_id=p.id) AS balance FROM ref_partners p WHERE lower(p.company)=lower(${c.name}) AND p.status='active'`)[0] || null;
+        return ok({ client: c, invoices, tasks, log, ref });
+      }
+      if (a === 'crm.client.save') {
+        const name = String(P.name || '').trim(); if (!name) return err('Client name?');
+        const f = {
+          contact: String(P.contact || ''), email: String(P.email || ''), phone: C.normPhone(P.phone) || String(P.phone || ''), website: String(P.website || ''),
+          package: String(P.package || ''), mrr: num(P.mrr), start: D(P.start_date) || new Date().toISOString().slice(0, 10), term: Math.max(0, parseInt(P.term_months, 10) || 0),
+          renewal: D(P.renewal_date), status: ['active', 'onboarding', 'paused', 'churned'].includes(P.status) ? P.status : 'active',
+          health: ['auto', 'green', 'yellow', 'red'].includes(P.health) ? P.health : 'auto', rep: String(P.rep || ''), notes: String(P.notes || ''), links: String(P.links || '')
+        };
+        let id = Number(P.id) || 0, prev = null;
+        if (id) {
+          prev = (await sql`SELECT * FROM clients WHERE id=${id}`)[0];
+          await sql`UPDATE clients SET name=${name}, contact=${f.contact}, email=${f.email}, phone=${f.phone}, website=${f.website}, package=${f.package}, mrr=${f.mrr},
+            start_date=${f.start}, term_months=${f.term}, renewal_date=${f.renewal}, status=${f.status}, health=${f.health}, rep=${f.rep}, notes=${f.notes}, links=${f.links}, updated=now() WHERE id=${id}`;
+        } else {
+          const dup = (await sql`SELECT id FROM clients WHERE lower(name)=lower(${name})`)[0];
+          if (dup) return err(name + ' is already a client.');
+          id = (await sql`INSERT INTO clients (name, contact, email, phone, website, package, mrr, start_date, term_months, renewal_date, status, health, rep, notes, links)
+            VALUES (${name}, ${f.contact}, ${f.email}, ${f.phone}, ${f.website}, ${f.package}, ${f.mrr}, ${f.start}, ${f.term}, ${f.renewal}, ${f.status}, ${f.health}, ${f.rep}, ${f.notes}, ${f.links}) RETURNING id`)[0].id;
+          await sql`INSERT INTO client_log (client_id, author, note) VALUES (${id}, ${user.email}, 'Client added')`;
+          if (P.template) await applyTpl(id, P.template, user.email);
+        }
+        if (prev && prev.status !== f.status) await sql`INSERT INTO client_log (client_id, author, note) VALUES (${id}, ${user.email}, ${'Status: ' + prev.status + ' → ' + f.status})`;
+        if (prev && Number(prev.mrr) !== f.mrr) await sql`INSERT INTO client_log (client_id, author, note) VALUES (${id}, ${user.email}, ${'MRR: $' + Number(prev.mrr) + ' → $' + f.mrr})`;
+        let cancelled = 0;
+        if (f.status === 'churned' && (!prev || prev.status !== 'churned')) {
+          const ds = await sql`UPDATE deals SET status='cancelled', cancelled_ts=now() WHERE lower(business)=lower(${name}) AND status='approved' AND cancelled_ts IS NULL RETURNING id`;
+          cancelled = ds.length;
+          if (f.phone) await sql`UPDATE companies SET stage='lost', updated=now() WHERE phone=${C.normPhone(f.phone)} AND stage='won'`;
+        }
+        return ok({ id, cancelled });
+      }
+      if (a === 'crm.client.import') {
+        let added = 0;
+        for (const x of (Array.isArray(P.list) ? P.list : []).slice(0, 200)) {
+          const name = String(x.company || '').trim(); if (!name) continue;
+          if ((await sql`SELECT 1 FROM clients WHERE lower(name)=lower(${name})`).length) continue;
+          const r = await sql`INSERT INTO clients (name, contact, email, phone, mrr, start_date, status) VALUES (${name}, ${((x.first || '') + ' ' + (x.last || '')).trim()}, ${x.email || ''}, ${C.normPhone(x.phone) || ''}, ${num(x.mrr)}, ${D(x.since) || new Date().toISOString().slice(0, 10)}, 'active') RETURNING id`;
+          await sql`INSERT INTO client_log (client_id, author, note) VALUES (${r[0].id}, ${user.email}, 'Imported from Wave')`;
+          added++;
+        }
+        return ok({ added });
+      }
+      if (a === 'crm.client.note') {
+        const note = String(P.note || '').trim(); if (!note) return err('Empty note.');
+        await sql`INSERT INTO client_log (client_id, author, note) VALUES (${Number(P.id) || 0}, ${user.email}, ${note})`;
+        return ok(true);
+      }
+      if (a === 'crm.client.delete') {
+        const id = Number(P.id) || 0;
+        await sql`DELETE FROM tasks WHERE client_id=${id}`; await sql`DELETE FROM invoices WHERE client_id=${id}`; await sql`DELETE FROM client_log WHERE client_id=${id}`;
+        await sql`DELETE FROM clients WHERE id=${id}`;
+        return ok(true);
+      }
+
+      /* ---- billing (Wave is the source; this is the log) ---- */
+      if (a === 'crm.invoices') {
+        return ok(await sql`SELECT i.*, c.name AS client, to_char(i.issued,'YYYY-MM-DD') AS issued_s, to_char(i.due,'YYYY-MM-DD') AS due_s, to_char(i.paid_date,'YYYY-MM-DD') AS paid_s,
+          CASE WHEN i.status='open' AND i.due < current_date THEN (current_date - i.due) ELSE 0 END AS late_days
+          FROM invoices i LEFT JOIN clients c ON c.id=i.client_id ORDER BY CASE i.status WHEN 'open' THEN 0 ELSE 1 END, i.due DESC NULLS LAST, i.id DESC LIMIT 600`);
+      }
+      if (a === 'crm.invoice.save') {
+        const cid = Number(P.client_id) || 0; if (!cid) return err('Pick the client.');
+        const amt = num(P.amount); if (!amt) return err('Amount?');
+        const issued = D(P.issued) || new Date().toISOString().slice(0, 10), due = D(P.due) || addDays(issued, 15);
+        const st = ['open', 'paid', 'void'].includes(P.status) ? P.status : 'open';
+        if (P.id) await sql`UPDATE invoices SET client_id=${cid}, number=${String(P.number || '')}, amount=${amt}, issued=${issued}, due=${due}, status=${st}, note=${String(P.note || '')}, paid_date=${st === 'paid' ? (D(P.paid_date) || new Date().toISOString().slice(0, 10)) : null} WHERE id=${Number(P.id)}`;
+        else {
+          await sql`INSERT INTO invoices (client_id, number, amount, issued, due, status, note, paid_date) VALUES (${cid}, ${String(P.number || '')}, ${amt}, ${issued}, ${due}, ${st}, ${String(P.note || '')}, ${st === 'paid' ? (D(P.paid_date) || issued) : null})`;
+          await sql`INSERT INTO client_log (client_id, author, note) VALUES (${cid}, ${user.email}, ${'Invoice logged' + (P.number ? ' #' + P.number : '') + ': $' + amt})`;
+        }
+        if (num(P.credit) > 0) {
+          const c = (await sql`SELECT name FROM clients WHERE id=${cid}`)[0];
+          const p = c && (await sql`SELECT id FROM ref_partners WHERE lower(company)=lower(${c.name})`)[0];
+          if (p) await sql`INSERT INTO ref_credits (partner_id, amount, note, author) VALUES (${p.id}, ${-num(P.credit)}, ${'Applied on Wave invoice ' + String(P.number || '')}, ${user.email})`;
+        }
+        return ok(true);
+      }
+      if (a === 'crm.invoice.paid') {
+        const i = (await sql`UPDATE invoices SET status='paid', paid_date=${D(P.date) || new Date().toISOString().slice(0, 10)} WHERE id=${Number(P.id) || 0} RETURNING *`)[0];
+        if (i) await sql`INSERT INTO client_log (client_id, author, note) VALUES (${i.client_id}, ${user.email}, ${'Invoice paid' + (i.number ? ' #' + i.number : '') + ': $' + Number(i.amount)})`;
+        return ok(true);
+      }
+      if (a === 'crm.invoice.delete') { await sql`DELETE FROM invoices WHERE id=${Number(P.id) || 0}`; return ok(true); }
+      if (a === 'crm.billing.run') {
+        const rows = await sql`SELECT c.id, c.name, c.mrr, c.email,
+            (SELECT count(*)::int FROM invoices i WHERE i.client_id=c.id AND date_trunc('month', i.issued) = date_trunc('month', ${D(P.month) || new Date().toISOString().slice(0, 10)}::date)) AS logged,
+            (SELECT COALESCE(sum(r.amount),0)::numeric FROM ref_partners p JOIN ref_credits r ON r.partner_id=p.id WHERE lower(p.company)=lower(c.name)) AS credit
+          FROM clients c WHERE c.status IN ('active','onboarding') AND c.mrr > 0 ORDER BY c.name`;
+        return ok(rows);
+      }
+
+      /* ---- owner HQ ---- */
+      if (a === 'crm.hq') {
+        const cl = await clientRows(c => c.status !== 'churned');
+        const act = cl.filter(c => c.status === 'active' || c.status === 'onboarding');
+        const mrr = act.reduce((s, c) => s + Number(c.mrr || 0), 0);
+        const cash = (await sql`SELECT COALESCE(sum(amount) FILTER (WHERE paid_date >= date_trunc('month', now())),0)::numeric AS m,
+            COALESCE(sum(amount) FILTER (WHERE paid_date >= date_trunc('month', now()) - interval '1 month' AND paid_date < date_trunc('month', now())),0)::numeric AS lm,
+            COALESCE(sum(amount) FILTER (WHERE status='open'),0)::numeric AS ar,
+            COALESCE(sum(amount) FILTER (WHERE status='open' AND due < current_date),0)::numeric AS overdue FROM invoices`)[0];
+        const months = await sql`SELECT to_char(date_trunc('month', paid_date),'Mon') AS m, sum(amount)::numeric AS v FROM invoices
+          WHERE status='paid' AND paid_date >= date_trunc('month', now()) - interval '5 months' GROUP BY date_trunc('month', paid_date) ORDER BY date_trunc('month', paid_date)`;
+        const overdueInv = await sql`SELECT i.id, i.number, i.amount, c.name AS client, c.id AS client_id, (current_date - i.due) AS days FROM invoices i JOIN clients c ON c.id=i.client_id
+          WHERE i.status='open' AND i.due < current_date ORDER BY i.due LIMIT 20`;
+        const tasks = await sql`SELECT t.id, t.title, to_char(t.due,'YYYY-MM-DD') AS due_s, t.assignee, COALESCE(c.name,'') AS client, t.client_id FROM tasks t LEFT JOIN clients c ON c.id=t.client_id
+          WHERE t.status='open' AND t.due <= current_date + 7 ORDER BY t.due LIMIT 40`;
+        const pipe = (await sql`SELECT count(*) FILTER (WHERE stage IN ('engaged','meeting'))::int AS warm, count(*) FILTER (WHERE stage IN ('proposal','contract'))::int AS hot,
+            count(*) FILTER (WHERE stage='won' AND updated >= date_trunc('month', now()))::int AS won_m FROM companies`)[0];
+        const team = await sql`SELECT u.name, u.email, count(c.id)::int AS dials,
+            count(c.id) FILTER (WHERE c.outcome IN ('callback','meeting','closed','not_interested','gatekeeper'))::int AS convos,
+            count(c.id) FILTER (WHERE c.outcome='meeting')::int AS meetings
+          FROM users u LEFT JOIN calls c ON c.rep=u.email AND c.ts >= date_trunc('day', now() AT TIME ZONE 'America/New_York') AT TIME ZONE 'America/New_York'
+          WHERE COALESCE(u.active,1)=1 GROUP BY u.name, u.email ORDER BY dials DESC`;
+        const refOwed = (await sql`SELECT COALESCE(sum(amount),0)::numeric AS v FROM ref_credits`)[0].v;
+        const refOpen = (await sql`SELECT count(*)::int AS n FROM referrals WHERE status IN ('submitted','contacted','meeting')`)[0].n;
+        const missed = (await sql`SELECT count(*)::int AS n FROM inbound WHERE status='missed'`)[0].n;
+        const pending = (await sql`SELECT count(*)::int AS n FROM deals WHERE status='pending'`)[0].n;
+        const soon = cl.filter(c => c.status !== 'churned' && c.renewal_s && (new Date(c.renewal_s) - Date.now()) / 864e5 <= 30 && (new Date(c.renewal_s) - Date.now()) / 864e5 >= -7);
+        return ok({ mrr, clients: act.length, onboarding: cl.filter(c => c.status === 'onboarding').length, cash, months, overdueInv, tasks, pipe, team, refOwed, refOpen, missed, pending,
+          risk: cl.filter(c => c.health_c !== 'green' && c.status !== 'churned').map(c => ({ id: c.id, name: c.name, health: c.health_c, mrr: c.mrr, overdue: c.overdue_amt, late: c.late_tasks, quiet: c.days_quiet })),
+          renewals: soon.map(c => ({ id: c.id, name: c.name, mrr: c.mrr, renewal: c.renewal_s })) });
+      }
+      return err('Unknown CRM action.');
+    }
+
     /* ---------------- REFERRAL PROGRAM (owner) ---------------- */
     if (a.indexOf('ref.') === 0) {
       if (!OWNER) return err('Owner only.');
@@ -607,8 +822,26 @@ module.exports = async function handler(req, res) {
           C.sendMail(d.rep, 'Deal approved: ' + d.business,
             '<p>Deal approved. That is <b>#' + n + ' of ' + target + '</b> toward this month\u2019s KPI.' + (n === target ? ' KPI hit. Every deal from here pays $' + C.kpiBonus() + '.' : '') + '</p>').catch(() => {});
         }
-        const comp = await sql`SELECT phone FROM companies WHERE lower(name)=lower(${d.business}) LIMIT 1`;
+        const comp = await sql`SELECT * FROM companies WHERE lower(name)=lower(${d.business}) LIMIT 1`;
         if (comp[0]) await sql`UPDATE companies SET stage='won', updated=now() WHERE phone=${comp[0].phone}`;
+        /* new paying customer: open a client account with the onboarding checklist */
+        try {
+          const have = (await sql`SELECT id, status FROM clients WHERE lower(name)=lower(${d.business})`)[0];
+          if (!have) {
+            const cm = comp[0] || {};
+            const cid = (await sql`INSERT INTO clients (name, email, phone, website, package, mrr, start_date, term_months, status, rep)
+              VALUES (${d.business}, ${cm.email || ''}, ${cm.phone || ''}, ${cm.website || ''}, ${d.product || ''}, ${d.kind === 'recurring' ? Number(d.monthly || d.amount) : 0},
+                      current_date, 6, 'onboarding', ${d.rep}) RETURNING id`)[0].id;
+            await sql`INSERT INTO client_log (client_id, author, note) VALUES (${cid}, ${user.email}, ${'Client created from approved deal (' + (d.product || '') + ')'})`;
+            const steps = d.kind === 'recurring'
+              ? [['Kickoff call and collect logins', 0], ['Get Google Business Profile manager access', 1], ['Get website / hosting access', 2], ['Baseline rankings + GBP audit', 3], ['Set up review request link and NFC cards', 7], ['NAP / citation cleanup', 7], ['GBP optimization: categories, services, photos', 10], ['Schedule first month of GBP posts', 10], ['30-day check-in call with client', 30]]
+              : [['Collect content, logo and photos', 0], ['Sitemap + design direction approved', 5], ['Build draft site', 14], ['Client review round', 18], ['Revisions', 21], ['Launch + Google Analytics / Search Console', 25], ['Post-launch check and speed test', 32]];
+            for (const s of steps) await sql`INSERT INTO tasks (client_id, title, due, assignee, created_by) VALUES (${cid}, ${s[0]}, current_date + ${s[1]}::int, ${user.email}, ${user.email})`;
+          } else if (have.status === 'churned') {
+            await sql`UPDATE clients SET status='onboarding', updated=now() WHERE id=${have.id}`;
+            await sql`INSERT INTO client_log (client_id, author, note) VALUES (${have.id}, ${user.email}, 'Won back: new deal approved')`;
+          }
+        } catch (e) { console.log('[crm] auto-client failed', e.message); }
       }
       if (!P.approve) {
         C.sendMail(d.rep, 'Deal update: ' + d.business,
