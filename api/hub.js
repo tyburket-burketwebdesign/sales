@@ -287,6 +287,65 @@ module.exports = async function handler(req, res) {
         await sql`UPDATE users SET role=${role} WHERE email=${em}`; audit('role', em, role);
         return ok(true);
       }
+      if (a === 'own.health') {
+        const t0 = Date.now(); await sql`SELECT 1`; const db = Date.now() - t0;
+        let wave = null; try { wave = JSON.parse(((await sql`SELECT v FROM kv WHERE k='wave_last_sync'`)[0] || {}).v || 'null'); } catch (e) {}
+        const lastCall = ((await sql`SELECT max(ts) AS t FROM calls`)[0] || {}).t;
+        const lastMail = ((await sql`SELECT max(ts) AS t FROM emails_log`)[0] || {}).t;
+        return ok({ db, wave: { connected: !!process.env.WAVE_TOKEN, last: wave && wave.at }, twilio: C.twilioReady(), docuseal: !!process.env.DOCUSEAL_API_KEY,
+          email: !!(process.env.RESEND_API_KEY || process.env.RESEND_KEY), places: !!process.env.GOOGLE_PLACES_KEY, lastCall, lastMail,
+          region: process.env.VERCEL_REGION || '', deploy: (process.env.VERCEL_GIT_COMMIT_SHA || '').slice(0, 7) });
+      }
+      if (a === 'own.insights') {
+        const out = [];
+        const add = (tone, icon, title, text, view) => out.push({ tone, icon, title, text, view });
+        const fm = n => '$' + Math.round(Number(n) || 0).toLocaleString('en-US');
+        /* P&L pace from the ledger snapshots */
+        try {
+          const base = JSON.parse(((await sql`SELECT v FROM kv WHERE k='pnl_base'`)[0] || {}).v || 'null');
+          const snap = await sql`SELECT kind, sum(balance)::numeric AS b FROM acct_snap WHERE day=(SELECT max(day) FROM acct_snap) GROUP BY kind`;
+          const L = Object.fromEntries(snap.map(r => [r.kind, Number(r.b)]));
+          if (base && L.income != null) {
+            const inc = L.income - base.income, net = inc - (L.cogs - base.cogs) - (L.opex - base.opex);
+            const now = new Date(), doy = Math.max(1, Math.floor((now - new Date(now.getFullYear(), 0, 1)) / 864e5) + 1);
+            const proj = inc / doy * 365;
+            add('blue', '📈', 'On pace for ' + fm(proj) + ' income this year', fm(inc) + ' booked so far, ' + fm(net) + ' net (' + (inc ? Math.round(net / inc * 100) : 0) + '% margin). That is about ' + fm(proj / 12) + ' a month.', 'reports');
+          }
+        } catch (e) {}
+        /* billing pace vs last month at the same point */
+        const pace = (await sql`SELECT
+            COALESCE(sum(amount) FILTER (WHERE issued >= date_trunc('month', now())),0)::numeric AS m,
+            COALESCE(sum(amount) FILTER (WHERE issued >= date_trunc('month', now()) - interval '1 month' AND issued < date_trunc('month', now()) - interval '1 month' + (current_date - date_trunc('month', now())::date + 1) * interval '1 day'),0)::numeric AS lm
+          FROM invoices WHERE status IN ('open','paid')`)[0];
+        if (Number(pace.lm) > 0) {
+          const d = Math.round((Number(pace.m) - Number(pace.lm)) / Number(pace.lm) * 100);
+          add(d >= 0 ? 'green' : 'gold', d >= 0 ? '🚀' : '⏳', 'Invoicing is ' + (d >= 0 ? 'up ' : 'down ') + Math.abs(d) + '% vs last month', fm(pace.m) + ' billed so far this month vs ' + fm(pace.lm) + ' at this point last month.', 'billing');
+        }
+        const od = await sql`SELECT c.name, i.amount_due, (current_date - i.due) AS days FROM invoices i JOIN clients c ON c.id=i.client_id WHERE i.status='open' AND i.due < current_date ORDER BY i.due`;
+        if (od.length) add('red', '🧾', od.length + ' overdue invoice' + (od.length === 1 ? '' : 's') + ', ' + fm(od.reduce((s, r) => s + Number(r.amount_due), 0)) + ' outstanding',
+          'Oldest: ' + od[0].name + ', ' + od[0].days + ' days late. One click in Billing sends a reminder from Wave.', 'billing');
+        const quiet = await sql`SELECT c.name, COALESCE(current_date - max(l.ts)::date, 999) AS d FROM clients c LEFT JOIN client_log l ON l.client_id=c.id AND l.author <> 'wave'
+          WHERE c.status IN ('active','onboarding') GROUP BY c.name HAVING COALESCE(current_date - max(l.ts)::date, 999) > 30 ORDER BY 2 DESC`;
+        if (quiet.length) add('gold', '🤫', quiet.length + ' client' + (quiet.length === 1 ? '' : 's') + ' with no personal touch in 30+ days', quiet.slice(0, 4).map(q => q.name).join(', ') + '. A quick check-in call keeps churn down.', 'clients');
+        const best = await sql`SELECT extract(hour from ts AT TIME ZONE 'America/New_York')::int AS h, count(*)::int AS n,
+            count(*) FILTER (WHERE outcome IN ('callback','meeting','closed','not_interested','gatekeeper'))::int AS c
+          FROM calls WHERE ts > now() - interval '60 days' GROUP BY 1 HAVING count(*) >= 15 ORDER BY (count(*) FILTER (WHERE outcome IN ('callback','meeting','closed','not_interested','gatekeeper')))::float / count(*) DESC LIMIT 1`;
+        if (best.length) { const h = best[0].h, lab = (h % 12 || 12) + (h < 12 ? 'am' : 'pm'); add('blue', '⏰', 'Best hour to dial: ' + lab + ' to ' + ((h + 1) % 12 || 12) + (h + 1 < 12 ? 'am' : 'pm') + ' ET', Math.round(best[0].c / best[0].n * 100) + '% of calls in that hour reach a person (last 60 days, ' + best[0].n + ' dials).', 'perf'); }
+        const hot = await sql`SELECT name FROM companies WHERE stage IN ('proposal','contract') AND updated < now() - interval '5 days' ORDER BY updated LIMIT 5`;
+        if (hot.length) add('gold', '🔥', hot.length + ' hot deal' + (hot.length === 1 ? '' : 's') + ' going cold', hot.map(h => h.name).join(', ') + ' have been at proposal or contract 5+ days without a touch.', 'pipe');
+        const pend = (await sql`SELECT count(*)::int AS n FROM deals WHERE status='pending'`)[0].n;
+        if (pend) add('gold', '⏳', pend + ' deal' + (pend === 1 ? '' : 's') + ' waiting on your approval', 'Approving credits the rep and opens the client with an onboarding checklist.', 'owner');
+        const cred = Number((await sql`SELECT COALESCE(sum(amount),0)::numeric AS v FROM ref_credits`)[0].v);
+        if (cred > 0) add('green', '🤝', fm(cred) + ' in referral credits owed', 'The invoice composer applies them automatically on the next invoice.', 'refer');
+        let goals = {}; try { goals = (JSON.parse(((await sql`SELECT v FROM kv WHERE k='settings'`)[0] || {}).v || '{}').goals) || {}; } catch (e) {}
+        if (goals.dials) {
+          const d = (await sql`SELECT count(*)::int AS n FROM calls WHERE ts >= date_trunc('day', now() AT TIME ZONE 'America/New_York') AT TIME ZONE 'America/New_York'`)[0].n;
+          add(d >= goals.dials ? 'green' : 'blue', '📞', 'Team dials today: ' + d + ' of ' + goals.dials, d >= goals.dials ? 'Goal hit. Everything past here is bonus.' : (goals.dials - d) + ' to go.', 'perf');
+        }
+        if (!out.length) add('green', '✅', 'All clear', 'Nothing needs you right now.', 'hq');
+        const rank = { red: 0, gold: 1, blue: 2, green: 3 };
+        return ok(out.sort((x, y) => rank[x.tone] - rank[y.tone]));
+      }
       if (a === 'own.reports') {
         const billedM = await sql`SELECT to_char(date_trunc('month', issued),'YYYY-MM') AS m, sum(amount)::numeric AS v,
             COALESCE(sum(amount) FILTER (WHERE recurring_id <> ''),0)::numeric AS rec FROM invoices
@@ -319,7 +378,10 @@ module.exports = async function handler(req, res) {
         const churn = await sql`SELECT c.name, max(l.ts) AS ts FROM clients c JOIN client_log l ON l.client_id=c.id AND (l.note LIKE 'Status:%churned' OR l.note LIKE 'Marked churned%') WHERE c.status='churned' GROUP BY c.name ORDER BY 2 DESC LIMIT 12`;
         const lost = await sql`SELECT lower(trim(lost_reason)) AS r, count(*)::int AS n FROM companies WHERE stage='lost' AND lost_reason <> '' GROUP BY 1 ORDER BY 2 DESC LIMIT 8`;
         const pipe = await sql`SELECT stage, count(*)::int AS n, COALESCE(sum(value),0)::numeric AS v FROM companies GROUP BY stage`;
-        return ok({ rev, billedM, byClient, aging, funnel, won30, reps, growth, churn, lost, pipe });
+        const heat = await sql`SELECT extract(dow from ts AT TIME ZONE 'America/New_York')::int AS d, extract(hour from ts AT TIME ZONE 'America/New_York')::int AS h, count(*)::int AS n,
+            count(*) FILTER (WHERE outcome IN ('callback','meeting','closed','not_interested','gatekeeper'))::int AS c
+          FROM calls WHERE ts > now() - interval '90 days' GROUP BY 1, 2`;
+        return ok({ heat, rev, billedM, byClient, aging, funnel, won30, reps, growth, churn, lost, pipe });
       }
       if (a === 'own.activity') {
         const rows = await sql`(SELECT 'call' AS k, c.ts, COALESCE(u.name, c.rep) AS who, c.name || ': ' || replace(c.outcome,'_',' ') AS text, NULL::int AS client_id, c.phone FROM calls c LEFT JOIN users u ON u.email=c.rep ORDER BY c.ts DESC LIMIT 25)
