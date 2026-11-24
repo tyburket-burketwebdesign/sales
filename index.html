@@ -5,8 +5,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#0e2235">
-<title>BWD Command</title>
+<title>BWD Command · Burket Web Design</title>
 <link rel="icon" href="https://www.burketwebdesign.com/assets/logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 :root{
   --gold:#fec814;--gold2:#f5b400;--blue:#1f5d8c;--teal:#57b4e4;--navy:#0e2235;--navy2:#14334e;
@@ -360,6 +362,83 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--m
 }
 #hamb{display:none}
 
+/* ================= premium pass ================= */
+body,button,input,select,textarea{font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif}
+.kpi b,#bignum,.ab-btn,table td{font-variant-numeric:tabular-nums}
+.view.on{animation:vfade .28s ease}
+@keyframes vfade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.card{transition:box-shadow .2s,transform .2s}
+.card:hover{box-shadow:0 2px 6px rgba(14,34,53,.06),0 18px 40px rgba(14,34,53,.09)}
+.kpi{position:relative;overflow:hidden;text-align:left;padding:16px 18px;transition:transform .18s,box-shadow .18s}
+.kpi::before{content:'';position:absolute;left:0;top:0;right:0;height:3px;background:linear-gradient(90deg,var(--gold),var(--teal))}
+.kpi:hover{transform:translateY(-2px)}
+.kpi b{display:block;font-size:26px;font-weight:800;color:var(--text)}
+.kpi span{text-transform:none;letter-spacing:0;font-size:12px;font-weight:600;color:var(--muted)}
+.kpi .ki{position:absolute;right:14px;top:14px;font-style:normal;font-size:18px;opacity:.55}
+.hero.hero2{padding:20px 22px;background:radial-gradient(120% 140% at 100% 0%,rgba(87,180,228,.35),transparent 50%),linear-gradient(135deg,#0b1c2c,#123352 70%,#1b4b73)}
+.hero2 .hero-date{font-size:12px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--gold);margin-bottom:4px}
+.hero2 h2{font-size:24px;letter-spacing:-.3px}
+.hero2 .hero-acts{text-align:right}
+.hbtn{background:rgba(255,255,255,.1);color:#e6eef6;font-size:12px;padding:7px 10px;border:1px solid rgba(255,255,255,.12)}
+.hbtn:hover{background:rgba(255,255,255,.18)}
+.hero2 .quote{margin-top:12px;font-size:12.5px;opacity:.7}
+.brief-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px;margin-top:10px}
+.brief-item{display:flex;gap:10px;padding:12px 14px;border-radius:12px;border:1px solid var(--line);background:var(--card);cursor:pointer;transition:all .16s;position:relative}
+.brief-item:hover{border-color:var(--teal);transform:translateY(-1px)}
+.brief-item::before{content:'';position:absolute;left:0;top:10px;bottom:10px;width:3px;border-radius:3px;background:var(--muted2)}
+.brief-item.red::before{background:#e5484d}.brief-item.gold::before{background:var(--gold)}.brief-item.blue::before{background:var(--teal)}.brief-item.green::before{background:#16a34a}
+.brief-item .bi{font-size:20px;line-height:1.2}
+.brief-item b{display:block;font-size:13.5px}
+.brief-item span{font-size:12.5px;color:var(--muted);line-height:1.45}
+.skel{height:64px;border-radius:12px;background:linear-gradient(90deg,var(--chip) 25%,var(--hover) 50%,var(--chip) 75%);background-size:200% 100%;animation:skel 1.2s infinite}
+@keyframes skel{to{background-position:-200% 0}}
+.sys-row{display:flex;flex-wrap:wrap;gap:8px}
+.sys-chip{display:flex;align-items:center;gap:7px;padding:7px 11px;border-radius:99px;background:var(--chip);font-size:12.5px;font-weight:600}
+.sys-chip i{width:8px;height:8px;border-radius:50%;background:#16a34a;box-shadow:0 0 0 3px rgba(22,163,74,.18)}
+.sys-chip.off i{background:#e5484d;box-shadow:0 0 0 3px rgba(229,72,77,.18)}
+.sys-chip.warn i{background:var(--gold);box-shadow:0 0 0 3px rgba(254,200,20,.25)}
+.sys-chip span{color:var(--muted);font-weight:500}
+.live-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#16a34a;margin-right:4px;vertical-align:middle;animation:pulse 1.6s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(22,163,74,.5)}70%{box-shadow:0 0 0 8px rgba(22,163,74,0)}100%{box-shadow:0 0 0 0 rgba(22,163,74,0)}}
+.heat{border-collapse:separate;border-spacing:3px;font-size:11px}
+.heat td{width:34px;height:26px;border-radius:6px;text-align:center;color:#fff;font-weight:700}
+.heat th{color:var(--muted);font-weight:700;padding:0 4px;text-align:right}
+/* login */
+#login{display:block;padding:0;background:#07131f;min-height:100vh;position:relative;overflow:hidden}
+#login::before{display:none}
+#lgFx{position:absolute;inset:0;width:100%;height:100%}
+#login::after{content:'';position:absolute;inset:0;background:radial-gradient(60% 60% at 15% 20%,rgba(31,93,140,.45),transparent 70%),radial-gradient(50% 50% at 90% 90%,rgba(254,200,20,.16),transparent 70%);pointer-events:none}
+.lg-wrap{position:relative;z-index:2;min-height:100vh;display:grid;grid-template-columns:1.15fr 1fr;align-items:center;gap:40px;max-width:1180px;margin:0 auto;padding:40px 28px}
+.lg-left{color:#fff}
+.lg-brand{display:flex;align-items:center;gap:10px;margin-bottom:38px}
+.lg-brand img{height:44px}
+.lg-brand b{display:block;font-size:15px}.lg-brand span{font-size:10.5px;font-weight:800;letter-spacing:1.6px;color:var(--gold)}
+.lg-title{font-size:46px;line-height:1.08;font-weight:800;letter-spacing:-1.2px}
+.lg-title em{font-style:normal;background:linear-gradient(90deg,var(--gold),#57b4e4);-webkit-background-clip:text;background-clip:text;color:transparent}
+.lg-lead{margin-top:16px;font-size:17px;color:#a9bdd1;max-width:480px;line-height:1.5}
+.lg-feats{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:34px;max-width:560px}
+.lg-feats div{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:14px;backdrop-filter:blur(6px)}
+.lg-feats i{font-style:normal;font-size:20px}
+.lg-feats b{display:block;margin-top:6px;font-size:14px}
+.lg-feats span{font-size:12.5px;color:#8ea6be;line-height:1.4}
+.lg-card{background:rgba(255,255,255,.97);border-radius:22px;padding:34px 32px;box-shadow:0 40px 120px rgba(0,0,0,.55),0 0 0 1px rgba(255,255,255,.4);max-width:420px;width:100%;justify-self:center;color:#0e2235}
+.lg-card h2{font-size:24px;font-weight:800;letter-spacing:-.4px}
+.lg-card .sub{font-size:13.5px;color:#5b6b80;margin:6px 0 22px}
+.lg-card label{color:#5b6b80;margin-top:12px}
+.lg-card input{width:100%;padding:13px 14px;font-size:15px;border-radius:12px;background:#f6f8fb;border:1.5px solid #e3e9f0;color:#0e2235;text-align:left}
+.lg-card input:focus{background:#fff;border-color:#57b4e4;box-shadow:0 0 0 4px rgba(87,180,228,.18)}
+.lg-pw{position:relative}
+.lg-pw button{position:absolute;right:6px;top:50%;transform:translateY(-50%);background:transparent;padding:6px 8px;font-size:16px;opacity:.55}
+.lg-btn{width:100%;margin-top:20px;padding:14px;font-size:15.5px;border-radius:12px;position:relative}
+.lg-btn:disabled span{opacity:0}
+.lg-btn:disabled::after{content:'';position:absolute;left:50%;top:50%;width:20px;height:20px;margin:-10px 0 0 -10px;border-radius:50%;border:2.5px solid rgba(14,34,53,.25);border-top-color:#0e2235;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.lg-err{color:#dc2626;min-height:18px;margin-top:12px;font-size:13px;text-align:center}
+.lg-foot{margin-top:18px;text-align:center;font-size:12px;color:#8b9ab0}
+body:not(.ws-sell) #ringWrap,body:not(.ws-sell) .statchip,body:not(.ws-sell) #phChip{display:none!important}
+#login .lg-title{color:#fff;margin:0}#login .lg-brand img{height:44px;margin:0}#login .lg-card input{text-align:left;margin-bottom:0}#login .lg-card h2{color:#0e2235}
+@media(max-width:900px){.lg-wrap{grid-template-columns:1fr;gap:24px;padding:28px 18px}.lg-title{font-size:32px}.lg-feats{display:none}.lg-brand{margin-bottom:18px}#v-dash .g2{grid-template-columns:1fr!important}.hero2 .hero-acts{text-align:left}}
+
 /* ================= v3 shell ================= */
 #shell{display:block}
 #appbar{position:sticky;top:0;z-index:40;height:60px;display:flex;align-items:center;gap:14px;padding:0 18px;background:linear-gradient(90deg,#0b1c2c,#10304a);color:#fff;box-shadow:0 6px 24px rgba(8,20,34,.25)}
@@ -430,24 +509,43 @@ table th{font-size:11px;letter-spacing:.4px}
 <body>
 
 <div id="login">
-  <div class="box">
-    <img src="https://www.burketwebdesign.com/assets/logo.png" alt="Burket Web Design" onerror="this.style.display='none'">
-    <div id="loginForm">
-      <h1>Sales Hub</h1>
-      <div class="sub">Burket Web Design team headquarters</div>
-      <input id="l-email" type="email" placeholder="Email" autocomplete="username">
-      <input id="l-pass" type="password" placeholder="Password" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
-      <button class="btn-go" style="width:100%" id="l-btn" onclick="doLogin()">Sign In</button>
+  <canvas id="lgFx"></canvas>
+  <div class="lg-wrap">
+    <div class="lg-left">
+      <div class="lg-brand"><img src="https://www.burketwebdesign.com/assets/logo.png" alt="" onerror="this.style.display='none'"><div><b>Burket Web Design</b><span>COMMAND</span></div></div>
+      <h1 class="lg-title">Run the whole business<br>from <em>one screen</em>.</h1>
+      <p class="lg-lead">Outbound, pipeline, clients, Wave invoicing and live profit, all in one place.</p>
+      <div class="lg-feats">
+        <div><i>&#9889;</i><b>Live Wave sync</b><span>Invoices, payments and P&amp;L straight from your books</span></div>
+        <div><i>&#128222;</i><b>Built-in dialer</b><span>Local caller ID, callbacks, missed-call inbox</span></div>
+        <div><i>&#129504;</i><b>Smart briefing</b><span>What needs you today, ranked</span></div>
+        <div><i>&#128274;</i><b>Role-based access</b><span>Every rep sees only their own work</span></div>
+      </div>
     </div>
-    <div id="inviteForm" style="display:none">
-      <h1>Welcome to the team</h1>
-      <div class="sub" id="inv-sub">Create your account to get started.</div>
-      <input id="inv-name" placeholder="Your full name" autocomplete="name">
-      <input id="inv-pass" type="password" placeholder="Create a password (8+ characters)" autocomplete="new-password">
-      <input id="inv-pass2" type="password" placeholder="Repeat the password" autocomplete="new-password" onkeydown="if(event.key==='Enter')acceptInvite()">
-      <button class="btn-go" style="width:100%" id="inv-btn" onclick="acceptInvite()">Create My Account &rarr;</button>
+    <div class="lg-card">
+      <div id="loginForm">
+        <h2>Welcome back</h2>
+        <div class="sub">Sign in to Burket Web Design Command</div>
+        <label for="l-email">Email</label>
+        <input id="l-email" type="email" placeholder="you@burketwebdesign.com" autocomplete="username">
+        <label for="l-pass">Password</label>
+        <div class="lg-pw"><input id="l-pass" type="password" placeholder="Your password" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()"><button type="button" onclick="lgEye('l-pass',this)" title="Show password">&#128065;</button></div>
+        <button class="btn-go lg-btn" id="l-btn" onclick="doLogin()"><span>Sign in</span></button>
+      </div>
+      <div id="inviteForm" style="display:none">
+        <h2>Welcome to the team</h2>
+        <div class="sub" id="inv-sub">Create your account to get started.</div>
+        <label for="inv-name">Full name</label>
+        <input id="inv-name" placeholder="First and last name" autocomplete="name">
+        <label for="inv-pass">Password</label>
+        <div class="lg-pw"><input id="inv-pass" type="password" placeholder="8+ characters" autocomplete="new-password"><button type="button" onclick="lgEye('inv-pass',this)">&#128065;</button></div>
+        <label for="inv-pass2">Repeat password</label>
+        <input id="inv-pass2" type="password" placeholder="Same as above" autocomplete="new-password" onkeydown="if(event.key==='Enter')acceptInvite()">
+        <button class="btn-go lg-btn" id="inv-btn" onclick="acceptInvite()"><span>Create my account &rarr;</span></button>
+      </div>
+      <div class="lg-err" id="l-err"></div>
+      <div class="lg-foot">&#128274; Encrypted connection &middot; crm.burketwebdesign.com</div>
     </div>
-    <div class="hint" id="l-err" style="color:#dc2626;min-height:18px;margin-top:10px"></div>
   </div>
 </div>
 
@@ -533,33 +631,32 @@ table th{font-size:11px;letter-spacing:.4px}
       </div>
 
       <div class="view on" id="v-dash">
-        <div class="hero">
-          <h2 id="heroHi">Welcome back</h2>
-          <div class="sub" id="planLine"></div>
-          <div class="row" style="margin-top:14px">
-            <button class="btn-go" onclick="goToday()">&#9889; Build Today's 25 &amp; Dial</button>
-            <button class="btn-ghost" style="background:rgba(255,255,255,.12);color:#fff" onclick="gotoView('play')">&#128218; Open the Playbook</button>
-            <button class="btn-ghost" style="background:rgba(124,58,237,.35);color:#fff" onclick="enterDemo()">&#127891; Demo / Training</button>
-            <button class="btn-ghost" style="background:rgba(255,255,255,.12);color:#fff" onclick="openMorning()">&#9728;&#65039; Morning Start</button>
-            <button class="btn-ghost" style="background:rgba(22,163,74,.4);color:#fff" onclick="openShift()">&#127937; End My Shift</button>
+        <div class="hero hero2">
+          <div class="row" style="align-items:flex-start;gap:16px">
+            <div style="flex:1;min-width:240px"><div class="hero-date" id="heroDate"></div><h2 id="heroHi">Welcome back</h2><div class="sub" id="planLine"></div></div>
+            <div class="hero-acts">
+              <button class="btn-go" onclick="goToday()">&#9889; Start dialing</button>
+              <div class="row" style="gap:6px;margin-top:8px;justify-content:flex-end">
+                <button class="hbtn" onclick="openMorning()" title="Morning start">&#9728;&#65039; Morning</button>
+                <button class="hbtn" onclick="openShift()" title="End my shift">&#127937; End shift</button>
+                <button class="hbtn" onclick="gotoView('play')" title="Playbook">&#128218; Playbook</button>
+                <button class="hbtn" onclick="enterDemo()" title="Practice safely">&#127891; Demo</button>
+              </div>
+            </div>
           </div>
           <div class="quote" id="quoteTxt"></div>
         </div>
         <div id="dueTodayBanner"></div>
-        <div class="g4">
-          <div class="kpi"><b id="k-dials">0</b><span>dials today</span></div>
-          <div class="kpi"><b id="k-connect">0%</b><span>connect rate</span></div>
-          <div class="kpi"><b id="k-meet">0</b><span>wins today</span></div>
-          <div class="kpi"><b id="k-alltime">0</b><span>all-time dials</span></div>
+        <div class="g4 kpis">
+          <div class="kpi"><i class="ki">&#128222;</i><b id="k-dials">0</b><span>dials today</span></div>
+          <div class="kpi"><i class="ki">&#128172;</i><b id="k-connect">0%</b><span>connect rate</span></div>
+          <div class="kpi"><i class="ki">&#127942;</i><b id="k-meet">0</b><span>wins today</span></div>
+          <div class="kpi"><i class="ki">&#128202;</i><b id="k-alltime">0</b><span>all-time dials</span></div>
         </div>
-        <div class="card" style="margin-top:16px">
-          <b style="font-size:15px">Last 14 Days</b>
-          <div class="bars" id="chart"></div>
-          <div style="height:18px"></div>
-        </div>
-        <div class="g2">
-          <div class="card"><b style="font-size:15px">When they pick up</b><div class="hint">Connect rate by hour, all your calls.</div><div class="bars" id="hourChart"></div><div style="height:18px"></div></div>
+        <div class="g2" style="display:grid;grid-template-columns:2fr 1fr;gap:14px;margin-top:14px">
+          <div class="card"><b style="font-size:15px">Last 14 days</b><div class="bars" id="chart"></div><div style="height:18px"></div></div>
           <div class="card"><b style="font-size:15px">Industry scoreboard</b><div id="indRows" class="hint" style="line-height:2.1;margin-top:8px"></div></div>
+          <div class="card" style="grid-column:span 2"><b style="font-size:15px">When they pick up</b><div class="hint">Connect rate by hour, all your calls.</div><div class="bars" id="hourChart"></div><div style="height:18px"></div></div>
         </div>
       </div>
 
@@ -760,7 +857,8 @@ table th{font-size:11px;letter-spacing:.4px}
           <div class="kpi"><b id="hq-cash">$0</b><span>collected this month · <span id="hq-cashlm"></span></span></div>
           <div class="kpi"><b id="hq-ar">$0</b><span>open invoices · <span id="hq-od"></span></span></div>
         </div>
-        <div class="card" style="font-size:14px" id="hq-alerts"></div>
+        <div class="card brief" id="hq-brief"><div class="row" style="justify-content:space-between"><b style="font-size:15px">&#129504; Today's briefing</b><span class="hint">ranked by what needs you first</span></div><div id="hq-briefList" class="brief-list"><div class="skel"></div><div class="skel"></div></div></div>
+        <div class="card" style="font-size:14px;display:none" id="hq-alerts"></div>
         <div class="card" id="hq-pnl"></div>
         <div class="card" id="hq-goals" style="display:none"></div>
         <div class="g2" style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
@@ -769,7 +867,8 @@ table th{font-size:11px;letter-spacing:.4px}
           <div class="card"><b style="font-size:15px">&#9989; Tasks due this week</b> <a href="#" class="hint" onclick="gotoView('tasks');return false">all tasks</a><div id="hq-tasks" style="margin-top:8px"></div></div>
           <div class="card"><b style="font-size:15px">&#129534; Overdue invoices</b> <a href="#" class="hint" onclick="gotoView('billing');return false">billing</a><div id="hq-inv" style="margin-top:8px"></div></div>
           <div class="card"><b style="font-size:15px">&#9888;&#65039; Clients needing attention</b><div class="hint">Yellow or red: overdue invoice, late tasks, or no touch in 45 days.</div><div id="hq-risk" style="margin-top:8px"></div></div>
-          <div class="card" style="grid-column:span 2"><b style="font-size:15px">&#9889; Live activity</b><div id="hq-act" style="margin-top:8px;max-height:340px;overflow:auto"></div></div>
+          <div class="card" style="grid-column:span 2"><div class="row" style="justify-content:space-between"><b style="font-size:15px">&#128752;&#65039; System status</b><span class="hint" id="hq-sysT"></span></div><div id="hq-sys" class="sys-row" style="margin-top:8px"></div></div>
+          <div class="card" style="grid-column:span 2"><b style="font-size:15px"><span class="live-dot"></span> Live activity</b><div id="hq-act" style="margin-top:8px;max-height:340px;overflow:auto"></div></div>
           <div class="card"><b style="font-size:15px">&#128197; Contract terms ending (30 days)</b><div class="hint">Call before the term ends: renew, upgrade, or ask for a referral.</div><div id="hq-ren" style="margin-top:8px"></div></div>
         </div>
       </div>
@@ -837,6 +936,7 @@ table th{font-size:11px;letter-spacing:.4px}
         <div class="g2" style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
           <div class="card" style="grid-column:span 2"><b style="font-size:15px">&#128176; Total revenue billed, last 12 months</b> <span class="hint">all invoices: retainers, websites, projects, one-offs</span><div id="rp-billed" style="margin-top:10px"></div></div>
           <div class="card" style="grid-column:span 2"><b style="font-size:15px">&#128181; Cash collected, last 12 months</b><div id="rp-rev" style="margin-top:10px"></div></div>
+          <div class="card" style="grid-column:span 2"><div class="row" style="justify-content:space-between"><b style="font-size:15px">&#128293; When owners pick up (last 90 days, ET)</b><span class="hint">darker = higher connect rate</span></div><div id="rp-heat" style="margin-top:10px;overflow-x:auto"></div></div>
           <div class="card"><b style="font-size:15px">&#9203; Receivables aging</b><div id="rp-aging" style="margin-top:10px"></div></div>
           <div class="card"><b style="font-size:15px">&#127919; Sales funnel (30 days)</b><div id="rp-funnel" style="margin-top:10px"></div></div>
           <div class="card"><b style="font-size:15px">&#127942; Rep leaderboard (30 days)</b><div id="rp-reps" style="margin-top:8px"></div></div>
@@ -855,6 +955,7 @@ table th{font-size:11px;letter-spacing:.4px}
               <div><label>New clients / month</label><input id="st-gcl" style="max-width:120px"></div>
               <div><label>Team dials / day</label><input id="st-gdials" style="max-width:120px"></div>
               <button class="btn-blue btn-sm" onclick="stSave('goals')">Save</button></div></div>
+          <div class="card" style="grid-column:span 2"><b style="font-size:15px">&#128752;&#65039; System status</b><div id="st-sys" class="sys-row" style="margin-top:8px"></div></div>
           <div class="card"><b style="font-size:15px">&#128260; Wave connection</b><div id="st-wave" class="hint" style="margin-top:6px">Checking...</div>
             <div class="row" style="margin-top:8px;gap:6px"><button class="btn-blue btn-sm" onclick="waveSync()">Sync now</button></div>
             <div style="margin-top:10px"><b>P&amp;L match</b><div class="hint">If Business HQ ever drifts from Wave's Profit &amp; Loss (Accrual, Jan 1 to today), type Wave's three numbers here once and it re-locks.</div>
@@ -2237,7 +2338,7 @@ function repName(e){ var r=((BOOT.team&&BOOT.team.reps)||[]).find(function(x){re
 /* ---------- HQ ---------- */
 function hqLoad(){
   api('crm.hq').then(function(d){
-    hqExtras(d); pnlLoad(d); $('hq-cli').textContent=d.clients+(d.onboarding?' ('+d.onboarding+' onboarding)':'');
+    hqExtras(d); pnlLoad(d); briefLoad(); sysLoad('hq-sys','hq-sysT'); $('hq-cli').textContent=d.clients+(d.onboarding?' ('+d.onboarding+' onboarding)':'');
     $('hq-cash').textContent=money(d.cash.m); $('hq-cashlm').textContent='last month '+money(d.cash.lm);
     $('hq-ar').textContent=money(d.cash.ar); $('hq-od').innerHTML=Number(d.cash.overdue)>0?'<b style="color:var(--red)">'+money(d.cash.overdue)+' overdue</b>':'nothing overdue';
     var mx=Math.max.apply(null,(d.months||[]).map(function(m){return Number(m.v);}).concat([1]));
@@ -2451,6 +2552,7 @@ function wsOf(v){ var b=document.querySelector('#subnav .nv[data-view="'+v+'"]')
 function wsShow(ws){
   document.querySelectorAll('#wsTabs button').forEach(function(b){ b.classList.toggle('on', b.getAttribute('data-ws')===ws); });
   document.querySelectorAll('#subnav .nv').forEach(function(b){ b.classList.toggle('hide', b.getAttribute('data-ws')!==ws); });
+  document.body.className=document.body.className.replace(/\bws-\w+/g,'').trim()+' ws-'+ws;
 }
 document.querySelectorAll('#wsTabs button').forEach(function(b){ b.addEventListener('click', function(){
   var ws=b.getAttribute('data-ws'); var v=WS_LAST[ws]||WS_DEFAULT[ws];
@@ -2463,7 +2565,7 @@ gotoView=function(v){
   _gotoView0(v); var ws=wsOf(v); WS_LAST[ws]=v; wsShow(ws);
   try{ history.replaceState(null,'','#'+v); }catch(e){}
   if(v==='reports') rpLoad();
-  if(v==='settings') stLoad();
+  if(v==='settings'){ stLoad(); sysLoad('st-sys'); }
   if((v==='billing'||v==='hq'||v==='clients') && isOwner()) waveAutoSync();
   window.scrollTo(0,0);
 };
@@ -2663,7 +2765,7 @@ function bars(rows,lab,val,fmt){ var mx=Math.max.apply(null,rows.map(function(r)
 function hbar(label,v,max,color,txt){ return '<div style="margin:6px 0"><div class="row" style="justify-content:space-between"><span>'+label+'</span><b>'+txt+'</b></div><div style="height:8px;background:var(--chip);border-radius:99px;overflow:hidden"><div style="height:100%;width:'+Math.min(100,max?v/max*100:0)+'%;background:'+(color||'var(--blue)')+'"></div></div></div>'; }
 function rpLoad(){
   api('own.reports').then(function(d){
-    RP=d; var mlab=function(r){ return new Date(r.m+'-15').toLocaleString('en-US',{month:'short'}); };
+    RP=d; heatRender(d.heat); var mlab=function(r){ return new Date(r.m+'-15').toLocaleString('en-US',{month:'short'}); };
     var ytd=d.rev.filter(function(r){return r.m.slice(0,4)===String(new Date().getFullYear());}).reduce(function(a,r){return a+Number(r.v);},0);
     var yr=String(new Date().getFullYear()), cm=today10().slice(0,7);
     var byr=d.billedM.filter(function(r){return r.m.slice(0,4)===yr;}), bytd=byr.reduce(function(a,r){return a+Number(r.v);},0), brec=byr.reduce(function(a,r){return a+Number(r.rec);},0);
@@ -2761,6 +2863,88 @@ function pnlCal(){
   if(!confirm('Lock the CRM to Wave: income '+money(b.income)+', cost of goods '+money(b.cogs)+', operating expenses '+money(b.opex)+' for this year to date?')) return;
   api('wave.pnl',b).then(function(){ toast('Locked to Wave. HQ now matches your P&L.'); }).catch(function(e){ alert(e.message); });
 }
+
+
+/* ================= premium pass: login fx, count-ups, briefing, status, heatmap, palette actions ================= */
+function lgEye(id,b){ var i=$(id); i.type=i.type==='password'?'text':'password'; b.style.opacity=i.type==='text'?1:.55; }
+(function lgFx(){
+  var c=document.getElementById('lgFx'); if(!c||!c.getContext) return;
+  var x=c.getContext('2d'), P=[], W=0, H=0, dpr=Math.min(2,window.devicePixelRatio||1);
+  function size(){ W=c.clientWidth; H=c.clientHeight; c.width=W*dpr; c.height=H*dpr; x.setTransform(dpr,0,0,dpr,0,0); }
+  size(); window.addEventListener('resize', size);
+  var n=Math.min(80, Math.round(W*H/16000));
+  for(var i=0;i<n;i++) P.push({x:Math.random()*W,y:Math.random()*H,vx:(Math.random()-.5)*.35,vy:(Math.random()-.5)*.35,r:Math.random()*1.6+.6});
+  function frame(){
+    if($('login').style.display==='none') return requestAnimationFrame(frame);
+    x.clearRect(0,0,W,H);
+    for(var i=0;i<P.length;i++){ var p=P[i]; p.x+=p.vx; p.y+=p.vy; if(p.x<0||p.x>W) p.vx*=-1; if(p.y<0||p.y>H) p.vy*=-1;
+      x.beginPath(); x.arc(p.x,p.y,p.r,0,7); x.fillStyle='rgba(120,190,235,.55)'; x.fill();
+      for(var j=i+1;j<P.length;j++){ var q=P[j], dx=p.x-q.x, dy=p.y-q.y, d=dx*dx+dy*dy; if(d<13000){ x.strokeStyle='rgba(87,180,228,'+(0.16*(1-d/13000))+')'; x.lineWidth=1; x.beginPath(); x.moveTo(p.x,p.y); x.lineTo(q.x,q.y); x.stroke(); } } }
+    requestAnimationFrame(frame);
+  }
+  frame();
+})();
+/* count-up numbers on any KPI that changes */
+function kpiPop(root){
+  (root||document).querySelectorAll('.view.on .kpi b').forEach(function(el){
+    if(el.getAttribute('data-anim')) return; var t=el.textContent.trim(); if(el.getAttribute('data-v')===t) return;
+    var m=t.match(/^(\$?)([\d,]+(?:\.\d+)?)(%?)(.*)$/); if(!m) { el.setAttribute('data-v',t); return; }
+    var target=Number(m[2].replace(/,/g,'')), dec=(m[2].split('.')[1]||'').length, st=performance.now(), dur=700;
+    el.setAttribute('data-v',t); el.setAttribute('data-anim','1');
+    (function step(now){ var k=Math.min(1,(now-st)/dur), e=1-Math.pow(1-k,3), v=target*e;
+      var s=dec?v.toFixed(dec):Math.round(v).toString(); s=s.replace(/\B(?=(\d{3})+(?!\d))/g,',');
+      el.textContent=m[1]+s+m[3]+m[4]; if(k<1) requestAnimationFrame(step); else { el.textContent=t; el.removeAttribute('data-anim'); } })(st);
+  });
+}
+var _kpiT=null; new MutationObserver(function(){ clearTimeout(_kpiT); _kpiT=setTimeout(kpiPop,60); }).observe(document.getElementById('content'),{childList:true,subtree:true,characterData:true});
+/* greeting date */
+function heroDate(){ var e=$('heroDate'); if(e) e.textContent=new Date().toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric'}); }
+heroDate();
+/* smart briefing */
+function briefLoad(){
+  api('own.insights').then(function(items){
+    $('hq-briefList').innerHTML=items.map(function(it){ return '<div class="brief-item '+it.tone+'" onclick="gotoView(\''+it.view+'\')"><div class="bi">'+it.icon+'</div><div><b>'+esc(it.title)+'</b><span>'+esc(it.text)+'</span></div></div>'; }).join('');
+  }).catch(function(e){ $('hq-briefList').innerHTML='<div class="hint">'+esc(e.message)+'</div>'; });
+}
+/* system status */
+function agoTxt(t){ if(!t) return 'never'; var m=Math.round((Date.now()-new Date(t).getTime())/6e4); return m<1?'just now':m<60?m+'m ago':m<1440?Math.round(m/60)+'h ago':Math.round(m/1440)+'d ago'; }
+function sysLoad(el,tl){
+  api('own.health').then(function(h){
+    var wAge=h.wave.last?(Date.now()-new Date(h.wave.last).getTime())/36e5:999;
+    var chips=[['Database',h.db<400?'':'warn',h.db+' ms'],['Wave',!h.wave.connected?'off':wAge>26?'warn':'','synced '+agoTxt(h.wave.last)],['Dialer (Twilio)',h.twilio?'':'off',h.twilio?'ready':'not set up'],
+      ['Contracts (DocuSeal)',h.docuseal?'':'off',h.docuseal?'connected':'not set up'],['Email (Resend)',h.email?'':'off',h.email?'connected':'not set up'],['Lead search (Google)',h.places?'':'off',h.places?'connected':'not set up'],
+      ['Last call',h.lastCall&&(Date.now()-new Date(h.lastCall))<864e5*3?'':'warn',agoTxt(h.lastCall)]];
+    $(el).innerHTML=chips.map(function(c){ return '<div class="sys-chip '+c[1]+'"><i></i>'+c[0]+' <span>'+c[2]+'</span></div>'; }).join('');
+    if(tl) $(tl).textContent=(chips.every(function(c){return !c[1];})?'All systems operational':'Some services need attention')+(h.deploy?' · build '+h.deploy:'')+(h.region?' · '+h.region:'');
+  }).catch(function(){});
+}
+/* heatmap */
+function heatRender(rows){
+  var D=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'], hrs=[]; for(var h=8;h<=19;h++) hrs.push(h);
+  var map={}; (rows||[]).forEach(function(r){ map[r.d+'_'+r.h]=r; });
+  var h='<table class="heat"><tr><th></th>'+hrs.map(function(x){return '<th style="text-align:center">'+((x%12)||12)+(x<12?'a':'p')+'</th>';}).join('')+'</tr>';
+  [1,2,3,4,5,6,0].forEach(function(d){
+    h+='<tr><th>'+D[d]+'</th>'+hrs.map(function(x){ var r=map[d+'_'+x]; if(!r||r.n<3) return '<td style="background:var(--chip)" title="not enough calls"></td>';
+      var rate=r.c/r.n, a=Math.min(1,.15+rate*1.6); return '<td style="background:rgba(31,93,140,'+a.toFixed(2)+')" title="'+D[d]+' '+((x%12)||12)+(x<12?'am':'pm')+': '+Math.round(rate*100)+'% connect, '+r.n+' dials">'+Math.round(rate*100)+'</td>'; }).join('')+'</tr>';
+  });
+  $('rp-heat').innerHTML=h+'</table>';
+}
+/* command palette actions inside global search */
+var GS_ACTIONS=[['New invoice in Wave',function(){invCompose();},1],['New client',function(){clNew();},1],['Sync Wave now',function(){gotoView('billing');setTimeout(waveSync,300);},1],
+  ['New task',function(){qaTask();}],['Dial a number',function(){qaDial();}],['Start dialing (build today’s list)',function(){goToday();}],['Power hour',function(){togglePH();}],
+  ['Dark mode',function(){toggleDark();}],['Morning start',function(){openMorning();}],['End my shift',function(){openShift();}],['Settings',function(){gotoView('settings');},1],['Sign out',function(){logout();}]];
+var _gsRun0=gsRun;
+gsRun=function(q){
+  _gsRun0(q);
+  setTimeout(function(){
+    var ql=String(q||'').toLowerCase(); if(ql.length<2) return;
+    var acts=GS_ACTIONS.filter(function(a){ return (isOwner()||!a[2]) && a[0].toLowerCase().indexOf(ql)>-1; });
+    if(!acts.length) return;
+    var box=$('gResults'); var h='<div class="gh">Actions</div>'+acts.map(function(a){ return '<a data-act="'+GS_ACTIONS.indexOf(a)+'">&#9889; '+esc(a[0])+'<span>run</span></a>'; }).join('');
+    box.innerHTML=h+(box.innerHTML.indexOf('Nothing found')>-1?'':box.innerHTML); box.classList.add('show');
+    box.querySelectorAll('a[data-act]').forEach(function(el){ el.addEventListener('click',function(){ box.classList.remove('show'); $('gSearch').value=''; GS_ACTIONS[Number(el.getAttribute('data-act'))][1](); }); });
+  },350);
+};
 
 /* ================= REFERRAL PROGRAM ================= */
 var REF={partners:[],referrals:[],credits:[],base:''};
