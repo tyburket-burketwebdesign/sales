@@ -265,10 +265,11 @@ module.exports = async function handler(req, res) {
         const res = await Promise.all(batch.map(b => C.detectLeadPlatforms(b.website).catch(() => ({ platforms: [] }))));
         batch.forEach((b, k) => {
           const d = res[k];
-          if (!d.platforms.length) return;
+          const has = d.platforms.length > 0;
           out.push({ name: b.name, phone: b.phone, website: b.website, rating: b.rating, reviews: b.reviews, pos: b.pos,
-                     addr: b.addr, maps: b.maps, town: b.town, src: 'listing', platform: d.platforms[0], platforms: d.platforms,
-                     why: 'Uses ' + d.platforms.join(' + '), verified: false, evidence: 'Badge on their site: ' + (d.evidence || d.platforms.join(', ')) });
+                     addr: b.addr, maps: b.maps, town: b.town, src: 'listing', platform: has ? d.platforms[0] : '', platforms: d.platforms,
+                     why: has ? 'Uses ' + d.platforms.join(' + ') : '', verified: false, badge: has,
+                     evidence: has ? 'Badge on their site: ' + (d.evidence || d.platforms.join(', ')) : '' });
         });
       }
       return ok({ list: await C.cleanLeads(sql, out, vertical), scanned: fresh.length, skipped: cands.length - fresh.length, notes });
