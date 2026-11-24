@@ -77,6 +77,10 @@ async function ensureSchema() {
     id SERIAL PRIMARY KEY, client_id INT, title TEXT, due DATE, assignee TEXT DEFAULT '', status TEXT DEFAULT 'open', recurring TEXT DEFAULT '',
     note TEXT DEFAULT '', created_by TEXT DEFAULT '', done_by TEXT DEFAULT '', done_ts TIMESTAMPTZ, created TIMESTAMPTZ DEFAULT now()
   )`;
+  await sql`ALTER TABLE clients ADD COLUMN IF NOT EXISTS wave_id TEXT DEFAULT ''`;
+  await sql`ALTER TABLE invoices ADD COLUMN IF NOT EXISTS wave_id TEXT DEFAULT ''`;
+  await sql`ALTER TABLE invoices ADD COLUMN IF NOT EXISTS amount_due NUMERIC DEFAULT 0`;
+  await sql`ALTER TABLE invoices ADD COLUMN IF NOT EXISTS wave_status TEXT DEFAULT ''`;
   await sql`CREATE TABLE IF NOT EXISTS client_log ( id SERIAL PRIMARY KEY, client_id INT, author TEXT DEFAULT '', note TEXT DEFAULT '', ts TIMESTAMPTZ DEFAULT now() )`;
   await sql`CREATE TABLE IF NOT EXISTS lp_check ( phone TEXT PRIMARY KEY, platforms TEXT DEFAULT '', none BOOLEAN DEFAULT false, rep TEXT DEFAULT '', ts TIMESTAMPTZ DEFAULT now() )`;
   await sql`ALTER TABLE companies ADD COLUMN IF NOT EXISTS alt_phones TEXT DEFAULT ''`;
@@ -647,7 +651,104 @@ function seqTemplates(s, repName) {
   ];
 }
 
-module.exports = { cleanLeads, domainOf, detectLeadPlatforms, hashPass, docusealTemplate, LP_FEATURES, LP750_EXTRA, sql, ensureSchema, userFromToken, login, sendMail, placesSearch, scrapeEmails, isChain, geocodeCity, placesBiased, inStormZone, twE164, twilioReady, twilioNumbers, twilioToken, upsertCompany, STAGE_RANK, docusealSend, waveLink, kpiTarget, kpiBonus,
+
+/* ---- Wave sync (read-only): customers + invoices into the CRM ---- */
+async function waveGql(query, variables) {
+  const tok = process.env.WAVE_TOKEN;
+  if (!tok) throw new Error('WAVE_TOKEN is not set in Vercel.');
+  const r = await fetch('https://gql.waveapps.com/graphql/public', {
+    method: 'POST', headers: { 'Authorization': 'Bearer ' + tok, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ query, variables: variables || {} })
+  });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok || j.errors) throw new Error('Wave: ' + ((j.errors && j.errors[0] && j.errors[0].message) || ('HTTP ' + r.status)));
+  return j.data;
+}
+async function waveBusiness(sqlFn) {
+  const saved = ((await sqlFn`SELECT v FROM kv WHERE k='wave_business'`)[0] || {}).v;
+  const d = await waveGql('query { businesses(page: 1, pageSize: 20) { edges { node { id name isPersonal isArchived } } } }');
+  const list = d.businesses.edges.map(e => e.node).filter(b => !b.isArchived);
+  let biz = list.find(b => b.id === saved) || list.find(b => /burket/i.test(b.name)) || list.find(b => !b.isPersonal) || list[0];
+  if (!biz) throw new Error('No business found in Wave.');
+  if (biz.id !== saved) await sqlFn`INSERT INTO kv (k, v) VALUES ('wave_business', ${biz.id}) ON CONFLICT (k) DO UPDATE SET v=${biz.id}`;
+  return { biz, all: list };
+}
+async function waveSync(sqlFn) {
+  const { biz } = await waveBusiness(sqlFn);
+  const customers = [], invoices = [];
+  for (let p = 1; p <= 20; p++) {
+    const d = await waveGql(`query($id: ID!, $p: Int!) { business(id: $id) { customers(page: $p, pageSize: 100) { pageInfo { totalPages }
+      edges { node { id name firstName lastName email phone mobile createdAt } } } } }`, { id: biz.id, p });
+    const c = d.business.customers; c.edges.forEach(e => customers.push(e.node));
+    if (p >= (c.pageInfo.totalPages || 1)) break;
+  }
+  for (let p = 1; p <= 30; p++) {
+    const d = await waveGql(`query($id: ID!, $p: Int!) { business(id: $id) { invoices(page: $p, pageSize: 100) { pageInfo { totalPages }
+      edges { node { id invoiceNumber invoiceDate dueDate status modifiedAt customer { id name } total { value } amountDue { value } } } } } }`, { id: biz.id, p });
+    const c = d.business.invoices; c.edges.forEach(e => invoices.push(e.node));
+    if (p >= (c.pageInfo.totalPages || 1)) break;
+  }
+  const out = { business: biz.name, customers: customers.length, invoices: 0, newClients: 0, linked: 0, paidNow: 0, skipped: 0 };
+  const day = s => (s ? String(s).slice(0, 10) : null);
+  const ago = n => new Date(Date.now() - n * 864e5).toISOString().slice(0, 10);
+  const sent = invoices.filter(i => !['DRAFT', 'SAVED'].includes(i.status));
+  const byCust = {};
+  sent.forEach(i => { const k = i.customer && i.customer.id; if (k) (byCust[k] = byCust[k] || []).push(i); });
+
+  /* link or create clients */
+  const clients = await sqlFn`SELECT id, name, wave_id, mrr FROM clients`;
+  const byWave = {}, byName = {};
+  clients.forEach(c => { if (c.wave_id) byWave[c.wave_id] = c; byName[String(c.name).toLowerCase().trim()] = c; });
+  for (const cu of customers) {
+    let c = byWave[cu.id];
+    const nm = String(cu.name || ((cu.firstName || '') + ' ' + (cu.lastName || ''))).trim();
+    if (!c && byName[nm.toLowerCase()]) {
+      c = byName[nm.toLowerCase()];
+      await sqlFn`UPDATE clients SET wave_id=${cu.id} WHERE id=${c.id}`; c.wave_id = cu.id; byWave[cu.id] = c; out.linked++;
+    }
+    if (c) continue;
+    /* only bring in customers billed in the last 60 days: that is a paying client */
+    const recent = (byCust[cu.id] || []).filter(i => day(i.invoiceDate) >= ago(60)).sort((a, b) => String(b.invoiceDate).localeCompare(String(a.invoiceDate)));
+    if (!recent.length) continue;
+    const months = new Set((byCust[cu.id] || []).filter(i => day(i.invoiceDate) >= ago(100)).map(i => String(i.invoiceDate).slice(0, 7)));
+    const mrr = months.size >= 2 ? Number(recent[0].total.value) || 0 : 0;
+    const first = (byCust[cu.id] || []).map(i => day(i.invoiceDate)).sort()[0];
+    const id = (await sqlFn`INSERT INTO clients (name, contact, email, phone, mrr, start_date, term_months, status, wave_id)
+      VALUES (${nm}, ${((cu.firstName || '') + ' ' + (cu.lastName || '')).trim()}, ${cu.email || ''}, ${normPhone(cu.phone || cu.mobile) || ''}, ${mrr},
+              ${first || day(cu.createdAt)}, 0, 'active', ${cu.id}) RETURNING id`)[0].id;
+    await sqlFn`INSERT INTO client_log (client_id, author, note) VALUES (${id}, 'wave', ${'Imported from Wave' + (mrr ? ' (MRR set from recent invoices: $' + mrr + ')' : '')})`;
+    byWave[cu.id] = { id, name: nm, wave_id: cu.id }; out.newClients++;
+  }
+
+  /* invoices */
+  for (const i of sent) {
+    const c = i.customer && byWave[i.customer.id];
+    if (!c) { out.skipped++; continue; }
+    const paid = ['PAID', 'OVERPAID'].includes(i.status);
+    const amt = Number(i.total && i.total.value) || 0, due = Number(i.amountDue && i.amountDue.value) || 0;
+    const prev = (await sqlFn`SELECT id, status FROM invoices WHERE wave_id=${i.id}`)[0];
+    if (prev) {
+      const nowPaid = paid && prev.status !== 'paid';
+      await sqlFn`UPDATE invoices SET client_id=${c.id}, number=${i.invoiceNumber || ''}, amount=${amt}, amount_due=${due}, issued=${day(i.invoiceDate)}, due=${day(i.dueDate)},
+        status=${paid ? 'paid' : 'open'}, wave_status=${i.status} WHERE id=${prev.id}`;
+      if (nowPaid) await sqlFn`UPDATE invoices SET paid_date=${day(i.modifiedAt)} WHERE id=${prev.id}`;
+      if (!paid) await sqlFn`UPDATE invoices SET paid_date=NULL WHERE id=${prev.id}`;
+      if (nowPaid) { out.paidNow++; await sqlFn`INSERT INTO client_log (client_id, author, note) VALUES (${c.id}, 'wave', ${'Paid in Wave: invoice #' + (i.invoiceNumber || '') + ' $' + amt})`; }
+    } else {
+      /* a manual entry for the same invoice number takes the Wave link instead of duplicating */
+      const man = i.invoiceNumber ? (await sqlFn`SELECT id FROM invoices WHERE client_id=${c.id} AND number=${String(i.invoiceNumber)} AND (wave_id IS NULL OR wave_id='')`)[0] : null;
+      if (man) await sqlFn`UPDATE invoices SET wave_id=${i.id}, amount=${amt}, amount_due=${due}, issued=${day(i.invoiceDate)}, due=${day(i.dueDate)}, status=${paid ? 'paid' : 'open'}, wave_status=${i.status},
+          paid_date=${paid ? day(i.modifiedAt) : null} WHERE id=${man.id}`;
+      else await sqlFn`INSERT INTO invoices (client_id, number, amount, amount_due, issued, due, status, wave_status, paid_date, wave_id, note)
+        VALUES (${c.id}, ${i.invoiceNumber || ''}, ${amt}, ${due}, ${day(i.invoiceDate)}, ${day(i.dueDate)}, ${paid ? 'paid' : 'open'}, ${i.status}, ${paid ? day(i.modifiedAt) : null}, ${i.id}, 'From Wave')`;
+    }
+    out.invoices++;
+  }
+  await sqlFn`INSERT INTO kv (k, v) VALUES ('wave_last_sync', ${JSON.stringify(Object.assign({ at: new Date().toISOString() }, out))}) ON CONFLICT (k) DO UPDATE SET v=${JSON.stringify(Object.assign({ at: new Date().toISOString() }, out))}`;
+  return out;
+}
+
+module.exports = { waveSync, waveBusiness, waveGql, cleanLeads, domainOf, detectLeadPlatforms, hashPass, docusealTemplate, LP_FEATURES, LP750_EXTRA, sql, ensureSchema, userFromToken, login, sendMail, placesSearch, scrapeEmails, isChain, geocodeCity, placesBiased, inStormZone, twE164, twilioReady, twilioNumbers, twilioToken, upsertCompany, STAGE_RANK, docusealSend, waveLink, kpiTarget, kpiBonus,
                    PRODUCTS, seqTemplates, auditUrl, normPhone, uid,
                    sendProspectMail, prospectReplyTo, prospectBcc, SEQ_GAPS, territoryFor, callerFor, ownerFrom,
                    localCallerFor, stateOfNumber };
