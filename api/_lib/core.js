@@ -89,6 +89,7 @@ async function ensureSchema() {
   await sql`ALTER TABLE invoices ADD COLUMN IF NOT EXISTS amount_paid NUMERIC DEFAULT 0`;
   await sql`ALTER TABLE invoices ADD COLUMN IF NOT EXISTS sent_ts TIMESTAMPTZ`;
   await sql`ALTER TABLE companies ADD COLUMN IF NOT EXISTS value NUMERIC DEFAULT 0`;
+  await sql`CREATE TABLE IF NOT EXISTS acct_snap ( day DATE, acct TEXT, name TEXT DEFAULT '', kind TEXT DEFAULT '', balance NUMERIC DEFAULT 0, PRIMARY KEY (day, acct) )`;
   await sql`CREATE TABLE IF NOT EXISTS audit ( id SERIAL PRIMARY KEY, who TEXT, act TEXT, target TEXT DEFAULT '', detail TEXT DEFAULT '', ts TIMESTAMPTZ DEFAULT now() )`;
   await sql`CREATE TABLE IF NOT EXISTS client_log ( id SERIAL PRIMARY KEY, client_id INT, author TEXT DEFAULT '', note TEXT DEFAULT '', ts TIMESTAMPTZ DEFAULT now() )`;
   await sql`CREATE TABLE IF NOT EXISTS lp_check ( phone TEXT PRIMARY KEY, platforms TEXT DEFAULT '', none BOOLEAN DEFAULT false, rep TEXT DEFAULT '', ts TIMESTAMPTZ DEFAULT now() )`;
@@ -775,6 +776,7 @@ async function waveSync(sqlFn) {
     }
     out.invoices++;
   }
+  try { await waveLedger(sqlFn); } catch (e) { out.ledgerError = e.message; }
   await sqlFn`INSERT INTO kv (k, v) VALUES ('wave_last_sync', ${JSON.stringify(Object.assign({ at: new Date().toISOString() }, out))}) ON CONFLICT (k) DO UPDATE SET v=${JSON.stringify(Object.assign({ at: new Date().toISOString() }, out))}`;
   return out;
 }
@@ -855,7 +857,25 @@ async function waveUpsertInvoice(sqlFn, i, clientId) {
             ${i.viewUrl || ''}, ${i.pdfUrl || ''}, ${recId ? 'Wave recurring' : 'From Wave'}) RETURNING id`)[0].id;
 }
 
-module.exports = { waveSync, waveBusiness, waveGql, waveMeta, waveCustomerCreate, waveInvoiceCreate, waveInvoiceApprove, waveInvoiceSend, waveInvoiceGet, wavePaymentCreate, waveInvoiceDelete, waveUpsertInvoice, cleanLeads, domainOf, detectLeadPlatforms, hashPass, docusealTemplate, LP_FEATURES, LP750_EXTRA, sql, ensureSchema, userFromToken, login, sendMail, placesSearch, scrapeEmails, isChain, geocodeCity, placesBiased, inStormZone, twE164, twilioReady, twilioNumbers, twilioToken, upsertCompany, STAGE_RANK, docusealSend, waveLink, kpiTarget, kpiBonus,
+/* ---- Wave P&L from the ledger (income / COGS / expense account balances) ---- */
+async function waveLedger(sqlFn) {
+  const { biz } = await waveBusiness(sqlFn);
+  const rows = [];
+  for (let p = 1; p <= 5; p++) {
+    const d = await waveGql(`query($id: ID!, $p: Int!) { business(id: $id) { accounts(page: $p, pageSize: 200, types: [INCOME, EXPENSE]) { pageInfo { totalPages }
+      edges { node { id name isArchived balanceInBusinessCurrency type { value } subtype { value } } } } } }`, { id: biz.id, p });
+    const a = d.business.accounts; a.edges.forEach(e => rows.push(e.node));
+    if (p >= (a.pageInfo.totalPages || 1)) break;
+  }
+  const kindOf = n => n.type.value === 'INCOME' ? 'income' : (n.subtype.value === 'COST_OF_GOODS_SOLD' ? 'cogs' : 'opex');
+  const accts = rows.map(n => ({ id: n.id, name: n.name, kind: kindOf(n), balance: Number(n.balanceInBusinessCurrency) || 0 }));
+  const today = new Date().toLocaleString('en-CA', { timeZone: 'America/New_York' }).slice(0, 10);
+  for (const a of accts) await sqlFn`INSERT INTO acct_snap (day, acct, name, kind, balance) VALUES (${today}, ${a.id}, ${a.name}, ${a.kind}, ${a.balance})
+    ON CONFLICT (day, acct) DO UPDATE SET balance=${a.balance}, name=${a.name}, kind=${a.kind}`;
+  return { accts, today };
+}
+
+module.exports = { waveLedger, waveSync, waveBusiness, waveGql, waveMeta, waveCustomerCreate, waveInvoiceCreate, waveInvoiceApprove, waveInvoiceSend, waveInvoiceGet, wavePaymentCreate, waveInvoiceDelete, waveUpsertInvoice, cleanLeads, domainOf, detectLeadPlatforms, hashPass, docusealTemplate, LP_FEATURES, LP750_EXTRA, sql, ensureSchema, userFromToken, login, sendMail, placesSearch, scrapeEmails, isChain, geocodeCity, placesBiased, inStormZone, twE164, twilioReady, twilioNumbers, twilioToken, upsertCompany, STAGE_RANK, docusealSend, waveLink, kpiTarget, kpiBonus,
                    PRODUCTS, seqTemplates, auditUrl, normPhone, uid,
                    sendProspectMail, prospectReplyTo, prospectBcc, SEQ_GAPS, territoryFor, callerFor, ownerFrom,
                    localCallerFor, stateOfNumber };
