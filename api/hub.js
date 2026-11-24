@@ -221,7 +221,7 @@ module.exports = async function handler(req, res) {
     if (a.indexOf('ref.') === 0) {
       if (!OWNER) return err('Owner only.');
       const newCode = () => Array.from({ length: 6 }, () => 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[Math.floor(Math.random() * 32)]).join('');
-      const base = (process.env.APP_URL || ('https://' + (req.headers['x-forwarded-host'] || req.headers.host || 'sales-eta-livid.vercel.app'))).replace(/\/$/, '');
+      const base = (process.env.REFER_URL || process.env.APP_URL || ('https://' + (req.headers['x-forwarded-host'] || req.headers.host || 'sales-eta-livid.vercel.app'))).replace(/\/$/, '');
       if (a === 'ref.data') {
         const partners = await sql`SELECT p.*,
             (SELECT count(*)::int FROM referrals r WHERE r.partner_id=p.id) AS refs,
