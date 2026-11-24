@@ -390,7 +390,7 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--m
     <div id="nav">
       <div class="navsec">WORK</div>
       <button class="nv on" data-view="dash"><span class="ic">&#127968;</span>Dashboard</button>
-      <button class="nv" data-view="dialer"><span class="ic">&#128222;</span>Dialer<span class="pill" id="navDialPill" style="display:none"></span></button>
+      <button class="nv" data-view="dialer"><span class="ic">&#128222;</span>Dialer<span class="pill" id="navDialPill" style="display:none"></span><span class="pill" id="navMissPill" title="Missed calls" style="display:none;background:#e5484d;color:#fff;margin-left:4px"></span></button>
       <button class="nv" data-view="listing"><span class="ic">&#127991;&#65039;</span>Listing Calls</button>
       <button class="nv" data-view="pipe"><span class="ic">&#128202;</span>Pipeline</button>
       <button class="nv" data-view="meet"><span class="ic">&#129309;</span>Meetings</button>
@@ -474,6 +474,15 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--m
       </div>
 
       <div class="view" id="v-dialer">
+        <div class="card" id="missCard" style="border:2px solid var(--line)">
+          <div class="row" style="align-items:center">
+            <b style="font-size:15px">&#128222; Missed Calls</b><span class="pill" id="missCount" style="display:none;margin-left:6px;background:#e5484d;color:#fff"></span>
+            <div style="flex:1"></div>
+            <select id="missFilter" onchange="missRender()" style="max-width:170px"><option value="missed">Needs a call back</option><option value="all">All inbound (14 days)</option></select>
+            <button class="btn-ghost btn-sm" onclick="missPoll(true)">&#8635;</button>
+          </div>
+          <div id="missBody" style="margin-top:8px"></div>
+        </div>
         <div class="card">
           <div class="row" style="align-items:flex-end">
             <div><label>Market</label><select id="market"></select></div>
@@ -507,7 +516,12 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--m
 
       <div class="view" id="v-pipe">
         <div class="card">
-          <div class="row"><b style="font-size:15px">Pipeline</b><div style="flex:1"></div><span class="hint" id="pipeTotals"></span></div>
+          <div class="row" style="align-items:center;gap:8px"><b style="font-size:15px">Pipeline</b>
+            <input id="pipeQ" placeholder="Search name, town, industry" oninput="pipeRender()" style="max-width:240px">
+            <select id="pipeRep" onchange="pipeRender()" style="max-width:170px;display:none"></select>
+            <label style="display:flex;align-items:center;gap:4px;font-size:12px;margin:0"><input type="checkbox" id="pipeStale" onchange="pipeRender()" style="width:auto"> Stale only</label>
+            <div style="flex:1"></div><span class="hint" id="pipeTotals"></span>
+            <button class="btn-ghost btn-sm" id="pipeCsv" style="display:none" onclick="pipeCsv()">&#11015; CSV</button></div>
           <div id="board" style="margin-top:12px"></div>
         </div>
       </div>
@@ -1579,7 +1593,7 @@ function gCell(b){
   if (b.src!=='google') return '<span style="color:var(--muted2)">-</span>';
   return '<span style="font-size:12.5px">'+esc('#'+b.pos+' · '+(b.reviews>0?(b.rating+'★ ('+b.reviews+')'):'no reviews'))+'</span>';
 }
-function renderAll(){ renderList(); renderStats(); renderHistoryBoot(); renderSeqs(); renderMeetings(); renderComm(); if(BOOT&&BOOT.user.role==='owner')renderOwner(); loadBreakdown(); }
+function renderAll(){ missPoll(); renderList(); renderStats(); renderHistoryBoot(); renderSeqs(); renderMeetings(); renderComm(); if(BOOT&&BOOT.user.role==='owner')renderOwner(); loadBreakdown(); }
 function renderList(){
   $('listTitle').textContent = LISTMETA.city ? (LISTMETA.industry+' - '+LISTMETA.city) : 'Call List';
   if (!LIST.length) {
@@ -1951,21 +1965,48 @@ function toggleUser(em){
 var STAGES=['new','contacted','engaged','meeting','proposal','contract','won','lost'];
 var STAGE_LBL={new:'New',contacted:'Contacted',engaged:'Engaged',meeting:'Meeting',proposal:'Proposal Sent',contract:'Contract Out',won:'Won',lost:'Lost'};
 var PIPE=[], CURCOMP=null;
+function pipeDays(cm){ return cm.updated?Math.floor((Date.now()-new Date(cm.updated).getTime())/864e5):0; }
+function pipeIsStale(cm){ return ['won','lost','new'].indexOf(cm.stage)<0 && pipeDays(cm)>=14; }
+function pipeFiltered(){
+  var q=($('pipeQ').value||'').toLowerCase().trim(), rep=$('pipeRep').value, st=$('pipeStale').checked;
+  return (PIPE||[]).filter(function(cm){
+    if(rep && (cm.rep||'')!==rep) return false;
+    if(st && !pipeIsStale(cm)) return false;
+    if(q && ((cm.name||'')+' '+(cm.city||'')+' '+(cm.industry||'')+' '+(cm.phone||'')).toLowerCase().indexOf(q)<0) return false;
+    return true;
+  });
+}
+function pipeCsv(){
+  var rows=pipeFiltered(), cols=['name','phone','stage','rep','city','industry','website','email','updated'];
+  var csv=[cols.join(',')].concat(rows.map(function(r){ return cols.map(function(c){ return '"'+String(r[c]==null?'':r[c]).replace(/"/g,'""')+'"'; }).join(','); })).join('\n');
+  var a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'})); a.download='pipeline-'+todayKey()+'.csv'; a.click();
+}
 function loadPipeline(){
   api('pipeline.list').then(function(rows){
     PIPE=rows;
+    if(isOwner()){
+      var sel=$('pipeRep'), cur=sel.value; sel.style.display=''; $('pipeCsv').style.display='';
+      sel.innerHTML='<option value="">Everyone</option>'+((BOOT.team&&BOOT.team.reps)||[]).map(function(r){return '<option value="'+esc(r.email)+'">'+esc(r.name||r.email)+'</option>';}).join('');
+      sel.value=cur;
+    }
+    pipeRender();
+  }).catch(function(e){toast(e.message);});
+}
+function pipeRender(){
+    var rows=pipeFiltered();
     var by={}; STAGES.forEach(function(s){by[s]=[];});
     rows.forEach(function(cm){ (by[cm.stage]||by.new).push(cm); });
     $('board').innerHTML = STAGES.map(function(s){
       return '<div class="col" data-stage="'+s+'" ondragover="pipeOver(event,this)" ondragleave="this.classList.remove(\'dropping\')" ondrop="pipeDrop(event,this)"><h4>'+STAGE_LBL[s]+'<span>'+by[s].length+'</span></h4>'+
         by[s].slice(0,40).map(function(cm){
+          var dd=pipeDays(cm);
           return '<div class="pcard stage-'+s+'" draggable="true" ondragstart="pipeDrag(event,\''+cm.phone+'\',\''+s+'\')" ondragend="this.classList.remove(\'dragging\')" onclick="openCompany(\''+cm.phone+'\')"><b>'+esc(cm.name||fmtPhone(cm.phone))+'</b>'+
-            '<div class="sub2">'+esc((cm.city||'')+(cm.industry?' · '+cm.industry:''))+'</div></div>';
+            '<div class="sub2">'+esc((cm.city||'')+(cm.industry?' · '+cm.industry:''))+'</div>'+
+            '<div class="sub2" style="margin-top:3px">'+(pipeIsStale(cm)?'<span class="tag" style="background:#fde8e8;color:#b42318">stale '+dd+'d</span>':(s!=='won'&&s!=='lost'?dd+'d since last touch':''))+'</div></div>';
         }).join('')+'</div>';
     }).join('');
-    var won=by.won.length, act=rows.length-won-by.lost.length;
-    $('pipeTotals').textContent = act+' active · '+won+' won · '+by.lost.length+' lost';
-  }).catch(function(e){toast(e.message);});
+    var won=by.won.length, act=rows.length-won-by.lost.length, stale=rows.filter(pipeIsStale).length;
+    $('pipeTotals').textContent = act+' active · '+won+' won · '+by.lost.length+' lost'+(stale?' · '+stale+' stale':'');
 }
 var PIPE_DRAG=null;
 function pipeDrag(e, phone, from){ PIPE_DRAG={phone:phone,from:from}; e.dataTransfer.effectAllowed='move'; try{e.dataTransfer.setData('text/plain',phone);}catch(x){} e.target.classList.add('dragging'); }
@@ -2524,9 +2565,12 @@ function twDial(phone){
   var d2=String(phone||'').replace(/\D/g,''); if(d2.length===11&&d2[0]==='1')d2=d2.slice(1);
   if(d2.length!==10)return toast('That number does not look dialable.');
   if(TW.conn)return toast('Finish the current call first.');
-  TW.to=d2;
+  var lt=theirTime(d2);
+  if(lt && (lt.h<8 || lt.h>=21) && !confirm('It is '+lt.txt+' their time. Calling hours are 8 AM to 9 PM in their time zone. Call anyway?')) return;
+  ddHide();
+  TW.to=d2; TW.out=true;
   $('cb-num').textContent=fmtPhone(d2);
-  $('cb-status').textContent='Connecting from '+fmtPhone(localCidFor(d2))+'...';
+  $('cb-status').textContent='Connecting from '+fmtPhone(localCidFor(d2))+(lt?' · their time '+lt.txt:'')+'...';
   $('cb-timer').textContent='00:00';
   $('cb-inc').style.display='none';$('cb-actions').style.display='flex';
   padReset(); padToggle(load('sdr_pad', false));
@@ -2545,6 +2589,70 @@ function twDial(phone){
     conn.on('error',function(e2){toast(twErrMsg(e2));twEnded();});
   }).catch(function(e2){toast(e2.message||String(e2));$('callbar').classList.remove('show');TW.conn=null;});
 }
+/* ---- their local time (area code based) ---- */
+var TZ_AC={};
+('206 209 213 253 279 310 323 341 350 360 408 415 424 425 442 458 503 509 510 530 541 559 562 564 619 626 628 650 657 661 669 702 707 714 725 747 760 775 805 818 820 831 840 858 909 916 925 949 951 971').split(' ').forEach(function(a){TZ_AC[a]='America/Los_Angeles';});
+('208 303 307 385 406 435 505 575 719 720 801 970 986').split(' ').forEach(function(a){TZ_AC[a]='America/Denver';});
+('480 520 602 623 928').split(' ').forEach(function(a){TZ_AC[a]='America/Phoenix';});
+('205 210 214 217 218 224 225 228 251 254 256 262 281 308 309 312 314 316 318 319 320 325 331 334 337 346 361 402 405 409 414 417 430 432 448 469 479 501 504 507 512 515 531 534 539 563 573 580 601 605 608 612 618 620 630 636 641 651 659 660 662 682 701 708 712 713 715 726 731 737 763 769 773 779 785 806 815 816 817 830 832 847 850 870 872 901 903 913 915 918 920 931 936 938 940 945 952 956 972 979 985').split(' ').forEach(function(a){TZ_AC[a]='America/Chicago';});
+function theirTime(d10){
+  var tz=TZ_AC[String(d10).slice(0,3)]||'America/New_York';
+  try{
+    var parts=new Intl.DateTimeFormat('en-US',{timeZone:tz,hour:'numeric',minute:'2-digit',hour12:true}).format(new Date());
+    var h=Number(new Intl.DateTimeFormat('en-US',{timeZone:tz,hour:'numeric',hour12:false}).format(new Date()))%24;
+    return {h:h, txt:parts};
+  }catch(e){ return null; }
+}
+/* ---- double-dial after a quick no-answer ---- */
+function ddShow(num){
+  ddHide();
+  var d=document.createElement('div'); d.id='ddChip';
+  d.style.cssText='position:fixed;right:18px;bottom:18px;z-index:90;background:var(--navy,#0e2235);color:#fff;border-radius:12px;padding:10px 14px;box-shadow:0 8px 24px rgba(0,0,0,.25);font-size:13px;display:flex;gap:10px;align-items:center';
+  d.innerHTML='<span>No pickup. Owners often answer the second ring.</span><button class="btn-go btn-sm" onclick="ddHide();twDial(\''+num+'\')">&#8635; Double-dial</button><button class="btn-ghost btn-sm" style="color:#fff" onclick="ddHide()">&#10005;</button>';
+  document.body.appendChild(d); TW.ddT=setTimeout(ddHide,20000);
+}
+function ddHide(){ clearTimeout(TW.ddT); var x=document.getElementById('ddChip'); if(x) x.remove(); }
+/* ---- missed + inbound calls ---- */
+var MISS=[], MISS_OPEN=-1;
+function missPoll(force){
+  if(!BOOT||!BOOT.user) return;
+  api('inbound.list',{days:14}).then(function(d){
+    MISS=d.rows||[];
+    if(MISS_OPEN>=0 && d.open>MISS_OPEN){
+      chime(); var n=MISS.find(function(r){return r.status==='missed';});
+      toast('📞 Missed call from '+(n?(n.name||fmtPhone(n.phone)):'a prospect')+'. It is in Dialer → Missed Calls.');
+    }
+    MISS_OPEN=d.open;
+    var p=$('navMissPill'); p.style.display=d.open?'inline-block':'none'; p.textContent=d.open;
+    var c=$('missCount'); c.style.display=d.open?'inline-block':'none'; c.textContent=d.open;
+    $('missCard').style.borderColor=d.open?'#e5484d':'';
+    missRender();
+  }).catch(function(){ if(force) toast('Could not load missed calls.'); });
+}
+function missAgo(ts){ var m=Math.round((Date.now()-new Date(ts).getTime())/6e4); return m<60?m+'m ago':m<1440?Math.round(m/60)+'h ago':Math.round(m/1440)+'d ago'; }
+function missRender(){
+  var f=$('missFilter').value, rows=MISS.filter(function(r){return f==='all'||r.status==='missed';});
+  var ST={missed:'<span class="tag" style="background:#fde8e8;color:#b42318">missed</span>',answered:'<span class="tag t-gold">answered</span>',answered_cell:'<span class="tag t-gold">answered on cell</span>',called_back:'<span class="tag" style="background:#dcfce7;color:#166534">called back</span>',dismissed:'<span class="tag">dismissed</span>'};
+  $('missBody').innerHTML=rows.length?'<div style="overflow-x:auto"><table><thead><tr><th>Caller</th><th>When</th><th class="hidem">Line</th><th>Voicemail</th><th>Status</th><th></th></tr></thead><tbody>'+rows.map(function(r){
+    var late=r.status==='missed' && (Date.now()-new Date(r.ts).getTime())>15*6e4;
+    var lt=theirTime(r.phone);
+    return '<tr><td><b>'+esc(r.name||'New number')+'</b><div class="hint">'+esc(fmtPhone(r.phone))+(r.city?' · '+esc(r.city):'')+(r.last_out?' · last: '+esc(String(r.last_out).replace(/_/g,' ')):'')+(lt?' · their time '+esc(lt.txt):'')+'</div></td>'+
+      '<td'+(late?' style="color:#b42318;font-weight:700"':'')+'>'+missAgo(r.ts)+'</td>'+
+      '<td class="hidem">'+esc(fmtPhone(r.line))+'</td>'+
+      '<td>'+(r.vm_url?'<audio controls preload="none" src="'+esc(r.vm_url)+'" style="height:30px;max-width:200px"></audio><div class="hint">'+r.vm_secs+'s</div>':'<span class="hint">none</span>')+'</td>'+
+      '<td>'+(ST[r.status]||esc(r.status))+'</td>'+
+      '<td style="white-space:nowrap">'+(r.status==='missed'?'<button class="btn-green btn-sm" onclick="missCall('+r.id+')">&#128222; Call back</button> <button class="btn-ghost btn-sm" title="Dismiss" onclick="missDismiss('+r.id+')">&#10005;</button>':'<button class="btn-ghost btn-sm" onclick="missCall('+r.id+')">Call</button>')+'</td></tr>';
+  }).join('')+'</tbody></table></div>':'<div class="empty" style="padding:10px">'+(f==='all'?'No inbound calls in the last 14 days.':'No missed calls. Every callback has been returned. &#9989;')+'</div>';
+}
+function missCall(id){
+  var r=MISS.find(function(x){return x.id===id;}); if(!r) return;
+  api('company.lookup',{phone:r.phone}).then(function(d){ if(d&&d.found) popOpen(d); }).catch(function(){});
+  twDial(r.phone);
+  if(r.status==='missed') api('inbound.done',{id:id}).then(function(){ missPoll(); }).catch(function(){});
+}
+function missDismiss(id){ api('inbound.dismiss',{id:id}).then(function(){ missPoll(); }); }
+setInterval(function(){ if(document.visibilityState==='visible') missPoll(); },60000);
+
 function twErrMsg(e){
   var code=Number((e&&(e.code||(e.originalError&&e.originalError.code)))||0);
   if(code===31005||code===31003||code===31002) return 'The call dropped before anyone picked up (busy, no answer, or the number could not be reached). Log it as No answer and keep moving.';
@@ -2571,7 +2679,7 @@ function twIncEnd(){
   if(!TW.conn)$('callbar').classList.remove('show');
 }
 function twAnswer(){
-  var inc=TW.inc;if(!inc)return;
+  var inc=TW.inc;if(!inc)return; TW.out=false;
   TW.conn=inc;TW.to=String(inc.parameters.From||'').replace(/\D/g,'');TW.inc=null;
   $('cb-inc').style.display='none';$('cb-actions').style.display='flex';
   padToggle(load('sdr_pad', false));
@@ -2590,7 +2698,8 @@ function twEnded(){
     api('twilio.log',{seconds:secs}).catch(function(){});
     toast('Call ended, '+Math.floor(secs/60)+'m '+(secs%60)+'s. Log the outcome.');
   }
-  TW.conn=null;TW.startAt=0;
+  if(TW.out && secs<25 && TW.to) ddShow(TW.to);
+  TW.conn=null;TW.startAt=0;TW.out=false;
 }
 function twHangup(){if(TW.conn){try{TW.conn.disconnect();}catch(e){}}else twEnded();}
 function twMute(){

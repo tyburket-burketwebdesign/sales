@@ -291,6 +291,7 @@ module.exports = async function handler(req, res) {
                 ${Number(P.rating) || 0}, ${P.reviews == null ? -1 : Number(P.reviews)}, ${Number(P.pos) || 0},
                 ${P.addr || ''}, ${P.maps || ''}, ${P.src || ''}, ${P.obj || ''}) RETURNING id`;
       if (fupRep) await sql`UPDATE calls SET fup_rep=${fupRep} WHERE id=${row[0].id}`;
+      await sql`UPDATE inbound SET status='called_back', done_by=${user.email}, done_ts=now() WHERE phone=${phone} AND status='missed'`;
       const stageMap = { meeting: 'meeting', callback: 'engaged', closed: 'contract' };
       await C.upsertCompany({ phone: phone, name: P.name, website: P.website, email: P.email, addr: P.addr,
         city: P.city, industry: P.industry, rating: P.rating, reviews: P.reviews, pos: P.pos, maps: P.maps, rep: user.email },
@@ -963,6 +964,25 @@ module.exports = async function handler(req, res) {
     }
 
     /* ---------------- SCREEN POP: who is calling? ---------------- */
+    if (a === 'inbound.list') {
+      const days = Math.min(Number(P.days) || 14, 60);
+      const rows = await sql`SELECT i.*, COALESCE(c.name, '') AS name, COALESCE(c.city, '') AS city, COALESCE(c.stage, '') AS stage,
+          (SELECT outcome FROM calls WHERE phone=i.phone ORDER BY ts DESC LIMIT 1) AS last_out
+        FROM inbound i LEFT JOIN companies c ON c.phone=i.phone
+        WHERE i.ts > now() - ${days + ' days'}::interval ORDER BY i.ts DESC LIMIT 150`;
+      const mine = OWNER ? rows : rows.filter(r => !r.rep || r.rep === user.email);
+      return ok({ rows: mine, open: mine.filter(r => r.status === 'missed').length });
+    }
+    if (a === 'inbound.done') {
+      const id = Number(P.id) || 0;
+      if (id) await sql`UPDATE inbound SET status='called_back', done_by=${user.email}, done_ts=now() WHERE id=${id} AND status='missed'`;
+      else if (P.phone) await sql`UPDATE inbound SET status='called_back', done_by=${user.email}, done_ts=now() WHERE phone=${C.normPhone(P.phone)} AND status='missed'`;
+      return ok({});
+    }
+    if (a === 'inbound.dismiss') {
+      await sql`UPDATE inbound SET status='dismissed', done_by=${user.email}, done_ts=now() WHERE id=${Number(P.id) || 0}`;
+      return ok({});
+    }
     if (a === 'company.lookup') {
       const phone = C.normPhone(P.phone);
       if (!phone) return ok({ found: false });

@@ -37,6 +37,15 @@ module.exports = async function handler(req, res) {
       return xml(res, '<Response><Say voice="Polly.Joanna">' + say + '</Say><Hangup/></Response>');
     }
 
+    /* voicemail left after a missed inbound call */
+    if (req.query.vm) {
+      try {
+        const id = Number(req.query.vm) || 0, url = String(P.RecordingUrl || ''), secs = Number(P.RecordingDuration) || 0;
+        if (id && url && secs > 1) { await C.ensureSchema(); await sql`UPDATE inbound SET vm_url=${url + '.mp3'}, vm_secs=${secs} WHERE id=${id}`; }
+      } catch (e) {}
+      return xml(res, '<Response><Say voice="Polly.Joanna">Got it. Thanks, talk soon.</Say><Hangup/></Response>');
+    }
+
     /* after-ring callback for inbound: log a miss if nobody answered */
     if (req.query.cb === '1') {
       const st = P.DialCallStatus || '';
@@ -47,16 +56,34 @@ module.exports = async function handler(req, res) {
         const action2 = '/api/voice?k=' + encodeURIComponent(key) + '&cb=1&fb=1';
         return xml(res, '<Response><Dial answerOnBridge="true" timeout="25" action="' + escXml(action2) + '" method="POST"><Number>' + escXml(fallback) + '</Number></Dial></Response>');
       }
-      if (st !== 'completed') {
-        try {
-          await C.ensureSchema();
-          const users = await sql`SELECT email FROM users`;
+      const ten = from.replace(/\D/g, '').replace(/^1(?=\d{10}$)/, '');
+      const line = String(P.To || P.Called || '').replace(/[^\d]/g, '').replace(/^1(?=\d{10}$)/, '');
+      const sid = String(P.CallSid || '');
+      let rid = 0;
+      try {
+        await C.ensureSchema();
+        const last = (await sql`SELECT rep, name, outcome, ts FROM calls WHERE phone=${ten} ORDER BY ts DESC LIMIT 1`)[0];
+        const comp = (await sql`SELECT name FROM companies WHERE phone=${ten}`)[0];
+        const who = (comp && comp.name) || (last && last.name) || '';
+        const status = st === 'completed' ? (req.query.fb === '1' ? 'answered_cell' : 'answered') : 'missed';
+        const old = sid ? (await sql`SELECT id FROM inbound WHERE sid=${sid}`)[0] : null;
+        if (old) { rid = old.id; await sql`UPDATE inbound SET status=${status} WHERE id=${rid}`; }
+        else rid = (await sql`INSERT INTO inbound (sid, phone, line, rep, status) VALUES (${sid}, ${ten}, ${line}, ${(last && last.rep) || ''}, ${status}) RETURNING id`)[0].id;
+        if (status === 'missed') {
+          const users = (await sql`SELECT email, role FROM users WHERE COALESCE(active,1)=1`).filter(u => !last || !last.rep || u.email === last.rep || u.role === 'owner');
+          const nice = ten.length === 10 ? '(' + ten.slice(0, 3) + ') ' + ten.slice(3, 6) + '-' + ten.slice(6) : (from || 'unknown');
+          const lastLine = last ? '<p style="color:#5b6b80">Last touch: ' + String(last.outcome || '').replace(/_/g, ' ') + ' by ' + last.rep + ' on ' + new Date(last.ts).toLocaleDateString('en-US') + '</p>' : '<p style="color:#5b6b80">New number, not in the hub yet.</p>';
           for (const u of users) {
-            C.sendMail(u.email, 'Missed call back from ' + (from || 'unknown'),
-              '<p>Someone called the Twilio line back from <b>' + (from || 'an unknown number') + '</b> and nobody answered.</p><p>Call them back soon, returned calls are the warmest dials there are.</p>').catch(() => {});
+            C.sendMail(u.email, 'Missed call: ' + (who || nice),
+              '<p><b>' + (who ? who + ' (' + nice + ')' : nice) + '</b> called and nobody picked up.</p>' + lastLine +
+              '<p>It is waiting in <b>Dialer &rarr; Missed Calls</b> with a Call back button. If they leave a voicemail it will be there too.</p>').catch(() => {});
           }
-        } catch (e) {}
-        return xml(res, '<Response><Say>Thanks for calling Burket Web Design. We just missed you, but someone will call you right back shortly.</Say></Response>');
+        }
+      } catch (e) { console.log('[voice] inbound log failed', e && e.message); }
+      if (st !== 'completed') {
+        const vmAction = '/api/voice?k=' + encodeURIComponent(key) + '&vm=' + rid;
+        return xml(res, '<Response><Say voice="Polly.Joanna">Thanks for calling Burket Web Design. We just missed you. Leave your name and a good time to call after the tone, and we will call you right back.</Say>' +
+          '<Record maxLength="120" timeout="6" playBeep="true" action="' + escXml(vmAction) + '" method="POST"/><Say voice="Polly.Joanna">Thanks, talk soon.</Say></Response>');
       }
       return xml(res, '<Response></Response>');
     }
