@@ -5,7 +5,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#0e2235">
-<title>BWD Sales Hub</title>
+<title>BWD Command</title>
 <link rel="icon" href="https://www.burketwebdesign.com/assets/logo.png">
 <style>
 :root{
@@ -359,6 +359,72 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--m
   .hidem{display:none}
 }
 #hamb{display:none}
+
+/* ================= v3 shell ================= */
+#shell{display:block}
+#appbar{position:sticky;top:0;z-index:40;height:60px;display:flex;align-items:center;gap:14px;padding:0 18px;background:linear-gradient(90deg,#0b1c2c,#10304a);color:#fff;box-shadow:0 6px 24px rgba(8,20,34,.25)}
+.ab-brand{display:flex;align-items:center;gap:9px;cursor:pointer;flex:none}
+.ab-brand img{height:32px}
+.ab-brand b{display:block;font-size:13.5px;line-height:1.1}
+.ab-brand span{font-size:9.5px;font-weight:800;letter-spacing:1.2px;color:var(--gold)}
+#wsTabs{display:flex;gap:2px;background:rgba(255,255,255,.06);padding:4px;border-radius:12px;flex:none}
+#wsTabs button{background:transparent;color:#b9c8d8;font-size:13px;padding:7px 14px;border-radius:9px;font-weight:700}
+#wsTabs button:hover{color:#fff;background:rgba(255,255,255,.08)}
+#wsTabs button.on{background:#fff;color:#0e2235;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+.ab-search{position:relative;flex:1;max-width:460px;display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.09);border-radius:11px;padding:0 12px;border:1px solid rgba(255,255,255,.08)}
+.ab-search input{flex:1;background:transparent;border:0;color:#fff;padding:9px 0;font-size:13.5px}
+.ab-search input::placeholder{color:#8fa6bd}
+#gResults{display:none;position:absolute;top:44px;left:0;right:0;background:var(--card);color:var(--text);border-radius:14px;box-shadow:0 20px 50px rgba(0,0,0,.3);max-height:70vh;overflow:auto;padding:6px;border:1px solid var(--line)}
+#gResults.show{display:block}
+#gResults .gh{font-size:10.5px;font-weight:800;letter-spacing:.6px;color:var(--muted2);padding:8px 10px 4px;text-transform:uppercase}
+#gResults a{display:flex;justify-content:space-between;gap:10px;padding:9px 10px;border-radius:9px;cursor:pointer;font-size:13.5px}
+#gResults a:hover,#gResults a.sel{background:var(--hover)}
+#gResults a span{color:var(--muted);font-size:12px}
+.ab-right{display:flex;align-items:center;gap:8px;margin-left:auto;flex:none}
+.ab-menu{position:relative}
+.ab-btn{background:rgba(255,255,255,.1);color:#fff;padding:8px 12px;border-radius:10px;font-size:13px;position:relative}
+.ab-btn:hover{background:rgba(255,255,255,.18)}
+.ab-new{background:var(--gold);color:#0e2235}
+.ab-new:hover{background:#ffd640}
+.ab-icon i{position:absolute;top:-4px;right:-4px;background:#e5484d;color:#fff;font-style:normal;font-size:10px;font-weight:800;border-radius:99px;padding:1px 6px;display:none}
+.ab-me{padding:3px}
+.ab-me .av{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--gold),#f59e0b);color:#0e2235;font-weight:800;display:flex;align-items:center;justify-content:center;font-size:13px}
+.ab-drop{display:none;position:absolute;right:0;top:46px;min-width:210px;background:var(--card);color:var(--text);border-radius:14px;box-shadow:0 20px 50px rgba(0,0,0,.28);padding:6px;border:1px solid var(--line);z-index:50}
+.ab-drop.show{display:block}
+.ab-drop.ab-wide{min-width:330px}
+.ab-drop a{display:block;padding:9px 11px;border-radius:9px;cursor:pointer;font-size:13.5px;font-weight:600}
+.ab-drop a:hover{background:var(--hover)}
+.ab-drop .me-head{padding:8px 11px 10px;border-bottom:1px solid var(--line);margin-bottom:4px}
+.ab-drop .me-head b{display:block}.ab-drop .me-head span{font-size:12px;color:var(--muted)}
+.ab-drop .ntf{display:flex;gap:10px;align-items:center}
+.ab-drop .ntf i{width:8px;height:8px;border-radius:50%;flex:none;background:var(--muted2)}
+.ab-drop .ntf i.red{background:#e5484d}.ab-drop .ntf i.gold{background:var(--gold)}.ab-drop .ntf i.green{background:#16a34a}
+#subnav{position:sticky;top:60px;z-index:35;display:flex;gap:4px;padding:8px 18px;background:var(--card);border-bottom:1px solid var(--line);overflow-x:auto;scrollbar-width:none}
+#subnav::-webkit-scrollbar{display:none}
+#subnav .nv{width:auto;flex:none;color:var(--muted);background:transparent;padding:8px 13px;border-radius:10px;font-size:13px;margin:0;box-shadow:none}
+#subnav .nv:hover{background:var(--hover);color:var(--text);transform:none}
+#subnav .nv.on{background:var(--chip);color:var(--text);box-shadow:inset 0 -2px 0 var(--gold)}
+#subnav .nv .pill{margin-left:6px}
+#subnav .nv .pill.red,.pill.red{background:#e5484d;color:#fff}
+#subnav .nv.hide{display:none}
+body:not(.is-owner) .own{display:none!important}
+#maincol{display:block}
+#topbar{position:static;height:auto;padding:16px 22px 4px;background:transparent;border:0;max-width:1240px;margin:0 auto;width:100%}
+#topbar h1{font-size:22px;letter-spacing:-.2px}
+#content{max-width:1240px;padding-top:10px}
+#hamb{display:none!important}
+.card{border-radius:16px}
+.kpi b{letter-spacing:-.3px}
+table th{font-size:11px;letter-spacing:.4px}
+@media(max-width:1100px){.ab-brand div{display:none}}
+@media(max-width:900px){.g2{grid-template-columns:1fr!important}.g2>.card{grid-column:auto!important}#v-settings .card div[style*="repeat(3"]{grid-template-columns:1fr!important}#v-settings .card div[style*="span 3"]{grid-column:auto!important}#invmodal .inner>div[style*="2fr 1fr 1fr"]{grid-template-columns:1fr!important}}
+@media(max-width:860px){
+  #appbar{flex-wrap:wrap;height:auto;padding:8px 12px;gap:8px}
+  #wsTabs{order:3;width:100%;overflow-x:auto}
+  .ab-search{order:4;max-width:none;width:100%;flex-basis:100%}
+  #subnav{top:0;position:relative}
+  #topbar{padding:12px 14px 0}
+}
 </style>
 </head>
 <body>
@@ -388,51 +454,63 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--m
 <div id="app">
 <div id="shell">
 
-  <nav id="side">
-    <div class="brand">
-      <img src="https://www.burketwebdesign.com/assets/logo.png" alt="BWD" onerror="this.style.display='none'">
-      <div><b>Burket Web Design</b><span>SALES HUB</span></div>
+  <div id="side" style="display:none"></div><div id="ownerNav" style="display:none"></div>
+  <header id="appbar">
+    <div class="ab-brand" onclick="gotoView('dash')"><img src="https://www.burketwebdesign.com/assets/logo.png" alt="" onerror="this.style.display='none'"><div><b>Burket Web Design</b><span>COMMAND</span></div></div>
+    <nav id="wsTabs">
+      <button data-ws="home">Home</button>
+      <button data-ws="sell">Sell</button>
+      <button data-ws="clients" class="own">Clients</button>
+      <button data-ws="money" class="own">Money</button>
+      <button data-ws="insights" class="own">Insights</button>
+      <button data-ws="me">Me</button>
+    </nav>
+    <div class="ab-search"><span>&#128269;</span><input id="gSearch" placeholder="Search companies, clients, invoices..." autocomplete="off"><div id="gResults"></div></div>
+    <div class="ab-right">
+      <div class="ab-menu"><button class="ab-btn ab-new" onclick="abToggle('newMenu',event)">+ New</button>
+        <div class="ab-drop" id="newMenu">
+          <a onclick="qaTask()">&#9989; Task</a>
+          <a onclick="qaDial()">&#128222; Dial a number</a>
+          <a onclick="gotoView('dialer')">&#127919; Build a call list</a>
+          <a class="own" onclick="clNew()">&#128188; Client</a>
+          <a class="own" onclick="invCompose()">&#129534; Invoice (Wave)</a>
+          <a class="own" onclick="gotoView('refer')">&#129309; Referral</a>
+        </div></div>
+      <div class="ab-menu"><button class="ab-btn ab-icon" onclick="bellOpen(event)" title="Notifications">&#128276;<i id="bellN"></i></button>
+        <div class="ab-drop ab-wide" id="bellMenu"><div class="hint" style="padding:10px">Loading...</div></div></div>
+      <div class="ab-menu"><button class="ab-btn ab-me" onclick="abToggle('meMenu',event)"><span class="av" id="meAv">T</span></button>
+        <div class="ab-drop" id="meMenu">
+          <div class="me-head"><b id="meName">-</b><span id="meRole">-</span></div>
+          <a onclick="openMorning()">&#9728;&#65039; Morning start</a>
+          <a onclick="openShift()">&#127937; End my shift</a>
+          <a onclick="togglePH()">&#9889; Power hour</a>
+          <a onclick="toggleDark()">&#127769; Dark mode</a>
+          <a class="own" onclick="gotoView('settings')">&#9881;&#65039; Settings</a>
+          <a onclick="logout()">&#10162; Sign out</a>
+        </div></div>
     </div>
-    <div id="nav">
-      <div class="navsec">WORK</div>
-      <button class="nv on" data-view="dash"><span class="ic">&#127968;</span>Dashboard</button>
-      <button class="nv" data-view="dialer"><span class="ic">&#128222;</span>Dialer<span class="pill" id="navDialPill" style="display:none"></span><span class="pill" id="navMissPill" title="Missed calls" style="display:none;background:#e5484d;color:#fff;margin-left:4px"></span></button>
-      <button class="nv" data-view="listing"><span class="ic">&#127991;&#65039;</span>Listing Calls</button>
-      <button class="nv" data-view="pipe"><span class="ic">&#128202;</span>Pipeline</button>
-      <button class="nv" data-view="tasks"><span class="ic">&#9989;</span>Tasks<span class="pill" id="navTaskPill" style="display:none;background:#e5484d;color:#fff"></span></button>
-      <button class="nv" data-view="meet"><span class="ic">&#129309;</span>Meetings</button>
-      <button class="nv" data-view="lists"><span class="ic">&#128203;</span>Custom Lists<span class="pill" id="navListPill" style="display:none"></span></button>
-      <button class="nv" data-view="seq"><span class="ic">&#9993;&#65039;</span>Sequences</button>
-      <button class="nv" data-view="past"><span class="ic">&#128337;</span>Past Calls<span class="pill" id="dueBadge" style="display:none"></span></button>
-      <div class="navsec">MONEY</div>
-      <button class="nv" data-view="comm"><span class="ic">&#128176;</span>Commissions</button>
-      <div class="navsec">LEARN</div>
-      <button class="nv" data-view="play"><span class="ic">&#128218;</span>Playbook</button>
-      <div id="ownerNav" style="display:none">
-        <div class="navsec">BUSINESS</div>
-        <button class="nv" data-view="hq"><span class="ic">&#127970;</span>Business HQ</button>
-        <button class="nv" data-view="clients"><span class="ic">&#128188;</span>Clients</button>
-        <button class="nv" data-view="billing"><span class="ic">&#129534;</span>Billing</button>
-        <div class="navsec">OWNER</div>
-        <button class="nv" data-view="owner"><span class="ic">&#9881;&#65039;</span>Command Center<span class="pill" id="apprBadge" style="display:none"></span></button>
-        <button class="nv" data-view="perf"><span class="ic">&#128200;</span>Rep Performance</button>
-        <button class="nv" data-view="refer"><span class="ic">&#129309;</span>Referral Program<span class="pill" id="refPill" style="display:none"></span></button>
-      </div>
-    </div>
-    <div class="foot">
-      <div class="me">
-        <div class="av" id="meAv">T</div>
-        <div><b id="meName">-</b><span id="meRole">-</span></div>
-      </div>
-      <div class="footbtns">
-        <button onclick="openMorning()" title="Morning start">&#9728;&#65039;</button>
-        <button onclick="openShift()" title="End my shift">&#127937;</button>
-        <button onclick="togglePH()" title="Power hour">&#9889;</button>
-        <button onclick="toggleDark()" title="Dark mode">&#127769;</button>
-        <button onclick="logout()" title="Sign out">&#10162;</button>
-      </div>
-    </div>
-  </nav>
+  </header>
+  <div id="subnav">
+    <button class="nv" data-ws="home" data-view="dash"><span class="ic">&#127968;</span>Dashboard</button>
+    <button class="nv own" data-ws="home" data-view="hq"><span class="ic">&#127970;</span>Business HQ</button>
+    <button class="nv" data-ws="home" data-view="tasks"><span class="ic">&#9989;</span>Tasks<span class="pill red" id="navTaskPill" style="display:none"></span></button>
+    <button class="nv" data-ws="sell" data-view="dialer"><span class="ic">&#128222;</span>Dialer<span class="pill" id="navDialPill" style="display:none"></span><span class="pill red" id="navMissPill" title="Missed calls" style="display:none"></span></button>
+    <button class="nv" data-ws="sell" data-view="listing"><span class="ic">&#127991;&#65039;</span>Listing Calls</button>
+    <button class="nv" data-ws="sell" data-view="pipe"><span class="ic">&#128202;</span>Pipeline</button>
+    <button class="nv" data-ws="sell" data-view="meet"><span class="ic">&#129309;</span>Meetings</button>
+    <button class="nv" data-ws="sell" data-view="lists"><span class="ic">&#128203;</span>Custom Lists<span class="pill" id="navListPill" style="display:none"></span></button>
+    <button class="nv" data-ws="sell" data-view="seq"><span class="ic">&#9993;&#65039;</span>Sequences</button>
+    <button class="nv" data-ws="sell" data-view="past"><span class="ic">&#128337;</span>Past Calls<span class="pill" id="dueBadge" style="display:none"></span></button>
+    <button class="nv own" data-ws="clients" data-view="clients"><span class="ic">&#128188;</span>Clients</button>
+    <button class="nv own" data-ws="clients" data-view="refer"><span class="ic">&#129309;</span>Referrals<span class="pill" id="refPill" style="display:none"></span></button>
+    <button class="nv own" data-ws="money" data-view="billing"><span class="ic">&#129534;</span>Billing &amp; Wave</button>
+    <button class="nv own" data-ws="money" data-view="owner"><span class="ic">&#9881;&#65039;</span>Deals &amp; Commissions<span class="pill" id="apprBadge" style="display:none"></span></button>
+    <button class="nv own" data-ws="insights" data-view="reports"><span class="ic">&#128200;</span>Reports</button>
+    <button class="nv own" data-ws="insights" data-view="perf"><span class="ic">&#128101;</span>Rep Performance</button>
+    <button class="nv" data-ws="me" data-view="comm"><span class="ic">&#128176;</span>My Commissions</button>
+    <button class="nv" data-ws="me" data-view="play"><span class="ic">&#128218;</span>Playbook</button>
+    <button class="nv own" data-ws="me" data-view="settings"><span class="ic">&#9881;&#65039;</span>Settings</button>
+  </div>
 
   <div id="maincol">
     <div id="topbar">
@@ -683,12 +761,14 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--m
           <div class="kpi"><b id="hq-ar">$0</b><span>open invoices · <span id="hq-od"></span></span></div>
         </div>
         <div class="card" style="font-size:14px" id="hq-alerts"></div>
+        <div class="card" id="hq-goals" style="display:none"></div>
         <div class="g2" style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
           <div class="card"><b style="font-size:15px">&#128176; Cash collected (6 months)</b><div id="hq-chart" style="margin-top:10px"></div></div>
           <div class="card"><b style="font-size:15px">&#128202; Sales today</b><div class="hint" id="hq-pipe" style="margin:6px 0 8px"></div><div id="hq-team"></div></div>
           <div class="card"><b style="font-size:15px">&#9989; Tasks due this week</b> <a href="#" class="hint" onclick="gotoView('tasks');return false">all tasks</a><div id="hq-tasks" style="margin-top:8px"></div></div>
           <div class="card"><b style="font-size:15px">&#129534; Overdue invoices</b> <a href="#" class="hint" onclick="gotoView('billing');return false">billing</a><div id="hq-inv" style="margin-top:8px"></div></div>
           <div class="card"><b style="font-size:15px">&#9888;&#65039; Clients needing attention</b><div class="hint">Yellow or red: overdue invoice, late tasks, or no touch in 45 days.</div><div id="hq-risk" style="margin-top:8px"></div></div>
+          <div class="card" style="grid-column:span 2"><b style="font-size:15px">&#9889; Live activity</b><div id="hq-act" style="margin-top:8px;max-height:340px;overflow:auto"></div></div>
           <div class="card"><b style="font-size:15px">&#128197; Contract terms ending (30 days)</b><div class="hint">Call before the term ends: renew, upgrade, or ask for a referral.</div><div id="hq-ren" style="margin-top:8px"></div></div>
         </div>
       </div>
@@ -715,6 +795,7 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--m
           <div class="kpi"><b id="bl-k3">$0</b><span>collected this month</span></div>
           <div class="kpi"><b id="bl-k4">0</b><span>clients still to bill this month</span></div>
         </div>
+        <div class="row" style="margin-bottom:12px;gap:8px"><button class="btn-go" onclick="invCompose()">+ New invoice in Wave</button><span class="hint" id="bl-aging"></span></div>
         <div class="card">
           <b style="font-size:15px">&#128197; This month's billing run</b>
           <div class="hint">Create each invoice in Wave as usual. The Wave sync pulls it in every morning (or hit Sync now); Log Wave invoice is only needed if you want it here right away. Referral credits are taken off automatically; add a negative "Referral credit" line in Wave for the same amount.</div>
@@ -723,7 +804,7 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--m
         <div class="card">
           <div class="row" style="align-items:center;margin-bottom:8px;gap:8px;background:var(--chip,#f3f6f9);border-radius:10px;padding:8px 10px"><b>&#128260; Wave sync</b><span class="hint" id="wv-st">checking...</span><div style="flex:1"></div><button class="btn-blue btn-sm" id="wv-go" onclick="waveSync()">Sync now</button></div>
           <div class="row" style="align-items:center"><b style="font-size:15px">&#129534; Invoices</b><div style="flex:1"></div>
-            <select id="bl-f" onchange="blRender()" style="max-width:150px"><option value="open">Open</option><option value="overdue">Overdue</option><option value="paid">Paid</option><option value="all">All</option></select></div>
+            <select id="bl-f" onchange="blRender()" style="max-width:150px"><option value="open">Open</option><option value="overdue">Overdue</option><option value="draft">Wave drafts</option><option value="paid">Paid</option><option value="all">All</option></select></div>
           <div class="hint">Payments in Wave show up here on the next sync. Mark paid is still here for anything paid outside Wave.</div>
           <div id="bl-list" style="margin-top:8px"></div>
         </div>
@@ -742,6 +823,54 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--m
           <div class="row" style="margin-top:8px;align-items:center"><span class="hint">Repeating tasks create the next one when you check them off.</span><div style="flex:1"></div><select id="tk-who" onchange="tkRender()" style="max-width:170px;display:none"></select></div>
         </div>
         <div id="tk-list"></div>
+      </div>
+
+      <div class="view" id="v-reports">
+        <div class="row" style="margin-bottom:10px;gap:8px"><span class="hint">Numbers come from Wave invoices, the CRM and every logged call.</span><div style="flex:1"></div><button class="btn-ghost btn-sm" onclick="rpCsv()">&#11015; Client revenue CSV</button><button class="btn-ghost btn-sm" onclick="rpLoad()">&#8635; Refresh</button></div>
+        <div class="g4" style="margin-bottom:14px">
+          <div class="kpi"><b id="rp-ytd">$0</b><span>collected this year</span></div>
+          <div class="kpi"><b id="rp-avg">$0</b><span>avg revenue per client / mo</span></div>
+          <div class="kpi"><b id="rp-dtp">-</b><span>avg days to get paid</span></div>
+          <div class="kpi"><b id="rp-fc">$0</b><span>weighted pipeline forecast</span></div>
+        </div>
+        <div class="g2" style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+          <div class="card" style="grid-column:span 2"><b style="font-size:15px">&#128176; Revenue collected, last 12 months</b><div id="rp-rev" style="margin-top:10px"></div></div>
+          <div class="card"><b style="font-size:15px">&#9203; Receivables aging</b><div id="rp-aging" style="margin-top:10px"></div></div>
+          <div class="card"><b style="font-size:15px">&#127919; Sales funnel (30 days)</b><div id="rp-funnel" style="margin-top:10px"></div></div>
+          <div class="card"><b style="font-size:15px">&#127942; Rep leaderboard (30 days)</b><div id="rp-reps" style="margin-top:8px"></div></div>
+          <div class="card"><b style="font-size:15px">&#128202; Pipeline by stage</b><div id="rp-pipe" style="margin-top:8px"></div></div>
+          <div class="card"><b style="font-size:15px">&#128200; New clients by month</b><div id="rp-growth" style="margin-top:10px"></div></div>
+          <div class="card"><b style="font-size:15px">&#128683; Why we lose / who churned</b><div id="rp-lost" style="margin-top:8px"></div></div>
+          <div class="card" style="grid-column:span 2"><b style="font-size:15px">&#128188; Clients by lifetime value</b><div id="rp-clients" style="margin-top:8px;overflow-x:auto"></div></div>
+        </div>
+      </div>
+
+      <div class="view" id="v-settings">
+        <div class="g2" style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+          <div class="card"><b style="font-size:15px">&#127919; Goals</b><div class="hint">Shown as progress bars on Business HQ.</div>
+            <div class="row" style="margin-top:10px;align-items:flex-end;gap:8px">
+              <div><label>MRR goal ($/mo)</label><input id="st-gmrr" style="max-width:140px"></div>
+              <div><label>New clients / month</label><input id="st-gcl" style="max-width:120px"></div>
+              <div><label>Team dials / day</label><input id="st-gdials" style="max-width:120px"></div>
+              <button class="btn-blue btn-sm" onclick="stSave('goals')">Save</button></div></div>
+          <div class="card"><b style="font-size:15px">&#128260; Wave connection</b><div id="st-wave" class="hint" style="margin-top:6px">Checking...</div>
+            <div class="row" style="margin-top:8px;gap:6px"><button class="btn-blue btn-sm" onclick="waveSync()">Sync now</button></div>
+            <div class="hint" style="margin-top:8px;line-height:1.6">For instant updates when a client pays, add a webhook in Wave's Developer Portal (your BWD CRM app &rarr; Webhooks) pointing to <code id="st-hook">https://crm.burketwebdesign.com/api/wave-hook?k=...</code> using the same key as the Twilio webhook. Without it, the CRM still re-syncs every 10 minutes while you use it, and every morning.</div></div>
+          <div class="card" style="grid-column:span 2"><b style="font-size:15px">&#129534; Invoice defaults</b><div class="hint">Used when you create invoices from the CRM. Invoices are created and emailed by Wave, from your Wave business.</div>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px">
+              <div><label>Default product / service</label><select id="st-prod"></select></div>
+              <div><label>Payment terms (days)</label><input id="st-net" type="number" min="0" placeholder="15"></div>
+              <div><label>Deposit account (for recorded payments)</label><select id="st-acct"></select></div>
+              <div style="grid-column:span 3"><label>Email subject</label><input id="st-subj" placeholder="Invoice {number} from Burket Web Design"></div>
+              <div style="grid-column:span 3"><label>Email message</label><textarea id="st-msg" rows="3" placeholder="Hi {first}, here is your invoice for {month}. Thank you for your business!"></textarea></div>
+              <div style="grid-column:span 3"><label>Payment reminder message</label><textarea id="st-rmd" rows="2" placeholder="Hi {first}, a friendly reminder that invoice {number} for {amount} was due {due}. You can pay online from the link below. Thank you!"></textarea></div>
+            </div>
+            <div class="row" style="margin-top:8px"><span class="hint">Placeholders: {first} {client} {number} {amount} {due} {month}</span><div style="flex:1"></div><button class="btn-blue btn-sm" onclick="stSave('invoice')">Save defaults</button></div></div>
+          <div class="card" style="grid-column:span 2"><b style="font-size:15px">&#128274; Team &amp; permissions</b>
+            <div id="st-team" style="margin-top:8px"></div>
+            <div class="hint" style="margin-top:10px;line-height:1.7"><b>Sales reps can:</b> dial, build lists, Listing Calls, see the shared pipeline (no money), their own meetings, sequences, past calls, tasks assigned to them, and their own commissions.<br><b>Sales reps cannot:</b> see Business HQ, Clients, Billing &amp; Wave, Referrals, Reports, Rep Performance, Deals &amp; Commissions for others, Settings, delete companies, or any invoice / revenue numbers. Every owner-only request is checked on the server, not just hidden.</div></div>
+          <div class="card" style="grid-column:span 2"><b style="font-size:15px">&#128220; Audit log</b><div class="hint">Who did what: deletions, invoices sent, payments, role changes, blocked requests.</div><div id="st-audit" style="margin-top:8px;max-height:360px;overflow:auto"></div></div>
+        </div>
       </div>
 
       <div class="view" id="v-refer">
@@ -1075,11 +1204,41 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--m
   </div>
 </div>
 
+<div class="modal2" id="invmodal">
+  <div class="inner" style="width:760px">
+    <div class="row" style="align-items:center"><h2 style="font-size:18px">&#129534; New invoice in Wave</h2><div style="flex:1"></div><button class="btn-ghost btn-sm" onclick="$('invmodal').classList.remove('show')">&#10005;</button></div>
+    <div class="hint" id="iv-biz" style="margin-top:2px">Loading Wave...</div>
+    <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:8px;margin-top:10px">
+      <div><label>Client</label><select id="iv-client" onchange="ivClient()"></select></div>
+      <div><label>Invoice date</label><input id="iv-date" type="date" onchange="ivDue()"></div>
+      <div><label>Due date</label><input id="iv-due" type="date"></div>
+    </div>
+    <h3 class="sec">Line items</h3>
+    <div id="iv-lines"></div>
+    <button class="btn-ghost btn-sm" onclick="ivAdd()">+ Add line</button>
+    <div class="row" style="margin-top:10px;gap:8px;align-items:flex-end">
+      <div><label>Discount / referral credit $</label><input id="iv-disc" style="max-width:120px" oninput="ivTotal()" placeholder="0"></div>
+      <label style="display:flex;gap:6px;align-items:center;margin:0 0 9px"><input type="checkbox" id="iv-usecred" style="width:auto"> take it from their referral credit</label>
+      <div style="flex:1"></div><div style="font-size:22px;font-weight:800" id="iv-total">$0</div>
+    </div>
+    <div style="margin-top:8px"><label>Memo on the invoice (optional)</label><input id="iv-memo" placeholder="Thank you for your business!"></div>
+    <h3 class="sec">Email it</h3>
+    <div style="display:grid;grid-template-columns:1fr 2fr;gap:8px">
+      <div><label>To</label><input id="iv-to" placeholder="client@email.com"></div>
+      <div><label>Subject</label><input id="iv-subj"></div>
+    </div>
+    <div style="margin-top:8px"><label>Message</label><textarea id="iv-msg" rows="3"></textarea></div>
+    <label style="display:flex;gap:6px;align-items:center;margin-top:8px"><input type="checkbox" id="iv-cc" style="width:auto" checked> send me a copy</label>
+    <div class="row" style="margin-top:14px;gap:8px"><button class="btn-go" id="iv-send" onclick="ivSubmit(true)">Create &amp; send from Wave</button><button class="btn-ghost" id="iv-draft" onclick="ivSubmit(false)">Save as Wave draft</button><span class="hint" id="iv-err" style="color:var(--red)"></span></div>
+  </div>
+</div>
 <div class="modal2" id="clmodal">
   <div class="inner" style="width:820px">
     <div class="row" style="align-items:center"><h2 style="font-size:18px" id="clm-title">Client</h2><div style="flex:1"></div>
       <button class="btn-ghost btn-sm" onclick="$('clmodal').classList.remove('show')">&#10005;</button></div>
     <div class="hint" id="clm-meta" style="margin-top:4px"></div>
+    <div class="row" id="clm-acts" style="margin-top:10px;gap:6px;display:none"></div>
+    <div class="g4" id="clm-kpis" style="margin-top:10px;display:none"></div>
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px">
       <div><label>Business name</label><input id="clm-name"></div>
       <div><label>Contact</label><input id="clm-contact"></div>
@@ -1139,6 +1298,7 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--m
       <input id="cp-email" placeholder="email@business.com" style="flex:1;min-width:170px">
       <button class="btn-ghost btn-sm" onclick="cpSave()">Save</button>
     </div>
+    <div class="row" style="margin-top:8px;gap:6px"><label style="margin:0">Deal value $/mo</label><input id="cp-value" style="max-width:110px" placeholder="0"><button class="btn-ghost btn-sm" onclick="cpValue()">Set</button><span class="hint">Feeds the pipeline total and forecast.</span></div>
     <div class="row" style="margin-top:12px;gap:8px">
       <button class="btn-blue btn-sm" onclick="openProposal()">&#128196; Send proposal</button>
       <button class="btn-green btn-sm" id="cp-contractBtn" onclick="openContract()">&#9997;&#65039; Send contract</button>
@@ -1494,6 +1654,8 @@ var QUOTES = [
 ];
 var TITLES = {
   dash:['Dashboard','Your day at a glance'],
+  reports:['Reports','Revenue, receivables, funnel, reps and clients'],
+  settings:['Settings','Goals, Wave, invoice defaults, team permissions and audit log'],
   hq:['Business HQ','Revenue, clients, cash and the team in one place'],
   clients:['Clients','Every account: package, MRR, health, tasks and billing'],
   billing:['Billing','Wave invoices, what is owed, and this month\u2019s billing run'],
@@ -1779,7 +1941,7 @@ function gCell(b){
   if (b.src!=='google') return '<span style="color:var(--muted2)">-</span>';
   return '<span style="font-size:12.5px">'+esc('#'+b.pos+' · '+(b.reviews>0?(b.rating+'★ ('+b.reviews+')'):'no reviews'))+'</span>';
 }
-function renderAll(){ missPoll(); try{ tkLoad(); }catch(e){} renderList(); renderStats(); renderHistoryBoot(); renderSeqs(); renderMeetings(); renderComm(); if(BOOT&&BOOT.user.role==='owner')renderOwner(); loadBreakdown(); }
+function renderAll(){ shellSync(); bellPoll(); missPoll(); try{ tkLoad(); }catch(e){} renderList(); renderStats(); renderHistoryBoot(); renderSeqs(); renderMeetings(); renderComm(); if(BOOT&&BOOT.user.role==='owner')renderOwner(); loadBreakdown(); }
 function renderList(){
   $('listTitle').textContent = LISTMETA.city ? (LISTMETA.industry+' - '+LISTMETA.city) : 'Call List';
   if (!LIST.length) {
@@ -2071,7 +2233,7 @@ function repName(e){ var r=((BOOT.team&&BOOT.team.reps)||[]).find(function(x){re
 /* ---------- HQ ---------- */
 function hqLoad(){
   api('crm.hq').then(function(d){
-    $('hq-mrr').textContent=money(d.mrr); $('hq-cli').textContent=d.clients+(d.onboarding?' ('+d.onboarding+' onboarding)':'');
+    hqExtras(d); $('hq-mrr').textContent=money(d.mrr); $('hq-cli').textContent=d.clients+(d.onboarding?' ('+d.onboarding+' onboarding)':'');
     $('hq-cash').textContent=money(d.cash.m); $('hq-cashlm').textContent='last month '+money(d.cash.lm);
     $('hq-ar').textContent=money(d.cash.ar); $('hq-od').innerHTML=Number(d.cash.overdue)>0?'<b style="color:var(--red)">'+money(d.cash.overdue)+' overdue</b>':'nothing overdue';
     var mx=Math.max.apply(null,(d.months||[]).map(function(m){return Number(m.v);}).concat([1]));
@@ -2110,7 +2272,7 @@ function clRender(){
       '<td><span class="tag'+(c.status==='active'?'" style="background:var(--green-bg);color:var(--green)"':c.status==='onboarding'?' t-gold"':'"')+'>'+CL_ST[c.status]+'</span></td></tr>';
   }).join('')+'</tbody></table></div>':'<div class="empty">'+(CRM.clients.length?'No clients match.':'No clients yet. Click <b>+ Import from Wave</b> to pull in your customers, or <b>+ New client</b>.')+'</div>';
 }
-function clNew(){ CRM.cur=null; clFill({status:'onboarding',term_months:6,health:'auto',start_s:today10()}); $('clm-extra').style.display='none'; $('clm-tplrow').style.display='flex'; $('clmodal').classList.add('show'); }
+function clNew(){ CRM.cur=null; $('clm-acts').style.display='none'; $('clm-kpis').style.display='none'; clFill({status:'onboarding',term_months:6,health:'auto',start_s:today10()}); $('clm-extra').style.display='none'; $('clm-tplrow').style.display='flex'; $('clmodal').classList.add('show'); }
 function clOpen(id){
   api('crm.client.get',{id:id}).then(function(d){
     CRM.cur=d; clFill(d.client); $('clm-extra').style.display='block'; $('clm-tplrow').style.display='none'; clDetail(); $('clmodal').classList.add('show');
@@ -2133,11 +2295,11 @@ function clSave(){
 function clDelete(){ var c=CRM.cur&&CRM.cur.client; if(!c||!confirm('Delete '+c.name+' and all their invoices, tasks and notes from the CRM? This cannot be undone. (Use status Churned to keep history.)')) return;
   api('crm.client.delete',{id:c.id}).then(function(){ $('clmodal').classList.remove('show'); toast('Deleted.'); clLoad(); }); }
 function clDetail(){
-  var d=CRM.cur, c=d.client;
+  var d=CRM.cur, c=d.client; clHeader(d);
   $('clm-inv').innerHTML=(d.invoices.length?'<table><thead><tr><th>#</th><th>Amount</th><th>Issued</th><th>Due</th><th>Status</th><th></th></tr></thead><tbody>'+d.invoices.map(function(i){
     var late=i.status==='open'&&i.due_s<today10();
-    return '<tr><td>'+esc(i.number||'')+'</td><td>'+money(i.amount)+'</td><td>'+dshort(i.issued_s)+'</td><td'+(late?' style="color:var(--red);font-weight:700"':'')+'>'+dshort(i.due_s)+'</td><td>'+(i.status==='paid'?'<span class="tag" style="background:var(--green-bg);color:var(--green)">paid '+dshort(i.paid_s)+'</span>':i.status==='void'?'<span class="tag">void</span>':'<span class="tag t-gold">open</span>')+'</td>'+
-      '<td>'+(i.status==='open'?'<button class="btn-ghost btn-sm" onclick="invPaid('+i.id+',function(){clOpen('+c.id+')})">Paid</button>':'')+' <button class="btn-ghost btn-sm" onclick="invDel('+i.id+',function(){clOpen('+c.id+')})">&#10005;</button></td></tr>';
+    return '<tr><td>'+esc(i.number||'')+'</td><td>'+money(i.amount)+'</td><td>'+dshort(i.issued_s)+'</td><td'+(late?' style="color:var(--red);font-weight:700"':'')+'>'+dshort(i.due_s)+'</td><td>'+(i.status==='paid'?'<span class="tag" style="background:var(--green-bg);color:var(--green)">paid '+dshort(i.paid_s)+'</span>':i.status==='void'?'<span class="tag">void</span>':i.status==='draft'?'<span class="tag">draft</span>':'<span class="tag t-gold">'+(Number(i.amount_paid)>0?'partial':'open')+'</span>')+(i.recurring_id?' <span class="tag" title="From a Wave recurring invoice">&#8635;</span>':'')+'</td>'+
+      '<td style="white-space:nowrap">'+invActs(i,'function(){clOpen('+c.id+')}')+'</td></tr>';
   }).join('')+'</tbody></table>':'<div class="hint">No invoices logged yet.</div>')+
     (d.ref&&Number(d.ref.balance)>0?'<div class="hint" style="margin-top:6px">&#128181; This client has a <b>'+money(d.ref.balance)+'</b> referral credit. Put it on their next Wave invoice and enter it in Credit applied below.</div>':'');
   $('clm-tasks').innerHTML=d.tasks.length?d.tasks.map(function(t){
@@ -2249,6 +2411,7 @@ function blRender(){ waveStatus();
   var inv=CRM.invoices, t0=today10(), f=$('bl-f').value;
   var open=inv.filter(function(i){return i.status==='open';}), od=open.filter(function(i){return i.due_s<t0;});
   var mStart=t0.slice(0,8)+'01', paidM=inv.filter(function(i){return i.status==='paid'&&i.paid_s>=mStart;});
+  var agT=open.filter(function(i){return i.due_s<t0;}); $('bl-aging').textContent=open.length?(open.length+' open · '+agT.length+' overdue · '+inv.filter(function(i){return i.status==='draft';}).length+' drafts'):'';
   $('bl-k1').textContent=money(open.reduce(function(a,i){return a+Number(i.amount);},0));
   $('bl-k2').textContent=money(od.reduce(function(a,i){return a+Number(i.amount);},0));
   $('bl-k3').textContent=money(paidM.reduce(function(a,i){return a+Number(i.amount);},0));
@@ -2257,14 +2420,14 @@ function blRender(){ waveStatus();
   $('bl-run').innerHTML=CRM.run.length?'<table><thead><tr><th>Client</th><th>Monthly</th><th>Referral credit</th><th>Bill in Wave</th><th></th></tr></thead><tbody>'+CRM.run.map(function(c){
     var cr=Math.min(Number(c.credit)||0,Number(c.mrr));
     return '<tr'+(c.logged?' style="opacity:.5"':'')+'><td><a href="#" onclick="clOpen('+c.id+');return false"><b>'+esc(c.name)+'</b></a></td><td>'+money(c.mrr)+'</td><td>'+(cr>0?'<b style="color:var(--green)">-'+money(cr)+'</b>':'')+'</td><td><b>'+money(Number(c.mrr)-cr)+'</b></td>'+
-      '<td>'+(c.logged?'<span class="tag" style="background:var(--green-bg);color:var(--green)">logged</span>':'<button class="btn-blue btn-sm" onclick="blLog('+c.id+','+Number(c.mrr)+','+cr+')">Log Wave invoice</button>')+'</td></tr>';
+      '<td>'+(c.logged?'<span class="tag" style="background:var(--green-bg);color:var(--green)">logged</span>':'<button class="btn-blue btn-sm" onclick="invCompose('+c.id+')">Create &amp; send</button> <button class="btn-ghost btn-sm" title="Already made it in Wave" onclick="blLog('+c.id+','+Number(c.mrr)+','+cr+')">Log</button>')+'</td></tr>';
   }).join('')+'</tbody></table>':'<div class="hint">No active clients with a monthly amount yet. Add MRR on each client.</div>';
   var rows=inv.filter(function(i){ return f==='all'||(f==='overdue'?(i.status==='open'&&i.due_s<t0):i.status===f); });
   $('bl-list').innerHTML=rows.length?'<div style="overflow-x:auto"><table><thead><tr><th>Client</th><th>#</th><th>Amount</th><th>Issued</th><th>Due</th><th>Status</th><th></th></tr></thead><tbody>'+rows.map(function(i){
     var late=i.status==='open'&&i.due_s<t0;
     return '<tr><td><a href="#" onclick="clOpen('+i.client_id+');return false"><b>'+esc(i.client||'')+'</b></a></td><td>'+esc(i.number||'')+'</td><td>'+money(i.amount)+'</td><td>'+dshort(i.issued_s)+'</td><td'+(late?' style="color:var(--red);font-weight:700"':'')+'>'+dshort(i.due_s)+(late?' ('+i.late_days+'d)':'')+'</td>'+
-      '<td>'+(i.status==='paid'?'<span class="tag" style="background:var(--green-bg);color:var(--green)">paid '+dshort(i.paid_s)+'</span>':i.status==='void'?'<span class="tag">void</span>':'<span class="tag t-gold">open</span>')+'</td>'+
-      '<td style="white-space:nowrap">'+(i.status==='open'?'<button class="btn-green btn-sm" onclick="invPaid('+i.id+',blLoad)">Mark paid</button> ':'')+'<button class="btn-ghost btn-sm" onclick="invDel('+i.id+',blLoad)">&#10005;</button></td></tr>';
+      '<td>'+(i.status==='paid'?'<span class="tag" style="background:var(--green-bg);color:var(--green)">paid '+dshort(i.paid_s)+'</span>':i.status==='void'?'<span class="tag">void</span>':i.status==='draft'?'<span class="tag">draft</span>':'<span class="tag t-gold">'+(Number(i.amount_paid)>0?'partial':'open')+'</span>')+(i.recurring_id?' <span class="tag" title="From a Wave recurring invoice">&#8635;</span>':'')+'</td>'+
+      '<td style="white-space:nowrap">'+invActs(i,'blLoad')+'</td></tr>';
   }).join('')+'</tbody></table></div>':'<div class="empty" style="padding:12px">No invoices here.</div>';
 }
 function blLog(id,mrr,cr){
@@ -2274,6 +2437,292 @@ function blLog(id,mrr,cr){
 }
 function invPaid(id,cb){ var d=prompt('Date paid (YYYY-MM-DD):', today10()); if(d===null) return; api('crm.invoice.paid',{id:id,date:d}).then(function(){ toast('Marked paid.'); cb&&cb(); }); }
 function invDel(id,cb){ if(confirm('Delete this invoice entry? (Only removes it from the CRM log, not from Wave.)')) api('crm.invoice.delete',{id:id}).then(function(){cb&&cb();}); }
+
+
+/* ================= v3 SHELL: workspaces, search, bell, menus ================= */
+var WS_DEFAULT={home:'dash',sell:'dialer',clients:'clients',money:'billing',insights:'reports',me:'comm'};
+var WS_LAST={};
+function wsOf(v){ var b=document.querySelector('#subnav .nv[data-view="'+v+'"]'); return b?b.getAttribute('data-ws'):'home'; }
+function wsShow(ws){
+  document.querySelectorAll('#wsTabs button').forEach(function(b){ b.classList.toggle('on', b.getAttribute('data-ws')===ws); });
+  document.querySelectorAll('#subnav .nv').forEach(function(b){ b.classList.toggle('hide', b.getAttribute('data-ws')!==ws); });
+}
+document.querySelectorAll('#wsTabs button').forEach(function(b){ b.addEventListener('click', function(){
+  var ws=b.getAttribute('data-ws'); var v=WS_LAST[ws]||WS_DEFAULT[ws];
+  if(ws==='home' && isOwner() && !WS_LAST.home) v='hq';
+  gotoView(v);
+}); });
+var _gotoView0=gotoView;
+gotoView=function(v){
+  if(!isOwner() && document.querySelector('#subnav .nv.own[data-view="'+v+'"]')) v='dash';
+  _gotoView0(v); var ws=wsOf(v); WS_LAST[ws]=v; wsShow(ws);
+  try{ history.replaceState(null,'','#'+v); }catch(e){}
+  if(v==='reports') rpLoad();
+  if(v==='settings') stLoad();
+  if((v==='billing'||v==='hq'||v==='clients') && isOwner()) waveAutoSync();
+  window.scrollTo(0,0);
+};
+var SHELL_FIRST=true;
+function shellSync(){
+  document.body.classList.toggle('is-owner', isOwner());
+  if(SHELL_FIRST){ SHELL_FIRST=false; var h=location.hash.slice(1); if(h&&$('v-'+h)) return gotoView(h); if(isOwner()) return gotoView('hq'); }
+  wsShow(wsOf((document.querySelector('.view.on')||{id:'v-dash'}).id.slice(2)));
+}
+function abToggle(id,e){ if(e) e.stopPropagation(); var m=$(id), on=!m.classList.contains('show'); document.querySelectorAll('.ab-drop.show').forEach(function(x){x.classList.remove('show');}); if(on) m.classList.add('show'); }
+document.addEventListener('click', function(e){
+  if(!e.target.closest||!e.target.closest('.ab-menu')) document.querySelectorAll('.ab-drop.show').forEach(function(x){x.classList.remove('show');});
+  if(!e.target.closest||!e.target.closest('.ab-search')) $('gResults').classList.remove('show');
+});
+document.querySelectorAll('.ab-drop a').forEach(function(a){ a.addEventListener('click', function(){ document.querySelectorAll('.ab-drop.show').forEach(function(x){x.classList.remove('show');}); }); });
+/* global search */
+var GS_T=null, GS_ITEMS=[];
+var GS_PAGES=[['dash','Dashboard'],['hq','Business HQ'],['tasks','Tasks'],['dialer','Dialer'],['listing','Listing Calls'],['pipe','Pipeline'],['meet','Meetings'],['lists','Custom Lists'],['seq','Sequences'],['past','Past Calls'],['clients','Clients'],['refer','Referrals'],['billing','Billing & Wave'],['owner','Deals & Commissions'],['reports','Reports'],['perf','Rep Performance'],['comm','My Commissions'],['play','Playbook'],['settings','Settings']];
+$('gSearch').addEventListener('input', function(){ clearTimeout(GS_T); var q=this.value.trim(); GS_T=setTimeout(function(){ gsRun(q); },220); });
+$('gSearch').addEventListener('focus', function(){ if(this.value.trim()) $('gResults').classList.add('show'); });
+function gsRun(q){
+  var box=$('gResults'); if(q.length<2){ box.classList.remove('show'); return; }
+  var ql=q.toLowerCase(), pages=GS_PAGES.filter(function(p){ return p[1].toLowerCase().indexOf(ql)>-1 && (isOwner()||!document.querySelector('#subnav .nv.own[data-view="'+p[0]+'"]')); });
+  api('search',{q:q}).then(function(d){
+    var h='';
+    if(pages.length) h+='<div class="gh">Pages</div>'+pages.map(function(p){ return '<a onclick="gsGo(\'view\',\''+p[0]+'\')">'+esc(p[1])+'<span>open</span></a>'; }).join('');
+    if(d.clients.length) h+='<div class="gh">Clients</div>'+d.clients.map(function(c){ return '<a onclick="gsGo(\'client\','+c.id+')">'+esc(c.name)+'<span>'+esc(c.status)+(Number(c.mrr)?' · '+money(c.mrr)+'/mo':'')+'</span></a>'; }).join('');
+    if(d.invoices.length) h+='<div class="gh">Invoices</div>'+d.invoices.map(function(i){ return '<a onclick="gsGo(\'client\','+i.client_id+')">#'+esc(i.number||'')+' · '+esc(i.client)+'<span>'+money(i.amount)+' · '+esc(i.status)+'</span></a>'; }).join('');
+    if(d.companies.length) h+='<div class="gh">Companies</div>'+d.companies.map(function(c){ return '<a onclick="gsGo(\'company\',\''+c.phone+'\')">'+esc(c.name||fmtPhone(c.phone))+'<span>'+esc([c.city,STAGE_LBL[c.stage]||c.stage].filter(Boolean).join(' · '))+'</span></a>'; }).join('');
+    box.innerHTML=h||'<div class="hint" style="padding:12px">Nothing found for "'+esc(q)+'".</div>'; box.classList.add('show');
+  }).catch(function(){});
+}
+function gsGo(k,id){ $('gResults').classList.remove('show'); $('gSearch').value=''; if(k==='view') gotoView(id); else if(k==='client') clOpen(id); else openCompany(id); }
+/* notifications */
+var BELL=[];
+function bellPoll(){
+  if(!BOOT||!BOOT.user) return;
+  api('notify').then(function(items){ BELL=items||[]; var n=$('bellN'); n.style.display=BELL.length?'inline-block':'none'; n.textContent=BELL.length; }).catch(function(){});
+}
+function bellOpen(e){
+  abToggle('bellMenu',e); bellPoll();
+  $('bellMenu').innerHTML=(BELL.length?BELL.map(function(n){ return '<a class="ntf" onclick="gotoView(\''+n.view+'\')"><i class="'+(n.tone||'')+'"></i>'+esc(n.icon+' '+n.text)+'</a>'; }).join(''):'<div class="hint" style="padding:12px">You are all caught up.</div>');
+  document.querySelectorAll('#bellMenu a').forEach(function(a){ a.addEventListener('click', function(){ $('bellMenu').classList.remove('show'); }); });
+}
+setInterval(function(){ if(document.visibilityState==='visible') bellPoll(); },60000);
+/* quick add */
+function qaTask(){
+  var t=prompt('New task:'); if(!t) return;
+  var d=prompt('Due date (YYYY-MM-DD), blank for today:', today10())||today10();
+  api('crm.task.save',{title:t,due:d,assignee:BOOT.user.email}).then(function(){ toast('Task added.'); tkLoad(); }).catch(function(e){ toast(e.message); });
+}
+function qaDial(){ var n=prompt('Number to dial:'); if(n) twDial(n); }
+/* Wave: keep it live */
+var WAVE_SYNCING=false;
+function waveAutoSync(){
+  if(WAVE_SYNCING) return;
+  api('crm.wave.status').then(function(d){
+    if(!d.connected) return;
+    var age=d.last?(Date.now()-new Date(d.last.at).getTime()):1e12;
+    if(age<10*60*1000) return;
+    WAVE_SYNCING=true;
+    api('crm.wave.sync').then(function(r){
+      if(r.paidNow) toast('💵 Wave: '+r.paidNow+' invoice'+(r.paidNow===1?'':'s')+' just paid.');
+      var v=(document.querySelector('.view.on')||{}).id;
+      if(v==='v-billing') blLoad(); else if(v==='v-hq') hqLoad(); else if(v==='v-clients') clLoad();
+    }).catch(function(){}).finally(function(){ WAVE_SYNCING=false; });
+  }).catch(function(){});
+}
+
+
+/* ================= INVOICES WITH WAVE ================= */
+var WMETA=null, IV={lines:[]};
+function waveMetaGet(){ return WMETA?Promise.resolve(WMETA):api('wave.meta').then(function(m){ WMETA=m; return m; }); }
+function tpl(t,o){ return String(t||'').replace(/\{(\w+)\}/g,function(m,k){ return o[k]!=null?o[k]:m; }); }
+function invActs(i,cb){
+  var h='';
+  if(i.view_url) h+='<a class="btn-ghost btn-sm" style="text-decoration:none;display:inline-block" target="_blank" href="'+esc(i.view_url)+'">View</a> ';
+  if(i.pdf_url) h+='<a class="btn-ghost btn-sm" style="text-decoration:none;display:inline-block" target="_blank" href="'+esc(i.pdf_url)+'">PDF</a> ';
+  if(i.wave_id && i.status==='draft') h+='<button class="btn-go btn-sm" onclick="invSend('+i.id+',false,'+cb+')">Send</button> ';
+  if(i.wave_id && i.status==='open') h+='<button class="btn-blue btn-sm" onclick="invSend('+i.id+',true,'+cb+')">'+(i.due_s&&i.due_s<today10()?'Send reminder':'Resend')+'</button> ';
+  if(i.status==='open') h+='<button class="btn-green btn-sm" onclick="'+(i.wave_id?'invPay('+i.id+','+cb+')':'invPaid('+i.id+','+cb+')')+'">'+(i.wave_id?'Record payment':'Mark paid')+'</button> ';
+  if(!i.wave_id || i.status==='draft') h+='<button class="btn-ghost btn-sm" title="Delete" onclick="'+(i.wave_id?'invDraftDel('+i.id+','+cb+')':'invDel('+i.id+','+cb+')')+'">&#10005;</button>';
+  return h;
+}
+function invFind(id){ return (CRM.invoices||[]).concat((CRM.cur&&CRM.cur.invoices)||[]).find(function(x){return x.id===id;})||{}; }
+function invSend(id,reminder,cb){
+  var i=invFind(id), c=CRM.clients.find(function(x){return x.id===i.client_id;})||(CRM.cur&&CRM.cur.client)||{};
+  waveMetaGet().then(function(m){
+    var st=m.settings||{}, first=String(c.contact||'').split(' ')[0]||'there';
+    var o={first:first,client:c.name||i.client||'',number:i.number||'',amount:money(i.amount_due||i.amount),due:dshort(i.due_s),month:new Date().toLocaleString('en-US',{month:'long'})};
+    var to=prompt((reminder?'Send a payment reminder':'Send invoice #'+(i.number||''))+' to:', c.email||''); if(!to) return;
+    var msg=reminder?tpl(st.reminder||'Hi {first}, a friendly reminder that invoice {number} for {amount} was due {due}. You can pay online from the link below. Thank you!',o):tpl(st.message||'Hi {first}, here is your invoice from Burket Web Design. Thank you for your business!',o);
+    api('wave.invoice.send',{id:id,to:to,reminder:reminder,message:msg,subject:tpl(reminder?'Reminder: invoice {number} from Burket Web Design':(st.subject||'Invoice {number} from Burket Web Design'),o),ccMyself:true})
+      .then(function(){ toast((reminder?'Reminder':'Invoice')+' sent from Wave to '+to+'.'); chime(); (typeof cb==='function')&&cb(); }).catch(function(e){ alert(e.message); });
+  });
+}
+function invPay(id,cb){
+  var i=invFind(id);
+  waveMetaGet().then(function(m){
+    if(!m.accounts.length) return alert('No bank or cash account found in Wave to deposit to.');
+    var acct=(m.settings&&m.settings.account)||m.accounts[0].id, an=(m.accounts.find(function(a){return a.id===acct;})||m.accounts[0]).name;
+    var amt=prompt('Payment amount for #'+(i.number||'')+' (deposits to '+an+'):', String(Number(i.amount_due||i.amount))); if(amt===null) return;
+    var d=prompt('Payment date (YYYY-MM-DD):', today10()); if(d===null) return;
+    var meth=(prompt('Method: bank, card, cash, check, paypal, other','bank')||'bank').toLowerCase();
+    var M={bank:'BANK_TRANSFER',card:'CREDIT_CARD',cash:'CASH',check:'CHEQUE',cheque:'CHEQUE',paypal:'PAYPAL'};
+    api('wave.invoice.pay',{id:id,amount:Number(String(amt).replace(/[^\d.]/g,'')),date:d,method:M[meth]||'OTHER',accountId:acct})
+      .then(function(){ toast('Payment recorded in Wave.'); chime(); (typeof cb==='function')&&cb(); }).catch(function(e){ alert(e.message); });
+  });
+}
+function invDraftDel(id,cb){ if(confirm('Delete this draft from Wave?')) api('wave.invoice.delete',{id:id}).then(function(){ toast('Draft deleted.'); (typeof cb==='function')&&cb(); }).catch(function(e){alert(e.message);}); }
+function invCompose(clientId, line){
+  $('invmodal').classList.add('show'); $('iv-err').textContent='';
+  var pc=CRM.clients.length?Promise.resolve(CRM.clients):api('crm.clients').then(function(r){ CRM.clients=r; return r; });
+  Promise.all([waveMetaGet(),pc]).then(function(r){
+    var m=r[0], cl=r[1].filter(function(c){return c.status!=='churned';});
+    $('iv-biz').textContent='Wave business: '+m.business.name+' · '+m.products.length+' products & services';
+    $('iv-client').innerHTML='<option value="">Pick a client</option>'+cl.map(function(c){return '<option value="'+c.id+'">'+esc(c.name)+(c.wave_id?'':' (will be added to Wave)')+'</option>';}).join('');
+    if(!m.products.length){ $('iv-err').textContent='Add at least one product or service in Wave (Sales → Products & Services) first.'; }
+    $('iv-date').value=today10(); ivDue();
+    IV.lines=[]; ivAdd(line);
+    $('iv-disc').value=''; $('iv-usecred').checked=false; $('iv-memo').value='';
+    $('iv-client').value=clientId||''; ivClient();
+  }).catch(function(e){ $('iv-biz').textContent=e.message; });
+}
+function ivDue(){ var st=(WMETA&&WMETA.settings)||{}, n=Number(st.net||15), d=new Date(($('iv-date').value||today10())+'T12:00:00'); d.setDate(d.getDate()+n); $('iv-due').value=d.toISOString().slice(0,10); }
+function ivAdd(pre){
+  var m=WMETA||{products:[]}, st=m.settings||{}, def=pre&&pre.productId||st.product||(m.products[0]&&m.products[0].id)||'';
+  var p=m.products.find(function(x){return x.id===def;})||{};
+  IV.lines.push({productId:def,description:(pre&&pre.description)||p.description||'',quantity:1,unitPrice:pre&&pre.unitPrice!=null?pre.unitPrice:(Number(p.unitPrice)||0)});
+  ivRender();
+}
+function ivRender(){
+  var m=WMETA||{products:[]};
+  $('iv-lines').innerHTML=IV.lines.map(function(l,i){
+    return '<div class="row" style="gap:6px;margin-bottom:6px;align-items:center"><select style="flex:2;min-width:160px" onchange="ivSet('+i+',\'productId\',this.value,1)">'+m.products.map(function(p){return '<option value="'+p.id+'"'+(p.id===l.productId?' selected':'')+'>'+esc(p.name)+'</option>';}).join('')+'</select>'+
+      '<input style="flex:3;min-width:160px" placeholder="Description" value="'+esc(l.description)+'" oninput="ivSet('+i+',\'description\',this.value)">'+
+      '<input style="width:64px" type="number" min="0" step="any" value="'+l.quantity+'" oninput="ivSet('+i+',\'quantity\',this.value)">'+
+      '<input style="width:100px" type="number" min="0" step="any" value="'+l.unitPrice+'" oninput="ivSet('+i+',\'unitPrice\',this.value)">'+
+      '<b style="width:80px;text-align:right">'+money((Number(l.quantity)||0)*(Number(l.unitPrice)||0))+'</b>'+
+      (IV.lines.length>1?'<button class="btn-ghost btn-sm" onclick="IV.lines.splice('+i+',1);ivRender()">&#10005;</button>':'')+'</div>';
+  }).join('');
+  ivTotal();
+}
+function ivSet(i,k,v,re){ IV.lines[i][k]=v; if(k==='productId'){ var p=(WMETA.products||[]).find(function(x){return x.id===v;})||{}; IV.lines[i].unitPrice=Number(p.unitPrice)||IV.lines[i].unitPrice; if(p.description) IV.lines[i].description=p.description; } if(re||k==='quantity'||k==='unitPrice') ivRender(); else ivTotal(); }
+function ivSum(){ return IV.lines.reduce(function(a,l){return a+(Number(l.quantity)||0)*(Number(l.unitPrice)||0);},0)-(Number($('iv-disc').value)||0); }
+function ivTotal(){ $('iv-total').textContent=money(Math.max(0,ivSum())); }
+function ivClient(){
+  var id=Number($('iv-client').value); var c=CRM.clients.find(function(x){return x.id===id;}); if(!c) return;
+  var st=(WMETA&&WMETA.settings)||{}, first=String(c.contact||'').split(' ')[0]||'there', month=new Date().toLocaleString('en-US',{month:'long'});
+  $('iv-to').value=c.email||'';
+  if(Number(c.mrr) && IV.lines.length===1){ IV.lines[0].unitPrice=Number(c.mrr); if(!IV.lines[0].description) IV.lines[0].description=(c.package||'Monthly services')+' - '+month; ivRender(); }
+  $('iv-subj').value=tpl(st.subject||'Invoice from Burket Web Design - {month}',{client:c.name,month:month,number:''}).replace(' {number}','');
+  $('iv-msg').value=tpl(st.message||'Hi {first}, here is your invoice from Burket Web Design. Thank you for your business!',{first:first,client:c.name,month:month,number:'',amount:'',due:dshort($('iv-due').value)});
+  api('crm.client.get',{id:id}).then(function(d){ if(d.ref&&Number(d.ref.balance)>0){ var cr=Math.min(Number(d.ref.balance),ivSum()); $('iv-disc').value=cr; $('iv-usecred').checked=true; ivTotal(); toast(c.name+' has a '+money(d.ref.balance)+' referral credit. Applied it.'); } }).catch(function(){});
+}
+function ivSubmit(send){
+  var cid=Number($('iv-client').value); if(!cid) return ($('iv-err').textContent='Pick the client.');
+  var c=CRM.clients.find(function(x){return x.id===cid;})||{};
+  if(send && !confirm('Create invoice for '+c.name+' ('+$('iv-total').textContent+') and email it from Wave to '+$('iv-to').value+'?')) return;
+  var b1=$('iv-send'), b2=$('iv-draft'); b1.disabled=b2.disabled=true; b1.textContent=send?'Sending...':b1.textContent; $('iv-err').textContent='';
+  api('wave.invoice.create',{client_id:cid,items:IV.lines.map(function(l){return {productId:l.productId,description:l.description,quantity:Number(l.quantity)||1,unitPrice:Number(l.unitPrice)||0};}),
+    discount:Number($('iv-disc').value)||0,useCredit:$('iv-usecred').checked,discountName:$('iv-usecred').checked?'Referral credit':'Discount',
+    invoiceDate:$('iv-date').value,dueDate:$('iv-due').value,memo:$('iv-memo').value,send:send,to:$('iv-to').value,subject:$('iv-subj').value,message:$('iv-msg').value,ccMyself:$('iv-cc').checked})
+  .then(function(r){
+    $('invmodal').classList.remove('show'); chime(); if(send) confetti();
+    toast(send?('Invoice #'+r.number+' for '+money(r.total)+' sent from Wave.'):('Draft #'+r.number+' saved in Wave.'));
+    var v=(document.querySelector('.view.on')||{}).id; if(v==='v-billing') blLoad(); if(CRM.cur&&CRM.cur.client&&CRM.cur.client.id===cid&&$('clmodal').classList.contains('show')) clOpen(cid);
+  }).catch(function(e){ $('iv-err').textContent=e.message; })
+  .finally(function(){ b1.disabled=b2.disabled=false; b1.innerHTML='Create &amp; send from Wave'; });
+}
+
+/* ================= CLIENT 360 header ================= */
+function clHeader(d){
+  var c=d.client, inv=d.invoices||[];
+  var paid=inv.filter(function(i){return i.status==='paid';}), ltv=paid.reduce(function(a,i){return a+Number(i.amount);},0);
+  var dtp=paid.filter(function(i){return i.paid_s&&i.issued_s;}).map(function(i){return (new Date(i.paid_s)-new Date(i.issued_s))/864e5;});
+  var avg=dtp.length?Math.round(dtp.reduce(function(a,b){return a+b;},0)/dtp.length):null;
+  var last=paid.map(function(i){return i.paid_s;}).filter(Boolean).sort().pop();
+  var open=inv.filter(function(i){return i.status==='open';}).reduce(function(a,i){return a+Number(i.amount_due||i.amount);},0);
+  $('clm-kpis').style.display='grid';
+  $('clm-kpis').innerHTML='<div class="kpi"><b>'+money(ltv)+'</b><span>lifetime paid</span></div><div class="kpi"><b>'+money(c.mrr)+'</b><span>per month</span></div><div class="kpi"><b>'+(avg==null?'-':avg+'d')+'</b><span>avg days to pay</span></div><div class="kpi"><b style="'+(open?'color:var(--red)':'')+'">'+money(open)+'</b><span>open balance'+(last?' · last paid '+dshort(last):'')+'</span></div>';
+  $('clm-acts').style.display='flex';
+  $('clm-acts').innerHTML='<button class="btn-go btn-sm" onclick="invCompose('+c.id+')">&#129534; New invoice</button>'+
+    (c.phone?'<button class="btn-blue btn-sm" onclick="twDial(\''+esc(c.phone)+'\')">&#128222; Call</button>':'')+
+    (c.email?'<a class="btn-ghost btn-sm" style="text-decoration:none" href="mailto:'+esc(c.email)+'">&#9993;&#65039; Email</a>':'')+
+    (c.website?'<a class="btn-ghost btn-sm" style="text-decoration:none" target="_blank" href="'+esc(/^https?:/.test(c.website)?c.website:'https://'+c.website)+'">&#127760; Website</a>':'')+
+    (c.wave_id?'<span class="tag" style="background:var(--green-bg);color:var(--green)">linked to Wave</span>':'<button class="btn-ghost btn-sm" onclick="clWave('+c.id+')">Add to Wave</button>');
+}
+function clWave(id){ api('wave.customer.ensure',{client_id:id}).then(function(r){ toast(r.created?'Added to Wave as a customer.':'Already in Wave.'); clOpen(id); }).catch(function(e){ alert(e.message); }); }
+function cpValue(){ api('company.value',{phone:CURCOMP.phone,value:$('cp-value').value}).then(function(){ toast('Deal value saved.'); if((document.querySelector('.view.on')||{}).id==='v-pipe') loadPipeline(); }).catch(function(e){toast(e.message);}); }
+
+/* ================= REPORTS ================= */
+var RP=null;
+function bars(rows,lab,val,fmt){ var mx=Math.max.apply(null,rows.map(function(r){return Number(r[val])||0;}).concat([1]));
+  return rows.length?'<div style="display:flex;align-items:flex-end;gap:6px;height:150px">'+rows.map(function(r){ var v=Number(r[val])||0;
+    return '<div style="flex:1;text-align:center;min-width:0"><div class="hint" style="font-size:10.5px;white-space:nowrap">'+(fmt?fmt(v):v)+'</div><div style="height:'+Math.max(3,Math.round(v/mx*110))+'px;background:linear-gradient(180deg,var(--gold),#f0b400);border-radius:6px 6px 0 0"></div><div class="hint" style="font-size:10.5px">'+esc(lab(r))+'</div></div>'; }).join('')+'</div>':'<div class="hint">No data yet.</div>'; }
+function hbar(label,v,max,color,txt){ return '<div style="margin:6px 0"><div class="row" style="justify-content:space-between"><span>'+label+'</span><b>'+txt+'</b></div><div style="height:8px;background:var(--chip);border-radius:99px;overflow:hidden"><div style="height:100%;width:'+Math.min(100,max?v/max*100:0)+'%;background:'+(color||'var(--blue)')+'"></div></div></div>'; }
+function rpLoad(){
+  api('own.reports').then(function(d){
+    RP=d; var mlab=function(r){ return new Date(r.m+'-15').toLocaleString('en-US',{month:'short'}); };
+    var ytd=d.rev.filter(function(r){return r.m.slice(0,4)===String(new Date().getFullYear());}).reduce(function(a,r){return a+Number(r.v);},0);
+    $('rp-ytd').textContent=money(ytd);
+    var act=d.byClient.filter(function(c){return c.status==='active'||c.status==='onboarding';});
+    $('rp-avg').textContent=act.length?money(Math.round(act.reduce(function(a,c){return a+Number(c.mrr||0);},0)/act.length)):'$0';
+    var dd=d.byClient.filter(function(c){return c.days_to_pay!=null;}); $('rp-dtp').textContent=dd.length?Math.round(dd.reduce(function(a,c){return a+c.days_to_pay;},0)/dd.length)+' days':'-';
+    var PW={contacted:.05,engaged:.15,meeting:.3,proposal:.5,contract:.8}; $('rp-fc').textContent=money(Math.round(d.pipe.reduce(function(a,p){return a+Number(p.v)*(PW[p.stage]||0);},0)));
+    $('rp-rev').innerHTML=bars(d.rev,mlab,'v',money);
+    var ag=d.aging, tot=['current','d30','d60','d90','d90p'].reduce(function(a,k){return a+Number(ag[k]);},0);
+    $('rp-aging').innerHTML=[['current','Not due yet','var(--green)'],['d30','1 to 30 days late','var(--gold)'],['d60','31 to 60 days','#f59e0b'],['d90','61 to 90 days','#ef4444'],['d90p','90+ days','#991b1b']].map(function(k){ return hbar(k[1],Number(ag[k[0]]),tot,k[2],money(ag[k[0]])); }).join('')+'<div class="hint" style="margin-top:6px">Total open: <b>'+money(tot)+'</b></div>';
+    var f=d.funnel; $('rp-funnel').innerHTML=[['Dials',f.dials],['Conversations',f.convos],['Meetings',f.meetings],['Closed on call',f.closed],['Deals approved',d.won30]].map(function(x,i,arr){ return hbar(x[0],x[1],f.dials,'var(--blue)',x[1]+(i?' ('+(f.dials?Math.round(x[1]/f.dials*1000)/10:0)+'%)':'')); }).join('');
+    $('rp-reps').innerHTML='<table><thead><tr><th>Rep</th><th>Dials</th><th>Convos</th><th>Meetings</th><th>Won</th></tr></thead><tbody>'+d.reps.map(function(r,i){ return '<tr><td>'+(i===0&&r.dials?'&#127942; ':'')+'<b>'+esc(r.name||r.email)+'</b></td><td>'+r.dials+'</td><td>'+r.convos+'</td><td>'+r.meetings+'</td><td>'+r.won+'</td></tr>'; }).join('')+'</tbody></table>';
+    var mxp=Math.max.apply(null,d.pipe.map(function(p){return p.n;}).concat([1]));
+    $('rp-pipe').innerHTML=STAGES.map(function(s){ var p=d.pipe.find(function(x){return x.stage===s;})||{n:0,v:0}; return hbar(STAGE_LBL[s],p.n,mxp,s==='won'?'var(--green)':s==='lost'?'#ef4444':'var(--blue)',p.n+(Number(p.v)?' · '+money(p.v):'')); }).join('');
+    $('rp-growth').innerHTML=bars(d.growth,mlab,'n');
+    $('rp-lost').innerHTML=(d.lost.length?'<b>Lost deal reasons</b>'+d.lost.map(function(l){return '<div class="row" style="justify-content:space-between;padding:3px 0"><span>'+esc(l.r)+'</span><b>'+l.n+'</b></div>';}).join(''):'<div class="hint">No lost reasons logged.</div>')+
+      (d.churn.length?'<div style="margin-top:10px"><b>Churned clients</b>'+d.churn.map(function(c){return '<div class="row" style="justify-content:space-between;padding:3px 0"><span>'+esc(c.name)+'</span><span class="hint">'+fdate(c.ts)+'</span></div>';}).join('')+'</div>':'');
+    $('rp-clients').innerHTML='<table><thead><tr><th>Client</th><th>Status</th><th>MRR</th><th>Paid this year</th><th>Lifetime paid</th><th>Avg days to pay</th></tr></thead><tbody>'+d.byClient.filter(function(c){return Number(c.ltv)>0||c.status!=='churned';}).map(function(c){
+      return '<tr class="biz" onclick="clOpen('+c.id+')"><td><b>'+esc(c.name)+'</b></td><td>'+esc(c.status)+'</td><td>'+(Number(c.mrr)?money(c.mrr):'')+'</td><td>'+money(c.ytd)+'</td><td><b>'+money(c.ltv)+'</b></td><td>'+(c.days_to_pay==null?'':c.days_to_pay+'d')+'</td></tr>'; }).join('')+'</tbody></table>';
+  }).catch(function(e){ toast(e.message); });
+}
+function rpCsv(){ if(!RP) return; var cols=['name','status','mrr','ytd','ltv','days_to_pay'];
+  var csv=[cols.join(',')].concat(RP.byClient.map(function(r){return cols.map(function(c){return '"'+String(r[c]==null?'':r[c]).replace(/"/g,'""')+'"';}).join(',');})).join('\n');
+  var a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'})); a.download='client-revenue-'+today10()+'.csv'; a.click(); }
+
+/* ================= SETTINGS ================= */
+var ST={};
+function stLoad(){
+  api('own.settings').then(function(s){ ST=s||{}; var g=ST.goals||{};
+    $('st-gmrr').value=g.mrr||''; $('st-gcl').value=g.clients||''; $('st-gdials').value=g.dials||'';
+    $('st-net').value=ST.net||''; $('st-subj').value=ST.subject||''; $('st-msg').value=ST.message||''; $('st-rmd').value=ST.reminder||'';
+    WMETA=null; waveMetaGet().then(function(m){
+      $('st-prod').innerHTML=m.products.map(function(p){return '<option value="'+p.id+'"'+(p.id===ST.product?' selected':'')+'>'+esc(p.name)+(Number(p.unitPrice)?' ('+money(p.unitPrice)+')':'')+'</option>';}).join('');
+      $('st-acct').innerHTML=m.accounts.map(function(a){return '<option value="'+a.id+'"'+(a.id===ST.account?' selected':'')+'>'+esc(a.name)+'</option>';}).join('');
+    }).catch(function(e){ $('st-prod').innerHTML='<option>'+esc(e.message)+'</option>'; });
+  });
+  api('crm.wave.status').then(function(d){ var l=d.last; $('st-wave').innerHTML=d.connected?('&#9989; Connected'+(l?' to <b>'+esc(l.business)+'</b> · last sync '+fdate(l.at)+' '+new Date(l.at).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'})+' · '+l.customers+' customers, '+l.invoices+' invoices':'')):'&#10060; Not connected. Add WAVE_TOKEN in Vercel.'; });
+  $('st-hook').textContent=location.origin+'/api/wave-hook?k=YOUR_TWILIO_WEBHOOK_KEY';
+  api('own.team').then(function(rows){
+    $('st-team').innerHTML='<table><thead><tr><th>Person</th><th>Role</th><th>Calls (30d)</th><th>Last call</th><th>Status</th></tr></thead><tbody>'+rows.map(function(u){
+      return '<tr><td><b>'+esc(u.name||u.email)+'</b><div class="hint">'+esc(u.email)+'</div></td><td><select onchange="stRole(\''+esc(u.email)+'\',this.value)" style="max-width:150px"><option value="sdr"'+(u.role!=='owner'?' selected':'')+'>Sales rep</option><option value="owner"'+(u.role==='owner'?' selected':'')+'>Owner (full access)</option></select></td><td>'+u.calls30+'</td><td>'+(u.last_call?fdate(u.last_call):'-')+'</td><td>'+(Number(u.active)?'active':'<span class="hint">disabled</span>')+'</td></tr>'; }).join('')+'</tbody></table><div class="hint" style="margin-top:6px">Invite people and turn seats on or off in Deals &amp; Commissions.</div>';
+  });
+  api('own.audit').then(function(rows){ $('st-audit').innerHTML=rows.length?'<table><thead><tr><th>When</th><th>Who</th><th>What</th><th>Target</th><th>Detail</th></tr></thead><tbody>'+rows.map(function(r){ return '<tr'+(r.act==='blocked'?' style="color:var(--red)"':'')+'><td>'+fdate(r.ts)+' '+new Date(r.ts).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'})+'</td><td>'+esc(r.name||r.who)+'</td><td>'+esc(r.act)+'</td><td>'+esc(r.target)+'</td><td>'+esc(r.detail)+'</td></tr>'; }).join('')+'</tbody></table>':'<div class="hint">Nothing logged yet.</div>'; });
+}
+function stSave(k){
+  var b={};
+  if(k==='goals') b.goals={mrr:Number($('st-gmrr').value)||0,clients:Number($('st-gcl').value)||0,dials:Number($('st-gdials').value)||0};
+  else { b.product=$('st-prod').value; b.account=$('st-acct').value; b.net=Number($('st-net').value)||15; b.subject=$('st-subj').value; b.message=$('st-msg').value; b.reminder=$('st-rmd').value; }
+  api('own.settings.save',{settings:b}).then(function(s){ ST=s; WMETA=null; toast('Saved.'); });
+}
+function stRole(em,r){ if(!confirm('Change '+em+' to '+(r==='owner'?'Owner (full access)':'Sales rep')+'?')) return stLoad(); api('own.role',{email:em,role:r}).then(function(){ toast('Role updated.'); stLoad(); }).catch(function(e){ alert(e.message); stLoad(); }); }
+
+/* ================= HQ extras: goals + live activity ================= */
+function hqExtras(d){
+  api('own.settings').then(function(s){
+    var g=(s&&s.goals)||{}; if(!g.mrr&&!g.clients&&!g.dials){ $('hq-goals').style.display='none'; return; }
+    var dials=(d.team||[]).reduce(function(a,t){return a+t.dials;},0);
+    $('hq-goals').style.display='block';
+    $('hq-goals').innerHTML='<b style="font-size:15px">&#127919; Goals</b>'+(g.mrr?hbar('MRR',d.mrr,g.mrr,'var(--green)',money(d.mrr)+' of '+money(g.mrr)):'')+(g.clients?hbar('New clients this month',d.pipe.won_m,g.clients,'var(--blue)',d.pipe.won_m+' of '+g.clients):'')+(g.dials?hbar('Team dials today',dials,g.dials,'var(--gold)',dials+' of '+g.dials):'');
+  });
+  api('own.activity').then(function(rows){
+    var IC={call:'&#128222;',client:'&#128188;',deal:'&#129309;',referral:'&#127873;'};
+    $('hq-act').innerHTML=rows.map(function(r){ return '<div class="row" style="gap:8px;padding:6px 0;border-bottom:1px solid var(--line);flex-wrap:nowrap"><span>'+(IC[r.k]||'')+'</span><div style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(r.client_id?'<a href="#" onclick="clOpen('+r.client_id+');return false">':r.phone?'<a href="#" onclick="openCompany(\''+r.phone+'\');return false">':'')+esc(r.text)+(r.client_id||r.phone?'</a>':'')+'</div><span class="hint" style="white-space:nowrap">'+esc(String(r.who||'').split(' ')[0])+' · '+fdate(r.ts)+'</span></div>'; }).join('')||'<div class="hint">No activity yet.</div>';
+  });
+}
 
 /* ================= REFERRAL PROGRAM ================= */
 var REF={partners:[],referrals:[],credits:[],base:''};
@@ -2557,14 +3006,16 @@ function pipeRender(){
         by[s].slice(0,40).map(function(cm){
           var dd=pipeDays(cm);
           return '<div class="pcard stage-'+s+'" draggable="true" ondragstart="pipeDrag(event,\''+cm.phone+'\',\''+s+'\')" ondragend="this.classList.remove(\'dragging\')" onclick="openCompany(\''+cm.phone+'\')"><b>'+esc(cm.name||fmtPhone(cm.phone))+'</b>'+
-            '<div class="sub2">'+esc((cm.city||'')+(cm.industry?' · '+cm.industry:''))+'</div>'+
+            '<div class="sub2">'+esc((cm.city||'')+(cm.industry?' · '+cm.industry:''))+'</div>'+(Number(cm.value)?'<div class="sub2" style="font-weight:800;color:var(--green)">'+money(cm.value)+'</div>':'')+
             '<div class="sub2" style="margin-top:3px">'+(pipeIsStale(cm)?'<span class="tag" style="background:#fde8e8;color:#b42318">stale '+dd+'d</span>':(s!=='won'&&s!=='lost'?dd+'d since last touch':''))+
             (s==='lost'&&cm.lost_reason?'<div style="font-style:italic">'+esc(cm.lost_reason)+'</div>':'')+
             (s==='lost'&&dd>=90?'<span class="tag t-gold">&#8635; win-back due</span>':'')+'</div></div>';
         }).join('')+'</div>';
     }).join('');
     var won=by.won.length, act=rows.length-won-by.lost.length, stale=rows.filter(pipeIsStale).length;
-    $('pipeTotals').textContent = act+' active · '+won+' won · '+by.lost.length+' lost'+(stale?' · '+stale+' stale':'');
+    var PW={contacted:.05,engaged:.15,meeting:.3,proposal:.5,contract:.8}, tv=0, fc=0;
+    rows.forEach(function(c){ var v=Number(c.value)||0; if(c.stage!=='won'&&c.stage!=='lost'){ tv+=v; fc+=v*(PW[c.stage]||0); } });
+    $('pipeTotals').textContent = act+' active · '+won+' won · '+by.lost.length+' lost'+(stale?' · '+stale+' stale':'')+(tv?' · '+money(tv)+' open value · '+money(Math.round(fc))+' weighted':'');
     var rs={}; by.lost.forEach(function(c){ var k=String(c.lost_reason||'').trim().toLowerCase(); if(k) rs[k]=(rs[k]||0)+1; });
     var top=Object.keys(rs).sort(function(a,b){return rs[b]-rs[a];}).slice(0,4);
     $('pipeLoss').innerHTML=top.length?'<b>Why we lose:</b> '+top.map(function(k){return esc(k)+' ('+rs[k]+')';}).join(' · '):'';
@@ -2594,6 +3045,7 @@ function openCompany(phone){
       $('cp-credit').innerHTML=reps.map(function(r){return '<option value="'+esc(r.email)+'"'+(r.email===cur?' selected':'')+'>'+esc(r.name||r.email)+'</option>';}).join('');
       $('cp-creditNote').textContent=d.credit&&d.credit.deals?(d.credit.deals+' deal'+(d.credit.deals===1?'':'s')+' on file'):'No deal on file yet';
     } else $('cp-creditRow').style.display='none';
+    $('cp-value').value=Number(d.company.value)||'';
     $('cp-meta').textContent=[(d.company.industry||''),(d.company.city||''),(d.company.pos?'#'+d.company.pos+' on Google':''),(d.company.reviews>-1?d.company.reviews+' reviews':''),(d.company.website?'':'no website')].filter(Boolean).join(' · ');
     $('cp-stage').innerHTML=STAGES.map(function(s){return '<option value="'+s+'"'+(d.company.stage===s?' selected':'')+'>'+STAGE_LBL[s]+'</option>';}).join('');
     $('cp-contact').value=d.company.contact||'';
