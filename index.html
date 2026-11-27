@@ -675,10 +675,11 @@ table th{font-size:11px;letter-spacing:.4px}
         </div>
         <div class="card">
           <div class="row" style="align-items:flex-end">
-            <div><label>Market</label><select id="market"></select></div>
+            <div id="areaBox" style="display:none"><label>Market</label><select id="market"></select></div>
             <div><label>Industry</label><select id="industry"></select></div>
-            <div style="flex:1;min-width:110px"><label id="customLbl">Or any town</label><input id="customCity" placeholder="any town in your territory"></div>
-            <button class="btn-go" id="goBtn" onclick="hunt()">Build Today's 25 &rarr;</button>
+            <div style="flex:1;min-width:110px;display:none" id="areaBox2"><label id="customLbl">Or any town</label><input id="customCity" placeholder="any town in your territory"></div>
+            <button class="btn-go" id="goBtn" onclick="hunt()">Build my list &rarr;</button>
+            <a href="#" class="hint" id="areaTog" onclick="areaToggle();return false" style="align-self:center">Pick a specific town</a>
             <button class="btn-ghost" onclick="reattack()" title="Rebuild from no-answers older than 30 days">&#9851; Re-attack</button>
             <button class="btn-ghost" onclick="enterDemo()" title="Practice the whole flow safely">&#127891; Demo</button>
           </div>
@@ -974,6 +975,11 @@ table th{font-size:11px;letter-spacing:.4px}
               <div style="grid-column:span 3"><label>Payment reminder message</label><textarea id="st-rmd" rows="2" placeholder="Hi {first}, a friendly reminder that invoice {number} for {amount} was due {due}. You can pay online from the link below. Thank you!"></textarea></div>
             </div>
             <div class="row" style="margin-top:8px"><span class="hint">Placeholders: {first} {client} {number} {amount} {due} {month}</span><div style="flex:1"></div><button class="btn-blue btn-sm" onclick="stSave('invoice')">Save defaults</button></div></div>
+          <div class="card" style="grid-column:span 2"><div class="row" style="justify-content:space-between"><b style="font-size:15px">&#128222; Phone numbers</b><button class="btn-ghost btn-sm" onclick="phLoad()">&#8635;</button></div>
+            <div class="hint">Every Twilio number on the account, who dials from it, and new numbers in one click. Calls ring the rep who owns the number. Numbers we have never called do not ring anyone: they are logged, can leave a voicemail, and clear after 15 minutes.</div>
+            <div id="ph-list" style="margin-top:8px"></div>
+            <div class="row" style="margin-top:10px;gap:6px;align-items:flex-end"><div><label>Area code</label><input id="ph-ac" placeholder="239" style="max-width:90px"></div><div><label>or city</label><input id="ph-city" placeholder="Fort Myers" style="max-width:150px"></div><button class="btn-blue btn-sm" onclick="phSearch()">Find numbers</button><span class="hint" id="ph-price"></span></div>
+            <div id="ph-results" style="margin-top:8px"></div></div>
           <div class="card" style="grid-column:span 2"><b style="font-size:15px">&#128274; Team &amp; permissions</b>
             <div id="st-team" style="margin-top:8px"></div>
             <div class="hint" style="margin-top:10px;line-height:1.7"><b>Sales reps can:</b> dial, build lists, Listing Calls, see the shared pipeline (no money), their own meetings, sequences, past calls, tasks assigned to them, and their own commissions.<br><b>Sales reps cannot:</b> see Business HQ, Clients, Billing &amp; Wave, Referrals, Reports, Rep Performance, Deals &amp; Commissions for others, Settings, delete companies, or any invoice / revenue numbers. Every owner-only request is checked on the server, not just hidden.</div></div>
@@ -1741,8 +1747,16 @@ var PA_WEEKS = [
 var PA_SET = { state:'PA', region:'Pennsylvania', markets:PA_MARKETS, industries:PA_INDUSTRIES, plan:PA_PLAN, weeks:PA_WEEKS };
 
 var TERR = FL_SET;
+var FLS_SET = { state:'FL', key:'FLS', region:'Southwest & South Florida', industries:INDUSTRIES, plan:GAMEPLAN, weeks:GAMEPLAN_WEEKS, markets:[
+  'Fort Myers','Cape Coral','Lehigh Acres', 'Estero','Bonita Springs','Fort Myers Beach', 'Naples','Golden Gate','Marco Island',
+  'Punta Gorda','Port Charlotte','North Port', 'Venice','Englewood','Nokomis', 'Sarasota','Osprey','Arcadia',
+  'LaBelle','Immokalee','Ave Maria', 'Homestead','Miami','Hialeah', 'Fort Lauderdale','Hollywood','Pembroke Pines', 'Boca Raton','Delray Beach','West Palm Beach'] };
+var FLN_SET = { state:'FL', key:'FLN', region:'North Florida', industries:INDUSTRIES, plan:GAMEPLAN, weeks:GAMEPLAN_WEEKS, markets:[
+  'Jacksonville','Orange Park','Jacksonville Beach', 'St. Augustine','Palm Coast','Fernandina Beach', 'Gainesville','Ocala','Lake City',
+  'Tallahassee','Crawfordville','Quincy', 'Daytona Beach','Ormond Beach','DeLand', 'Panama City','Panama City Beach','Lynn Haven',
+  'Pensacola','Gulf Breeze','Milton', 'Fort Walton Beach','Destin','Crestview', 'Middleburg','Fleming Island','Yulee'] };
 function applyTerritory(t){
-  TERR = t==='PA' ? PA_SET : FL_SET;
+  TERR = t==='PA' ? PA_SET : t==='FLS' ? FLS_SET : t==='FLN' ? FLN_SET : FL_SET;
   MARKETS = TERR.markets; INDUSTRIES = TERR.industries; GAMEPLAN = TERR.plan; GAMEPLAN_WEEKS = TERR.weeks;
 }
 function isOwner(){ return !!(BOOT && BOOT.user && BOOT.user.role==='owner'); }
@@ -1972,7 +1986,11 @@ function gotoView(v){
 document.querySelectorAll('.nv').forEach(function(b){ b.addEventListener('click', function(){ gotoView(b.getAttribute('data-view')); }); });
 
 /* ================= HUNT ================= */
+function areaToggle(){ var on=$('areaBox').style.display==='none'; $('areaBox').style.display=$('areaBox2').style.display=on?'':'none'; if(!on) $('customCity').value=''; $('areaTog').textContent=on?'Back to my whole territory':'Pick a specific town'; }
+function rotKey(){ return 'sdr_rot_'+(TERR.key||TERR.state); }
 function hunt(){
+  var autoArea = $('areaBox').style.display==='none';
+  if (autoArea){ var r0=Number(load(rotKey(),0))||0; $('market').value=MARKETS[(Math.floor(r0/3)*3)%MARKETS.length]; }
   var custom = $('customCity').value.trim();
   var city = custom || $('market').value;
   var metros;
@@ -1987,7 +2005,7 @@ function hunt(){
   $('rows').innerHTML='<tr><td colspan="6"><div class="empty">Scanning '+esc(city)+', '+TERR.state+' for '+esc(ind.label.toLowerCase())+' sitting at positions 4 through 12 on the map...</div></td></tr>';
   /* Small towns run thin, so when one sweep comes up short the hub keeps going into the next neighbouring
      clusters (up to 3 sweeps, 9 towns) until the list is full. */
-  var mi0 = MARKETS.indexOf($('market').value), rounds = custom ? 1 : 3;
+  var mi0 = MARKETS.indexOf($('market').value), rounds = custom ? 1 : (autoArea ? 4 : 3);
   var acc = [], seen = {}, skippedAll = 0, notesAll = [], townsUsed = [];
   function cluster(r){ return [0,1,2].map(function(k){ return MARKETS[(mi0 + r*3 + k) % MARKETS.length]; }); }
   function sweep(r){
@@ -2003,13 +2021,15 @@ function hunt(){
   }
   sweep(0).then(function(d){
     if (!custom && townsUsed.length > 3) city = townsUsed[0]+' area ('+townsUsed.length+' towns)';
+    if (autoArea) { save(rotKey(), ((Number(load(rotKey(),0))||0)+Math.max(3,townsUsed.length))%MARKETS.length); city=(TERR.region||TERR.state)+': '+townsUsed.slice(0,3).join(', ')+(townsUsed.length>3?' +'+(townsUsed.length-3):''); }
     LIST = d.list.map(function(b){ b.status=''; b.note=''; return b; });
     LISTMETA = { city:city, industry:ind.label, noun:ind.noun, best:ind.best, date:todayKey(), pro:true };
     save('sdr_list',LIST); save('sdr_listmeta',LISTMETA);
     renderList();
     beep(880,.1,.05);
     if (LIST.length){
-      toast(LIST.length+' qualified targets loaded, fastest wins first. '+d.skipped+' already-worked skipped.');
+      var vc=LIST.filter(function(b){return b.vcheck==='phone'||b.vcheck==='name';}).length;
+      toast(LIST.length+' targets loaded, '+vc+' confirmed against their own website. '+d.skipped+' already-worked skipped'+(d.dropped?', '+d.dropped+' wrong-business matches removed':'')+'.');
     } else if (d.notes&&d.notes.length){
       toast('Search problem: '+d.notes.join(' / '));
       $('rows').innerHTML='<tr><td colspan="6"><div class="empty">'+esc(d.notes.join(' / '))+'</div></td></tr>';
@@ -2058,7 +2078,7 @@ function renderList(){
     $('rows').innerHTML = LIST.map(function(b,i){
       return '<tr class="biz'+(b.status?' done':'')+'" onclick="openCall('+i+')">'+
         '<td style="color:var(--muted2)">'+(i+1)+'</td>'+
-        '<td><b>'+esc(b.name)+'</b>'+(b.aka&&!b.renamed?' <span class="hint">(site says '+esc(b.aka)+')</span>':'')+(b.why?' <span class="tag t-gold">'+esc(b.why)+'</span>':(isHot(b)?' <span class="tag t-hot">&#128293; prime</span>':''))+'</td>'+
+        '<td><b>'+esc(b.name)+'</b>'+(b.vcheck==='phone'?' <span class="tag" style="background:var(--green-bg);color:var(--green)" title="'+esc(b.vnote||'')+'">&#10003; verified</span>':b.vcheck==='name'?' <span class="tag" style="background:var(--green-bg);color:var(--green)" title="'+esc(b.vnote||'')+'">&#10003; name match</span>':b.vcheck?' <span class="tag" title="'+esc(b.vnote||'')+'">confirm name</span>':'')+(b.aka&&!b.renamed?' <span class="hint">(site says '+esc(b.aka)+')</span>':'')+(b.why?' <span class="tag t-gold">'+esc(b.why)+'</span>':(isHot(b)?' <span class="tag t-hot">&#128293; prime</span>':''))+'</td>'+
         '<td class="phone">'+esc(fmtPhone(b.phone))+'</td>'+
         '<td class="hidem">'+gCell(b)+'</td>'+
         '<td class="hidem">'+(b.website?'yes':'<b style="color:var(--blue)">none</b>')+'</td>'+
@@ -2808,9 +2828,13 @@ function stLoad(){
   });
   api('crm.wave.status').then(function(d){ var l=d.last; $('st-wave').innerHTML=d.connected?('&#9989; Connected'+(l?' to <b>'+esc(l.business)+'</b> · last sync '+fdate(l.at)+' '+new Date(l.at).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'})+' · '+l.customers+' customers, '+l.invoices+' invoices':'')):'&#10060; Not connected. Add WAVE_TOKEN in Vercel.'; });
   $('st-hook').textContent=location.origin+'/api/wave-hook?k=YOUR_TWILIO_WEBHOOK_KEY';
-  api('own.team').then(function(rows){
+  phLoad(); TEAM_ROWS=null;
+  api('own.team').then(function(rows){ TEAM_ROWS=rows;
     $('st-team').innerHTML='<table><thead><tr><th>Person</th><th>Role</th><th>Calls (30d)</th><th>Last call</th><th>Status</th></tr></thead><tbody>'+rows.map(function(u){
-      return '<tr><td><b>'+esc(u.name||u.email)+'</b><div class="hint">'+esc(u.email)+'</div></td><td><select onchange="stRole(\''+esc(u.email)+'\',this.value)" style="max-width:150px"><option value="sdr"'+(u.role!=='owner'?' selected':'')+'>Sales rep</option><option value="owner"'+(u.role==='owner'?' selected':'')+'>Owner (full access)</option></select></td><td>'+u.calls30+'</td><td>'+(u.last_call?fdate(u.last_call):'-')+'</td><td>'+(Number(u.active)?'active':'<span class="hint">disabled</span>')+'</td></tr>'; }).join('')+'</tbody></table><div class="hint" style="margin-top:6px">Invite people and turn seats on or off in Deals &amp; Commissions.</div>';
+      var T={'':'Default','FLS':'SW &amp; South FL','FLN':'North FL','PA':'Pennsylvania','FL':'All Florida'};
+      var terrSel='<select style="max-width:140px" onchange="stUser(\''+esc(u.email)+'\',this.value,null)">'+Object.keys(T).map(function(k){return '<option value="'+k+'"'+(u.territory===k?' selected':'')+'>'+T[k]+'</option>';}).join('')+'</select>';
+      var numSel='<select style="max-width:170px" onchange="stUser(\''+esc(u.email)+'\',null,this.value)"><option value="">Default line</option>'+(PH.numbers||[]).map(function(n){return '<option value="'+n.phone+'"'+(u.caller_id===n.phone?' selected':'')+'>'+fmtPhone(n.phone)+'</option>';}).join('')+'</select>';
+      return '<tr><td><b>'+esc(u.name||u.email)+'</b><div class="hint">'+esc(u.email)+'</div><div class="row" style="gap:4px;margin-top:4px">'+terrSel+numSel+'</div></td><td><select onchange="stRole(\''+esc(u.email)+'\',this.value)" style="max-width:150px"><option value="sdr"'+(u.role!=='owner'?' selected':'')+'>Sales rep</option><option value="owner"'+(u.role==='owner'?' selected':'')+'>Owner (full access)</option></select></td><td>'+u.calls30+'</td><td>'+(u.last_call?fdate(u.last_call):'-')+'</td><td>'+(Number(u.active)?'active':'<span class="hint">disabled</span>')+'</td></tr>'; }).join('')+'</tbody></table><div class="hint" style="margin-top:6px">Invite people and turn seats on or off in Deals &amp; Commissions.</div>';
   });
   api('own.audit').then(function(rows){ $('st-audit').innerHTML=rows.length?'<table><thead><tr><th>When</th><th>Who</th><th>What</th><th>Target</th><th>Detail</th></tr></thead><tbody>'+rows.map(function(r){ return '<tr'+(r.act==='blocked'?' style="color:var(--red)"':'')+'><td>'+fdate(r.ts)+' '+new Date(r.ts).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'})+'</td><td>'+esc(r.name||r.who)+'</td><td>'+esc(r.act)+'</td><td>'+esc(r.target)+'</td><td>'+esc(r.detail)+'</td></tr>'; }).join('')+'</tbody></table>':'<div class="hint">Nothing logged yet.</div>'; });
 }
@@ -2948,6 +2972,43 @@ gsRun=function(q){
     box.querySelectorAll('a[data-act]').forEach(function(el){ el.addEventListener('click',function(){ box.classList.remove('show'); $('gSearch').value=''; GS_ACTIONS[Number(el.getAttribute('data-act'))][1](); }); });
   },350);
 };
+
+
+/* ================= PHONE NUMBERS (Twilio) ================= */
+var PH={numbers:[]}, TEAM_ROWS=null;
+function phLoad(){
+  api('own.phone.list').then(function(d){
+    PH=d;
+    $('ph-list').innerHTML='<table><thead><tr><th>Number</th><th>Label</th><th>Who dials from it</th><th></th></tr></thead><tbody>'+d.numbers.map(function(n){
+      return '<tr><td><b>'+esc(fmtPhone(n.phone))+'</b></td><td>'+esc(n.name||'')+(n.fallbackNote?'<div class="hint">'+esc(n.fallbackNote)+'</div>':'')+'</td><td>'+(n.users.length?esc(n.users.join(', ')):'<span class="hint">nobody</span>')+'</td>'+
+        '<td><button class="btn-ghost btn-sm" onclick="phRelease(\''+n.sid+'\',\''+esc(n.phone)+'\')">Release</button></td></tr>'; }).join('')+'</tbody></table>'+
+      '<div class="hint" style="margin-top:6px">Missed calls never forward to a cell phone. People we have called ring their rep; everyone else is logged and can leave a voicemail. Unknown callers clear from Missed Calls after 15 minutes.</div>';
+    if(TEAM_ROWS) stLoadTeamOnly();
+  }).catch(function(e){ $('ph-list').innerHTML='<div class="hint">'+esc(e.message)+'</div>'; });
+}
+function stLoadTeamOnly(){ api('own.team').then(function(rows){ TEAM_ROWS=rows; }); }
+function phSearch(){
+  $('ph-results').innerHTML='<div class="hint">Searching Twilio...</div>';
+  api('own.phone.search',{areaCode:$('ph-ac').value,near:$('ph-city').value,state:'FL'}).then(function(d){
+    PH.price=d.price; $('ph-price').textContent=d.price?('Local numbers: $'+d.price.toFixed(2)+'/month each on Twilio'):'';
+    $('ph-results').innerHTML=d.numbers.length?'<table><tbody>'+d.numbers.map(function(n){ return '<tr><td><b>'+esc(n.nice)+'</b></td><td>'+esc([n.city,n.state].filter(Boolean).join(', '))+'</td><td><button class="btn-go btn-sm" onclick="phBuy(\''+n.phone+'\',\''+esc(n.city||'')+'\')">Buy</button></td></tr>'; }).join('')+'</tbody></table>':'<div class="hint">No numbers available there. Try a nearby area code.</div>';
+  }).catch(function(e){ $('ph-results').innerHTML='<div class="hint">'+esc(e.message)+'</div>'; });
+}
+function phBuy(num,city){
+  var users=(TEAM_ROWS||[]).filter(function(u){return u.role!=='owner'||true;});
+  var who=prompt('Buy '+fmtPhone(num)+(city?' ('+city+')':'')+(PH.price?' for $'+PH.price.toFixed(2)+'/month':'')+'?\n\nType the email of the rep who should dial from it (or leave blank):','');
+  if(who===null) return;
+  if(!confirm('Confirm purchase: '+fmtPhone(num)+(PH.price?', $'+PH.price.toFixed(2)+'/month':'')+', billed to your Twilio account.')) return;
+  api('own.phone.buy',{phone:num,label:'BWD '+(city||'line'),assign:who.trim()}).then(function(r){ toast('Bought '+fmtPhone(r.phone)+'. It is live for calls.'); $('ph-results').innerHTML=''; phLoad(); stLoad(); }).catch(function(e){ alert(e.message); });
+}
+function phRelease(sid,num){
+  if(!confirm('Release '+fmtPhone(num)+'? Twilio takes it back permanently. Anyone who calls it after this hears that the number is not in service.')) return;
+  api('own.phone.release',{sid:sid}).then(function(){ toast('Released.'); phLoad(); stLoad(); }).catch(function(e){ alert(e.message); });
+}
+function stUser(em,terr,cid){
+  var u=(TEAM_ROWS||[]).find(function(x){return x.email===em;})||{};
+  api('own.user.update',{email:em,territory:terr==null?u.territory:terr,caller_id:cid==null?u.caller_id:cid}).then(function(){ toast('Saved. They see it next time they open the hub.'); stLoad(); }).catch(function(e){ alert(e.message); });
+}
 
 /* ================= REFERRAL PROGRAM ================= */
 var REF={partners:[],referrals:[],credits:[],base:''};
@@ -3878,16 +3939,16 @@ function missPoll(force){
 function missAgo(ts){ var m=Math.round((Date.now()-new Date(ts).getTime())/6e4); return m<60?m+'m ago':m<1440?Math.round(m/60)+'h ago':Math.round(m/1440)+'d ago'; }
 function missRender(){
   var f=$('missFilter').value, rows=MISS.filter(function(r){return f==='all'||r.status==='missed';});
-  var ST={missed:'<span class="tag" style="background:#fde8e8;color:#b42318">missed</span>',answered:'<span class="tag t-gold">answered</span>',answered_cell:'<span class="tag t-gold">answered on cell</span>',called_back:'<span class="tag" style="background:#dcfce7;color:#166534">called back</span>',dismissed:'<span class="tag">dismissed</span>'};
+  var ST={unknown:'<span class="tag" title="Not someone we have called. Clears from this list after 15 minutes.">unknown caller</span>',missed:'<span class="tag" style="background:#fde8e8;color:#b42318">missed</span>',answered:'<span class="tag t-gold">answered</span>',answered_cell:'<span class="tag t-gold">answered on cell</span>',called_back:'<span class="tag" style="background:#dcfce7;color:#166534">called back</span>',dismissed:'<span class="tag">dismissed</span>'};
   $('missBody').innerHTML=rows.length?'<div style="overflow-x:auto"><table><thead><tr><th>Caller</th><th>When</th><th class="hidem">Line</th><th>Voicemail</th><th>Status</th><th></th></tr></thead><tbody>'+rows.map(function(r){
     var late=r.status==='missed' && (Date.now()-new Date(r.ts).getTime())>15*6e4;
     var lt=theirTime(r.phone);
     return '<tr><td><b>'+esc(r.name||'New number')+'</b><div class="hint">'+esc(fmtPhone(r.phone))+(r.city?' · '+esc(r.city):'')+(r.last_out?' · last: '+esc(String(r.last_out).replace(/_/g,' ')):'')+(lt?' · their time '+esc(lt.txt):'')+'</div></td>'+
       '<td'+(late?' style="color:#b42318;font-weight:700"':'')+'>'+missAgo(r.ts)+'</td>'+
       '<td class="hidem">'+esc(fmtPhone(r.line))+'</td>'+
-      '<td>'+(r.vm_url?'<audio controls preload="none" src="'+esc(r.vm_url)+'" style="height:30px;max-width:200px"></audio><div class="hint">'+r.vm_secs+'s</div>':'<span class="hint">none</span>')+'</td>'+
+      '<td>'+(r.vm_url?'<audio controls preload="none" src="/api/rec?id='+r.id+'&t='+encodeURIComponent(TOKEN)+'" style="height:30px;max-width:220px"></audio><div class="hint">'+r.vm_secs+'s</div>':'<span class="hint">none</span>')+'</td>'+
       '<td>'+(ST[r.status]||esc(r.status))+'</td>'+
-      '<td style="white-space:nowrap">'+(r.status==='missed'?'<button class="btn-green btn-sm" onclick="missCall('+r.id+')">&#128222; Call back</button> <button class="btn-ghost btn-sm" title="Dismiss" onclick="missDismiss('+r.id+')">&#10005;</button>':'<button class="btn-ghost btn-sm" onclick="missCall('+r.id+')">Call</button>')+'</td></tr>';
+      '<td style="white-space:nowrap">'+(r.status==='missed'?'<button class="btn-green btn-sm" onclick="missCall('+r.id+')">&#128222; Call back</button> <button class="btn-ghost btn-sm" title="Block this number: it will never ring again" onclick="missSpam('+r.id+')">&#128683; Spam</button> <button class="btn-ghost btn-sm" title="Dismiss" onclick="missDismiss('+r.id+')">&#10005;</button>':'<button class="btn-ghost btn-sm" onclick="missCall('+r.id+')">Call</button>')+'</td></tr>';
   }).join('')+'</tbody></table></div>':'<div class="empty" style="padding:10px">'+(f==='all'?'No inbound calls in the last 14 days.':'No missed calls. Every callback has been returned. &#9989;')+'</div>';
 }
 function missCall(id){
@@ -3896,6 +3957,7 @@ function missCall(id){
   twDial(r.phone);
   if(r.status==='missed') api('inbound.done',{id:id}).then(function(){ missPoll(); }).catch(function(){});
 }
+function missSpam(id){ if(confirm('Block this number? Future calls from it are rejected and never ring.')) api('inbound.spam',{id:id}).then(function(){ toast('Blocked.'); missPoll(); }); }
 function missDismiss(id){ api('inbound.dismiss',{id:id}).then(function(){ missPoll(); }); }
 setInterval(function(){ if(document.visibilityState==='visible') missPoll(); },60000);
 
@@ -4628,7 +4690,7 @@ function lRender(){
   if(on) $('l-title').textContent+=' · '+nv+' verified';
   $('l-rows').innerHTML=L.length?L.map(function(b,i){
     return '<tr class="biz'+(b.status?' done':'')+'" onclick="openCall('+i+')"><td style="color:var(--muted2)">'+(i+1)+'</td>'+
-      '<td><b>'+esc(b.name)+'</b>'+(b.verified?' <span class="lp-ver">&#10003; On '+esc((b.onP||[]).join(' + ')||b.platform)+'</span>':(b.badge?' <span class="lp-badge">Badge</span>':''))+'<div class="hint">'+esc(b.evidence||'')+'</div></td>'+
+      '<td><b>'+esc(b.name)+'</b>'+(b.vcheck==='phone'?' <span class="tag" style="background:var(--green-bg);color:var(--green)" title="'+esc(b.vnote||'')+'">&#10003; verified</span>':b.vcheck==='name'?' <span class="tag" style="background:var(--green-bg);color:var(--green)" title="'+esc(b.vnote||'')+'">&#10003; name match</span>':b.vcheck?' <span class="tag" title="'+esc(b.vnote||'')+'">confirm name</span>':'')+(b.verified?' <span class="lp-ver">&#10003; On '+esc((b.onP||[]).join(' + ')||b.platform)+'</span>':(b.badge?' <span class="lp-badge">Badge</span>':''))+'<div class="hint">'+esc(b.evidence||'')+'</div></td>'+
       '<td onclick="event.stopPropagation()" style="white-space:nowrap">'+lChecks(b,i)+'</td>'+
       '<td class="phone">'+esc(fmtPhone(b.phone))+'</td><td class="hidem">'+gCell(b)+'</td><td>'+statusTag(b.status)+'</td></tr>';
   }).join(''):'<tr><td colspan="6"><div class="empty">'+(LIST.length&&!on?'Your dialer has a regular list loaded. Building here swaps in a lead-buyer list (already-called numbers stay in Past Calls).':'Pick a market and industry, then hit Find lead buyers.')+'</div></td></tr>';
