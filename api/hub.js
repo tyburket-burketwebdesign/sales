@@ -183,8 +183,9 @@ module.exports = async function handler(req, res) {
         try { loc = await C.geocodeCity(metro); }
         catch (e) { notes.push(metro + ': ' + e.message); continue; }
         let results;
-        try { results = await C.placesBiased(vertical + ' in ' + metro, loc.lat, loc.lng, 35000); }
-        catch (e) { notes.push(metro + ': ' + e.message); continue; }
+        const ptype = C.placeTypeFor(vertical);
+        try { results = await C.placesBiased(vertical + ' in ' + metro, loc.lat, loc.lng, 35000, ptype); }
+        catch (e) { try { results = await C.placesBiased(vertical + ' in ' + metro, loc.lat, loc.lng, 35000); } catch (e2) { notes.push(metro + ': ' + e2.message); continue; } }
         for (const b of results) {
           if (b.status !== 'OPERATIONAL') continue;          // closed or moved
           if (b.pos <= 3) continue;                          // already winning, nothing to sell
@@ -212,8 +213,12 @@ module.exports = async function handler(req, res) {
         (await sql`SELECT DISTINCT phone FROM calls WHERE phone = ANY(${phones})`).forEach(r => known[r.phone] = true);
         (await sql`SELECT phone FROM dnc WHERE phone = ANY(${phones})`).forEach(r => known[r.phone] = true);
       }
-      const fresh = (await C.cleanLeads(sql, out.filter(b => !known[b.phone]), vertical)).slice(0, target);
-      return ok({ list: fresh, skipped: out.length - fresh.length, notes: notes });
+      const cleaned = await C.cleanLeads(sql, out.filter(b => !known[b.phone]), vertical);
+      const checked = await C.verifyLeads(cleaned.slice(0, target + 15), vertical);
+      const fresh = checked.slice(0, target);
+      const dropped = cleaned.slice(0, target + 15).length - checked.length;
+      if (dropped) notes.push(dropped + ' dropped: their website did not match the Google listing (likely the wrong business)');
+      return ok({ list: fresh, skipped: out.length - fresh.length, dropped, notes: notes });
     }
 
     /* ---------------- LISTING CALLS: businesses buying shared leads ---------------- */
@@ -276,7 +281,7 @@ module.exports = async function handler(req, res) {
       }
       if (a === 'own.audit') return ok(await sql`SELECT a.*, u.name FROM audit a LEFT JOIN users u ON u.email=a.who ORDER BY a.ts DESC LIMIT 300`);
       if (a === 'own.team') {
-        return ok(await sql`SELECT u.email, u.name, u.role, COALESCE(u.active,1) AS active,
+        return ok(await sql`SELECT u.email, u.name, u.role, COALESCE(u.active,1) AS active, COALESCE(u.territory,'') AS territory, COALESCE(u.caller_id,'') AS caller_id,
           (SELECT max(ts) FROM calls c WHERE c.rep=u.email) AS last_call,
           (SELECT count(*)::int FROM calls c WHERE c.rep=u.email AND c.ts > now() - interval '30 days') AS calls30
           FROM users u ORDER BY u.role DESC, u.name`);
@@ -285,6 +290,55 @@ module.exports = async function handler(req, res) {
         const em = String(P.email || '').toLowerCase(), role = P.role === 'owner' ? 'owner' : 'sdr';
         if (em === user.email && role !== 'owner') return err('You cannot remove your own owner access.');
         await sql`UPDATE users SET role=${role} WHERE email=${em}`; audit('role', em, role);
+        return ok(true);
+      }
+      if (a === 'own.phone.list') {
+        const nums = await C.twilioSyncNumbers(sql);
+        const users = await sql`SELECT email, name, role, COALESCE(territory,'') AS territory, COALESCE(caller_id,'') AS caller_id, COALESCE(active,1) AS active FROM users ORDER BY role DESC, name`;
+        return ok({ numbers: nums.map(n => Object.assign(n, { users: users.filter(u => u.caller_id === n.phone).map(u => u.name || u.email),
+          fallbackNote: (process.env.TWILIO_FROM && C.twE164(process.env.TWILIO_FROM) === n.phone) ? 'default rep line (TWILIO_FROM)' : (C.ownerFrom() === n.phone ? 'owner line' : '') })),
+          users, fallback: false });
+      }
+      if (a === 'own.phone.search') {
+        const p = { VoiceEnabled: 'true', PageSize: 12 };
+        if (P.areaCode) p.AreaCode = String(P.areaCode).replace(/\D/g, '').slice(0, 3);
+        if (P.near) p.InLocality = String(P.near).slice(0, 40);
+        if (P.state) p.InRegion = String(P.state).slice(0, 2);
+        const j = await C.twilioApi('GET', '/AvailablePhoneNumbers/US/Local.json', p);
+        let price = null;
+        try { const pr = await C.twilioApi('GET', '/PhoneNumbers/Countries/US', null, 'https://pricing.twilio.com/v1'); const loc = (pr.phone_number_prices || []).find(x => x.number_type === 'local'); price = loc ? Number(loc.current_price || loc.base_price) : null; } catch (e) {}
+        return ok({ price, numbers: (j.available_phone_numbers || []).map(n => ({ phone: n.phone_number, nice: n.friendly_name, city: n.locality, state: n.region })) });
+      }
+      if (a === 'own.phone.buy') {
+        const num = C.twE164(P.phone); if (!num) return err('Pick a number.');
+        const cur = await C.twilioSyncNumbers(sql);
+        const voiceUrl = (cur.find(n => /\/api\/voice/.test(n.voice_url || '')) || {}).voice_url;
+        if (!voiceUrl) return err('Could not find the voice webhook on your existing numbers to copy.');
+        const j = await C.twilioApi('POST', '/IncomingPhoneNumbers.json', { PhoneNumber: num, VoiceUrl: voiceUrl, VoiceMethod: 'POST', FriendlyName: String(P.label || 'BWD ' + num).slice(0, 60) });
+        await C.twilioSyncNumbers(sql);
+        if (P.assign) {
+          await sql`UPDATE users SET caller_id=${num} WHERE email=${String(P.assign).toLowerCase()}`;
+          if (P.territory) await sql`UPDATE users SET territory=${String(P.territory).toUpperCase()} WHERE email=${String(P.assign).toLowerCase()}`;
+        }
+        audit('phone.buy', num, P.label || '');
+        return ok({ sid: j.sid, phone: j.phone_number });
+      }
+      if (a === 'own.phone.release') {
+        const cur = await C.twilioSyncNumbers(sql);
+        const n = cur.find(x => x.sid === P.sid); if (!n) return err('Number not found.');
+        if (C.ownerFrom() === n.phone && !P.force) return err('That is your owner line. Change OWNER_FROM first.');
+        await C.twilioApi('DELETE', '/IncomingPhoneNumbers/' + n.sid + '.json');
+        await sql`UPDATE users SET caller_id='' WHERE caller_id=${n.phone}`;
+        await C.twilioSyncNumbers(sql);
+        audit('phone.release', n.phone, n.name || '');
+        return ok(true);
+      }
+      if (a === 'own.user.update') {
+        const em = String(P.email || '').toLowerCase();
+        const terr = ['PA', 'FL', 'FLS', 'FLN', ''].includes(String(P.territory || '').toUpperCase()) ? String(P.territory || '').toUpperCase() : '';
+        let cid = String(P.caller_id || '').trim(); if (cid) cid = C.twE164(cid);
+        await sql`UPDATE users SET territory=${terr}, caller_id=${cid} WHERE email=${em}`;
+        audit('user.update', em, terr + ' ' + cid);
         return ok(true);
       }
       if (a === 'own.health') {
@@ -969,7 +1023,8 @@ module.exports = async function handler(req, res) {
         });
       }
       out.forEach(b => { const m = marks[b.phone]; if (m) { b.onP = m; b.verified = true; b.platform = m[0]; b.platforms = m; b.evidence = 'Profile found on ' + m.join(' + '); } });
-      return ok({ list: await C.cleanLeads(sql, out, vertical), scanned: fresh.length, skipped: cands.length - fresh.length, notes });
+      const lv = await C.verifyLeads(await C.cleanLeads(sql, out, vertical), vertical);
+      return ok({ list: lv, scanned: fresh.length, skipped: cands.length - fresh.length, notes });
     }
 
     /* ---------------- CALL LOGGING ---------------- */
@@ -1701,7 +1756,8 @@ module.exports = async function handler(req, res) {
       const rows = await sql`SELECT i.*, COALESCE(c.name, '') AS name, COALESCE(c.city, '') AS city, COALESCE(c.stage, '') AS stage,
           (SELECT outcome FROM calls WHERE phone=i.phone ORDER BY ts DESC LIMIT 1) AS last_out
         FROM inbound i LEFT JOIN companies c ON c.phone=i.phone
-        WHERE i.ts > now() - ${days + ' days'}::interval ORDER BY i.ts DESC LIMIT 150`;
+        WHERE i.ts > now() - ${days + ' days'}::interval AND i.status NOT IN ('blocked','screened','spam')
+          AND (i.status <> 'unknown' OR i.ts > now() - interval '15 minutes') ORDER BY i.ts DESC LIMIT 150`;
       const mine = OWNER ? rows : rows.filter(r => !r.rep || r.rep === user.email);
       return ok({ rows: mine, open: mine.filter(r => r.status === 'missed').length });
     }
@@ -1710,6 +1766,13 @@ module.exports = async function handler(req, res) {
       if (id) await sql`UPDATE inbound SET status='called_back', done_by=${user.email}, done_ts=now() WHERE id=${id} AND status='missed'`;
       else if (P.phone) await sql`UPDATE inbound SET status='called_back', done_by=${user.email}, done_ts=now() WHERE phone=${C.normPhone(P.phone)} AND status='missed'`;
       return ok({});
+    }
+    if (a === 'inbound.spam') {
+      const r = (await sql`SELECT phone FROM inbound WHERE id=${Number(P.id) || 0}`)[0];
+      if (!r) return err('Not found.');
+      await sql`INSERT INTO spam (phone, by_email) VALUES (${r.phone}, ${user.email}) ON CONFLICT (phone) DO NOTHING`;
+      await sql`UPDATE inbound SET status='spam', done_by=${user.email}, done_ts=now() WHERE phone=${r.phone} AND status='missed'`;
+      return ok(true);
     }
     if (a === 'inbound.dismiss') {
       await sql`UPDATE inbound SET status='dismissed', done_by=${user.email}, done_ts=now() WHERE id=${Number(P.id) || 0}`;
@@ -1856,7 +1919,7 @@ module.exports = async function handler(req, res) {
     if (a === 'user.settings') {
       if (!OWNER) return err('Owner only.');
       const em = String(P.email || '').toLowerCase().trim();
-      const terr = ['PA', 'FL', ''].indexOf(String(P.territory || '').toUpperCase()) > -1 ? String(P.territory || '').toUpperCase() : '';
+      const terr = ['PA', 'FL', 'FLS', 'FLN', ''].indexOf(String(P.territory || '').toUpperCase()) > -1 ? String(P.territory || '').toUpperCase() : '';
       let cid = String(P.caller_id || '').trim();
       if (cid) { cid = C.twE164(cid); if (C.twilioNumbers().indexOf(cid) === -1) return err('That number is not one of your Twilio numbers.'); }
       await sql`UPDATE users SET territory=${terr}, caller_id=${cid} WHERE email=${em}`;

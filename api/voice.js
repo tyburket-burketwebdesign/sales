@@ -50,7 +50,7 @@ module.exports = async function handler(req, res) {
     if (req.query.cb === '1') {
       const st = P.DialCallStatus || '';
       const from = String(P.From || '').replace(/[^\d+]/g, '');
-      const fallback = C.twE164(process.env.TWILIO_FALLBACK || '');
+      const fallback = '';   /* no forwarding to anyone's cell: missed calls go to voicemail + the Missed Calls inbox */
       if (st !== 'completed' && fallback && req.query.fb !== '1') {
         // nobody online in the hub: ring the real cell before giving up
         const action2 = '/api/voice?k=' + encodeURIComponent(key) + '&cb=1&fb=1';
@@ -92,16 +92,36 @@ module.exports = async function handler(req, res) {
        A number that only the owner dials from (the PA line) rings only the owner; any other number rings every seat. */
     if (String(P.From || '').indexOf('client:') !== 0) {
       await C.ensureSchema();
-      const all = await sql`SELECT email, role, COALESCE(territory,'') AS territory, COALESCE(caller_id,'') AS caller_id FROM users WHERE COALESCE(active,1)=1`;
+      const caller = String(P.From || '').replace(/\D/g, '').replace(/^1(?=\d{10}$)/, '');
       const dialed = C.twE164(P.To || P.Called || '');
-      const onLine = all.filter(u => C.callerFor(u) === dialed);
-      let ringSet = onLine.length && onLine.every(u => u.role === 'owner') ? onLine : all;
-      /* a prospect calling back reaches the rep who called them, even on the owner's line */
+      const lineTen = dialed.replace(/\D/g, '').slice(1);
+      /* 1. blocked numbers and failed caller-ID checks never ring */
+      const blocked = (await sql`SELECT 1 FROM spam WHERE phone=${caller}`).length > 0;
+      if (blocked || /TN-Validation-Failed/i.test(String(P.StirVerstat || ''))) {
+        try { await sql`INSERT INTO inbound (sid, phone, line, status) VALUES (${String(P.CallSid || '')}, ${caller}, ${lineTen}, 'blocked')`; } catch (e) {}
+        return xml(res, '<Response><Reject reason="rejected"/></Response>');
+      }
+      /* 2. known = someone we have called, or a company or client on file */
+      const known = (await sql`SELECT 1 FROM calls WHERE phone=${caller} LIMIT 1`).length > 0 ||
+                    (await sql`SELECT 1 FROM companies WHERE phone=${caller} OR alt_phones LIKE ${'%"' + caller + '"%'} LIMIT 1`).length > 0 ||
+                    (await sql`SELECT 1 FROM clients WHERE phone=${caller} LIMIT 1`).length > 0;
+      /* 3. unknown numbers (nobody we have called, not a client) never ring a phone: they are logged and can leave a
+            voicemail. They drop off the Missed Calls list after 15 minutes; known callbacks and their voicemails stay. */
+      if (!known) {
+        let uid = 0;
+        try { uid = (await sql`INSERT INTO inbound (sid, phone, line, status) VALUES (${String(P.CallSid || '')}, ${caller}, ${lineTen}, 'unknown') RETURNING id`)[0].id; } catch (e) {}
+        const vmA = '/api/voice?k=' + encodeURIComponent(key) + '&vm=' + uid;
+        return xml(res, '<Response><Say voice="Polly.Joanna">Thanks for calling Burket Web Design. Please leave your name, number and what you need after the tone, and we will call you back.</Say>' +
+          '<Record maxLength="120" timeout="6" playBeep="true" action="' + escXml(vmA) + '" method="POST"/><Say voice="Polly.Joanna">Thanks, talk soon.</Say></Response>');
+      }
+      const all = await sql`SELECT email, role, COALESCE(territory,'') AS territory, COALESCE(caller_id,'') AS caller_id FROM users WHERE COALESCE(active,1)=1`;
+      /* ring the rep who owns the dialed number, plus whoever last called this person; the owner only when nobody else fits */
+      let ringSet = all.filter(u => (u.caller_id && C.twE164(u.caller_id) === dialed) || C.callerFor(u) === dialed);
       try {
-        const caller = String(P.From || '').replace(/\D/g, '').replace(/^1(?=\d{10}$)/, '');
         const last = (await sql`SELECT rep FROM calls WHERE phone=${caller} ORDER BY ts DESC LIMIT 1`)[0];
         if (last) { const r = all.find(u => u.email === last.rep); if (r && ringSet.indexOf(r) === -1) ringSet = ringSet.concat([r]); }
       } catch (e) {}
+      if (!ringSet.length) ringSet = all.filter(u => u.role === 'owner');
       const ids = ringSet.map(u => String(u.email).replace(/[^a-zA-Z0-9_]/g, '_'));
       if (!ids.length) return xml(res, '<Response><Say>Thanks for calling Burket Web Design. Please try us again shortly.</Say></Response>');
       const action = '/api/voice?k=' + encodeURIComponent(key) + '&cb=1';
