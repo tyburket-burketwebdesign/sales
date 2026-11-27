@@ -140,6 +140,7 @@ module.exports = async function handler(req, res) {
       const me = seats.find(u => String(u.email).replace(/[^a-zA-Z0-9_]/g, '_') === ident);
       if (me) from = C.localCallerFor(me, P.To);
     } catch (e) { console.log('[voice] seat lookup failed, using TWILIO_FROM', e && e.message); }
+    if (C.twilioNumbers().indexOf(from) === -1) from = C.callerFor({ role: 'sdr' });
     let to = String(P.To || '').replace(/[^\d+]/g, '');
     if (to.length === 10) to = '+1' + to;
     if (to.length === 11 && to[0] === '1') to = '+' + to;
