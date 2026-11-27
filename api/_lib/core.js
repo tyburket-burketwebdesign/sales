@@ -460,7 +460,7 @@ function twE164(s2) {
 }
 function twilioReady() {
   return !!(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_API_KEY_SID && process.env.TWILIO_API_KEY_SECRET &&
-            process.env.TWILIO_TWIML_APP_SID && process.env.TWILIO_FROM);
+            process.env.TWILIO_TWIML_APP_SID && (process.env.TWILIO_FROM || (TW_NUMS || []).length));
 }
 /* Each seat dials from its own number so the owner (Pennsylvania) and the SDR (Florida) can call at the same time.
  * Owner default: OWNER_FROM, else the original PA line (814) 680-2901. Everyone else: TWILIO_FROM. A seat's caller_id overrides. */
@@ -478,7 +478,11 @@ function callerFor(u) {
   const nums = twilioNumbers();
   const own = twE164((u && u.caller_id) || '');
   if (own && nums.indexOf(own) > -1) return own;
-  return u && u.role === 'owner' ? ownerFrom() : twE164(process.env.TWILIO_FROM);
+  if (u && u.role === 'owner') return ownerFrom();
+  const envFrom = twE164(process.env.TWILIO_FROM);
+  if (nums.indexOf(envFrom) > -1) return envFrom;
+  /* TWILIO_FROM was released: use the first non-owner number we still own */
+  return nums.find(n => n !== ownerFrom()) || envFrom;
 }
 /* Local presence: when a seat dials into a state where we own a number, show that state's number. */
 const AREA_STATE = {};
