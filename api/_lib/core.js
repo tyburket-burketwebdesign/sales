@@ -89,6 +89,8 @@ async function ensureSchema() {
   await sql`ALTER TABLE invoices ADD COLUMN IF NOT EXISTS amount_paid NUMERIC DEFAULT 0`;
   await sql`ALTER TABLE invoices ADD COLUMN IF NOT EXISTS sent_ts TIMESTAMPTZ`;
   await sql`ALTER TABLE companies ADD COLUMN IF NOT EXISTS value NUMERIC DEFAULT 0`;
+  await sql`CREATE TABLE IF NOT EXISTS spam ( phone TEXT PRIMARY KEY, by_email TEXT DEFAULT '', ts TIMESTAMPTZ DEFAULT now() )`;
+  try { const tn = (await sql`SELECT v FROM kv WHERE k='twilio_numbers'`)[0]; TW_NUMS = tn ? JSON.parse(tn.v) : []; } catch (e) {}
   await sql`CREATE TABLE IF NOT EXISTS acct_snap ( day DATE, acct TEXT, name TEXT DEFAULT '', kind TEXT DEFAULT '', balance NUMERIC DEFAULT 0, PRIMARY KEY (day, acct) )`;
   await sql`CREATE TABLE IF NOT EXISTS audit ( id SERIAL PRIMARY KEY, who TEXT, act TEXT, target TEXT DEFAULT '', detail TEXT DEFAULT '', ts TIMESTAMPTZ DEFAULT now() )`;
   await sql`CREATE TABLE IF NOT EXISTS client_log ( id SERIAL PRIMARY KEY, client_id INT, author TEXT DEFAULT '', note TEXT DEFAULT '', ts TIMESTAMPTZ DEFAULT now() )`;
@@ -277,11 +279,11 @@ async function geocodeCity(city) {
   return { lat: Number(j[0].lat), lng: Number(j[0].lon) };
 }
 /* One page, order preserved, biased to where a real customer stands. */
-async function placesBiased(query, lat, lng, radiusM) {
+async function placesBiased(query, lat, lng, radiusM, includedType) {
   const key = process.env.GOOGLE_PLACES_KEY;
   if (!key) throw new Error('GOOGLE_PLACES_KEY is not set.');
   const body = {
-    textQuery: query, pageSize: 20,
+    textQuery: query, pageSize: 20, ...(includedType ? { includedType } : {}),
     locationBias: { circle: { center: { latitude: lat, longitude: lng }, radius: radiusM || 35000 } }
   };
   const r = await fetch('https://places.googleapis.com/v1/places:searchText', {
@@ -466,9 +468,12 @@ const OWNER_FROM_DEFAULT = '+18146802901';
 function ownerFrom() { return twE164(process.env.OWNER_FROM || OWNER_FROM_DEFAULT); }
 function territoryFor(u) {
   const t = String((u && u.territory) || '').toUpperCase();
-  if (t === 'PA' || t === 'FL') return t;
-  return u && u.role === 'owner' ? 'PA' : 'FL';
+  if (['PA', 'FL', 'FLS', 'FLN'].includes(t)) return t;
+  return u && u.role === 'owner' ? 'PA' : 'FLS';
 }
+/* numbers owned in Twilio (synced into kv by Settings → Phone numbers); env vars are the fallback */
+let TW_NUMS = [];
+function twilioNumberList() { return TW_NUMS; }
 function callerFor(u) {
   const nums = twilioNumbers();
   const own = twE164((u && u.caller_id) || '');
@@ -480,18 +485,70 @@ const AREA_STATE = {};
 ['814','582','412','724','878','717','223','570','272','610','484','215','267','445','835'].forEach(a => AREA_STATE[a] = 'PA');
 ['239','305','786','645','321','352','386','407','689','561','727','754','772','813','850','863','904','941','954','448','656','324'].forEach(a => AREA_STATE[a] = 'FL');
 function stateOfNumber(n) { const d = String(n || '').replace(/\D/g, '').replace(/^1(?=\d{10}$)/, ''); return AREA_STATE[d.slice(0, 3)] || ''; }
+/* Local presence: same area code as the lead first, then the rep's own number, then any number in that state. */
 function localCallerFor(u, to) {
+  const nums = twilioNumbers(), mine = callerFor(u);
+  const ac3 = n => String(n || '').replace(/\D/g, '').replace(/^1(?=\d{10}$)/, '').slice(0, 3);
+  const ac = ac3(to);
+  if (ac3(mine) === ac) return mine;
+  const same = nums.find(n => ac3(n) === ac); if (same) return same;
   const st = stateOfNumber(to);
-  if (st) {
-    const match = twilioNumbers().find(n => stateOfNumber(n) === st);
-    if (match) return match;
-  }
-  return callerFor(u);
+  if (st && stateOfNumber(mine) === st) return mine;
+  if (st) { const m = nums.find(n => stateOfNumber(n) === st); if (m) return m; }
+  return mine;
 }
 function twilioNumbers() {
-  const list = [process.env.TWILIO_FROM, process.env.TWILIO_FROM2, ownerFrom()].filter(Boolean).map(twE164);
+  const synced = (TW_NUMS || []).map(n => twE164(n.phone || n)).filter(Boolean);
+  const list = synced.length ? synced : [process.env.TWILIO_FROM, process.env.TWILIO_FROM2, ownerFrom()].filter(Boolean).map(twE164);
   return list.filter((x, i) => list.indexOf(x) === i);
 }
+/* Twilio REST with the API key already used for the dialer */
+async function twilioApi(method, path, params, host) {
+  const sid = process.env.TWILIO_ACCOUNT_SID, key = process.env.TWILIO_API_KEY_SID, sec = process.env.TWILIO_API_KEY_SECRET;
+  if (!sid || !key || !sec) throw new Error('Twilio keys are not set.');
+  const base = host || ('https://api.twilio.com/2010-04-01/Accounts/' + sid);
+  const qs = params ? new URLSearchParams(params).toString() : '';
+  const url = base + path + (method === 'GET' && qs ? '?' + qs : '');
+  const r = await fetch(url, { method, headers: { 'Authorization': 'Basic ' + Buffer.from(key + ':' + sec).toString('base64'),
+    'Content-Type': 'application/x-www-form-urlencoded' }, body: method === 'GET' || method === 'DELETE' ? undefined : qs });
+  if (method === 'DELETE' && r.status === 204) return {};
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error('Twilio: ' + (j.message || ('HTTP ' + r.status)));
+  return j;
+}
+async function twilioSyncNumbers(sqlFn) {
+  const j = await twilioApi('GET', '/IncomingPhoneNumbers.json', { PageSize: 100 });
+  const list = (j.incoming_phone_numbers || []).map(n => ({ sid: n.sid, phone: n.phone_number, name: n.friendly_name, voice_url: n.voice_url, created: n.date_created }));
+  TW_NUMS = list;
+  await sqlFn`INSERT INTO kv (k, v) VALUES ('twilio_numbers', ${JSON.stringify(list)}) ON CONFLICT (k) DO UPDATE SET v=${JSON.stringify(list)}`;
+  return list;
+}
+/* Lead check: is this really the business Google says it is? */
+async function verifyLeads(list, vertical) {
+  const out = [];
+  const digits = s => String(s || '').replace(/\D/g, '');
+  for (let i = 0; i < list.length; i += 12) {
+    const batch = list.slice(i, i + 12);
+    const pages = await Promise.all(batch.map(b => b.website ? fetchQuick(/^https?:/.test(b.website) ? b.website : 'https://' + b.website, 4500) : Promise.resolve(null)));
+    batch.forEach((b, k) => {
+      const html = pages[k];
+      const ph = digits(b.phone).slice(-10);
+      if (!b.website) { out.push(Object.assign(b, { vcheck: 'nosite', vnote: 'No website (great web design prospect; confirm the name when they answer)' })); return; }
+      if (html === '' || html == null) { out.push(Object.assign(b, { vcheck: 'unreachable', vnote: 'Website did not load; confirm the name on the call' })); return; }
+      const page = digits(html);
+      const phoneOnSite = ph.length === 10 && (page.indexOf(ph) > -1 || page.indexOf('1' + ph) > -1);
+      const nameOk = domainMatchesName(domainOf(b.website), b.name) || nameTokens(b.name).filter(w => w.length > 3 && !NAME_FILLER.has(w)).some(w => html.toLowerCase().indexOf(w) > -1);
+      if (phoneOnSite) out.push(Object.assign(b, { vcheck: 'phone', vnote: 'Phone number confirmed on their own website' }));
+      else if (nameOk) out.push(Object.assign(b, { vcheck: 'name', vnote: 'Business name confirmed on their website (phone not listed there)' }));
+      /* site loads, but neither the phone nor the name is on it: almost always the wrong business, drop it */
+    });
+  }
+  const rank = { phone: 0, name: 1, nosite: 2, unreachable: 3 };
+  return out.sort((a, b) => rank[a.vcheck] - rank[b.vcheck]);
+}
+/* Places type hints for stricter results on common trades (falls back to plain text search if Google rejects it) */
+const PLACE_TYPES = [[/roof/i, 'roofing_contractor'], [/plumb/i, 'plumber'], [/electric/i, 'electrician'], [/paint/i, 'painter'], [/locksmith/i, 'locksmith'], [/mov(er|ing)/i, 'moving_company'], [/dent/i, 'dentist']];
+function placeTypeFor(vertical) { const m = PLACE_TYPES.find(x => x[0].test(String(vertical || ''))); return m ? m[1] : ''; }
 function b64url(buf) {
   return Buffer.from(buf).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
@@ -875,7 +932,7 @@ async function waveLedger(sqlFn) {
   return { accts, today };
 }
 
-module.exports = { waveLedger, waveSync, waveBusiness, waveGql, waveMeta, waveCustomerCreate, waveInvoiceCreate, waveInvoiceApprove, waveInvoiceSend, waveInvoiceGet, wavePaymentCreate, waveInvoiceDelete, waveUpsertInvoice, cleanLeads, domainOf, detectLeadPlatforms, hashPass, docusealTemplate, LP_FEATURES, LP750_EXTRA, sql, ensureSchema, userFromToken, login, sendMail, placesSearch, scrapeEmails, isChain, geocodeCity, placesBiased, inStormZone, twE164, twilioReady, twilioNumbers, twilioToken, upsertCompany, STAGE_RANK, docusealSend, waveLink, kpiTarget, kpiBonus,
+module.exports = { twilioApi, twilioSyncNumbers, twilioNumberList, verifyLeads, placeTypeFor, waveLedger, waveSync, waveBusiness, waveGql, waveMeta, waveCustomerCreate, waveInvoiceCreate, waveInvoiceApprove, waveInvoiceSend, waveInvoiceGet, wavePaymentCreate, waveInvoiceDelete, waveUpsertInvoice, cleanLeads, domainOf, detectLeadPlatforms, hashPass, docusealTemplate, LP_FEATURES, LP750_EXTRA, sql, ensureSchema, userFromToken, login, sendMail, placesSearch, scrapeEmails, isChain, geocodeCity, placesBiased, inStormZone, twE164, twilioReady, twilioNumbers, twilioToken, upsertCompany, STAGE_RANK, docusealSend, waveLink, kpiTarget, kpiBonus,
                    PRODUCTS, seqTemplates, auditUrl, normPhone, uid,
                    sendProspectMail, prospectReplyTo, prospectBcc, SEQ_GAPS, territoryFor, callerFor, ownerFrom,
                    localCallerFor, stateOfNumber };
